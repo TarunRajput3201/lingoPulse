@@ -11,6 +11,9 @@ dist/
 build/
 .expo/
 *.orig.*
+*.apk
+local.properties
+
 
 # Environment variables
 .env
