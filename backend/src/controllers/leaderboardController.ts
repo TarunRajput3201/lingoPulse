@@ -21,6 +21,7 @@ export const getWeeklyLeaderboard = async (req: AuthenticatedRequest, res: Respo
       rank: index + 1,
       userId: entry.userId?._id?.toString() || entry.userId,
       displayName: entry.userId?.displayName || entry.userId?.username || 'Learner',
+      username: entry.userId?.username,
       avatarUrl: entry.userId?.avatarUrl,
       weeklyXp: entry.weeklyXp,
       isCurrentUser,

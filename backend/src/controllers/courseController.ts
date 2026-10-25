@@ -42,56 +42,55 @@ export const getCoursePath = async (req: AuthenticatedRequest, res: Response): P
   let foundCurrentLesson = false;
   let allPreviousCompleted = true;
 
-  const structuredUnits = await Promise.all(
-    units.map(async (unit) => {
-      const lessons = await Lesson.find({ unitId: unit._id, status: 'published' }).sort({ lessonNumber: 1 });
+  const structuredUnits = [];
+  for (const unit of units) {
+    const lessons = await Lesson.find({ unitId: unit._id, status: 'published' }).sort({ lessonNumber: 1 });
 
-      const lessonSummaries = lessons.map((lesson) => {
-        const lessonIdStr = lesson._id.toString();
-        const isCompleted = completedLessonIdSet.has(lessonIdStr);
+    const lessonSummaries = lessons.map((lesson) => {
+      const lessonIdStr = lesson._id.toString();
+      const isCompleted = completedLessonIdSet.has(lessonIdStr);
 
-        let isLocked = false;
-        let isCurrent = false;
+      let isLocked = false;
+      let isCurrent = false;
 
-        if (isCompleted) {
-          isLocked = false;
-        } else if (allPreviousCompleted) {
-          // First incomplete lesson in the whole sequence
-          isLocked = false;
-          if (!foundCurrentLesson) {
-            isCurrent = true;
-            foundCurrentLesson = true;
-          }
-          allPreviousCompleted = false; // Next ones must be locked
-        } else {
-          isLocked = true;
+      if (isCompleted) {
+        isLocked = false;
+      } else if (allPreviousCompleted) {
+        // First incomplete lesson in the whole sequence
+        isLocked = false;
+        if (!foundCurrentLesson) {
+          isCurrent = true;
+          foundCurrentLesson = true;
         }
-
-        return {
-          id: lessonIdStr,
-          unitId: unit._id.toString(),
-          title: lesson.title,
-          lessonNumber: lesson.lessonNumber,
-          type: lesson.type,
-          xpReward: lesson.xpReward,
-          isCompleted,
-          isLocked,
-          isCurrent,
-        };
-      });
+        allPreviousCompleted = false; // Next ones must be locked
+      } else {
+        isLocked = true;
+      }
 
       return {
-        id: unit._id.toString(),
-        courseId: course._id.toString(),
-        unitNumber: unit.unitNumber,
-        title: unit.title,
-        description: unit.description,
-        themeColor: unit.themeColor,
-        icon: unit.icon,
-        lessons: lessonSummaries,
+        id: lessonIdStr,
+        unitId: unit._id.toString(),
+        title: lesson.title,
+        lessonNumber: lesson.lessonNumber,
+        type: lesson.type,
+        xpReward: lesson.xpReward,
+        isCompleted,
+        isLocked,
+        isCurrent,
       };
-    })
-  );
+    });
+
+    structuredUnits.push({
+      id: unit._id.toString(),
+      courseId: course._id.toString(),
+      unitNumber: unit.unitNumber,
+      title: unit.title,
+      description: unit.description,
+      themeColor: unit.themeColor,
+      icon: unit.icon,
+      lessons: lessonSummaries,
+    });
+  }
 
   res.json({
     course: {

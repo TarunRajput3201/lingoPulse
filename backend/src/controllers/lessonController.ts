@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { Types } from 'mongoose';
 import { Lesson } from '../models/Lesson';
+import { Unit } from '../models/Unit';
 import { Exercise } from '../models/Exercise';
 import { Progress } from '../models/Progress';
 import { Attempt } from '../models/Attempt';
@@ -98,6 +99,8 @@ export const submitAnswer = async (req: AuthenticatedRequest, res: Response): Pr
     correctAnswer: validation.correctAnswer,
     explanation: validation.explanation,
     hint: validation.hint,
+    pedagogicalTip: validation.pedagogicalTip,
+    hasAccentWarning: validation.hasAccentWarning,
     heartsRemaining,
   });
 };
@@ -158,12 +161,17 @@ export const completeLesson = async (req: AuthenticatedRequest, res: Response): 
       xpEarned: xpAwarded,
     });
 
-    // Recalculate course percentage
-    const allUnits = await Lesson.find({ status: 'published' });
-    const totalPublishedCount = allUnits.length || 1;
+    // Recalculate course percentage scoped to this course
+    const courseUnits = await Unit.find({ courseId, status: 'published' });
+    const unitIds = courseUnits.map((u) => u._id);
+    const totalCourseLessons = await Lesson.countDocuments({
+      unitId: { $in: unitIds },
+      status: 'published',
+    });
+    const totalCount = totalCourseLessons || 1;
     progress.courseCompletionPercentage = Math.min(
       100,
-      Math.round((progress.completedLessons.length / totalPublishedCount) * 100)
+      Math.round((progress.completedLessons.length / totalCount) * 100)
     );
   }
 

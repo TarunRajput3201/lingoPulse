@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-10-25T15:42:45.865Z",
+  "totalCourses": 2,
+  "totalUnits": 3,
+  "totalLessons": 7,
+  "totalExercises": 29,
+  "cefrCompliance": [
+    {
+      "courseCode": "es-en",
+      "targetLevel": "CEFR A1",
+      "score": 96,
+      "aligned": true,
+      "reasoning": "Covers personal introductions, greetings, food & beverage ordering, directions, and public transportation. Exercises balance receptive and productive skills with multi-modal checkpoints."
+    },
+    {
+      "courseCode": "fr-en",
+      "targetLevel": "CEFR A1",
+      "score": 94,
+      "aligned": true,
+      "reasoning": "Introduces essential French politeness formula (bonjour, merci beaucoup, s'il vous plaît), basic café transactions, listening comprehension, and speaking pronunciation."
+    }
+  ],
+  "issues": [],
+  "summary": {
+    "criticalCount": 0,
+    "highCount": 0,
+    "mediumCount": 0,
+    "lowCount": 0,
+    "infoCount": 0,
+    "passRate": "100%"
+  }
+}

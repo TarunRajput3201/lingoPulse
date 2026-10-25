@@ -18,8 +18,8 @@ import { requireAdmin } from '../middleware/adminAuth';
 
 const router = Router();
 
-// Require auth and admin for all endpoints
-router.use(authenticate, requireAdmin);
+// Require admin key or admin token for all endpoints
+router.use(requireAdmin);
 
 router.get('/analytics', adminGetAnalytics);
 

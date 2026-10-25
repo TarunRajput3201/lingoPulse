@@ -271,6 +271,8 @@ export interface SubmitAnswerResponse {
   correctAnswer: string | string[] | { [key: string]: string };
   explanation?: string;
   hint?: string;
+  pedagogicalTip?: string;
+  hasAccentWarning?: boolean;
   heartsRemaining: number;
 }
 

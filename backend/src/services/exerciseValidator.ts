@@ -5,19 +5,72 @@ export interface ValidationResult {
   correctAnswer: any;
   explanation: string;
   hint?: string;
+  pedagogicalTip?: string;
+  hasAccentWarning?: boolean;
 }
 
 export class ExerciseValidator {
   /**
-   * Helper to normalize text: removes excess spaces, converts to lowercase, trims punctuation.
+   * Helper to normalize text:
+   * - converts smart punctuation to standard
+   * - converts to lowercase
+   * - strips punctuation (including Spanish ¿ and ¡)
+   * - collapses extra spaces
    */
-  private static normalizeText(text: string): string {
+  public static normalizeText(text: string): string {
     if (!text) return '';
     return text
       .trim()
       .toLowerCase()
-      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿¡!]/g, '')
+      .replace(/[“”]/g, '"')
+      .replace(/[‘’]/g, "'")
+      .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?¿¡!"«»]/g, '')
       .replace(/\s+/g, ' ');
+  }
+
+  /**
+   * Helper to strip Unicode diacritics and accents (e.g. á -> a, é -> e, ñ -> n)
+   */
+  public static stripAccents(text: string): string {
+    if (!text) return '';
+    return text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  /**
+   * Compares user input against a list of acceptable answers with accent tolerance.
+   * If exact match: isCorrect=true, hasAccentWarning=false
+   * If matched without accents: isCorrect=true, hasAccentWarning=true (soft reminder, no heart loss)
+   */
+  public static compareWithAccentTolerance(
+    userInput: string,
+    acceptableAnswers: string[]
+  ): { isCorrect: boolean; hasAccentWarning: boolean; canonicalMatch: string } {
+    if (!acceptableAnswers || acceptableAnswers.length === 0) {
+      return { isCorrect: false, hasAccentWarning: false, canonicalMatch: '' };
+    }
+
+    const normUser = this.normalizeText(userInput);
+
+    // 1. Exact normalized match (including accents)
+    for (const ans of acceptableAnswers) {
+      if (this.normalizeText(ans) === normUser) {
+        return { isCorrect: true, hasAccentWarning: false, canonicalMatch: ans };
+      }
+    }
+
+    // 2. Accent-tolerant match (NFD diacritic stripping)
+    const strippedUser = this.stripAccents(normUser);
+    for (const ans of acceptableAnswers) {
+      const strippedAns = this.stripAccents(this.normalizeText(ans));
+      if (strippedAns === strippedUser) {
+        return { isCorrect: true, hasAccentWarning: true, canonicalMatch: ans };
+      }
+    }
+
+    // 3. No match
+    return { isCorrect: false, hasAccentWarning: false, canonicalMatch: acceptableAnswers[0] };
   }
 
   /**
@@ -28,13 +81,21 @@ export class ExerciseValidator {
 
     switch (exercise.type) {
       case 'MULTIPLE_CHOICE': {
-        const correctId = data.correctOptionId;
-        const isCorrect = String(userAnswer).trim() === String(correctId).trim();
-        const correctOption = data.options?.find((opt: any) => String(opt.id) === String(correctId));
+        const correctId = String(data.correctOptionId || '').trim();
+        const correctOption = data.options?.find((opt: any) => String(opt.id).trim() === correctId);
+        const correctText = correctOption ? correctOption.text : correctId;
+
+        const rawUser = String(userAnswer || '').trim();
+        const normUser = this.normalizeText(rawUser);
+
+        // Check matching by ID or by option text
+        const isMatchById = rawUser === correctId;
+        const isMatchByText = correctOption && this.normalizeText(correctOption.text) === normUser;
+        const isCorrect = Boolean(isMatchById || isMatchByText);
 
         return {
           isCorrect,
-          correctAnswer: correctOption ? correctOption.text : String(correctId),
+          correctAnswer: correctText,
           explanation: exercise.explanation || data.explanation || '',
           hint: exercise.hint,
         };
@@ -42,47 +103,70 @@ export class ExerciseValidator {
 
       case 'FILL_IN_THE_BLANK': {
         const acceptable: string[] = data.acceptableAnswers || [];
-        const normalizedUser = this.normalizeText(String(userAnswer));
-        const isCorrect = acceptable.some((ans) => this.normalizeText(ans) === normalizedUser);
+        const { isCorrect, hasAccentWarning, canonicalMatch } = this.compareWithAccentTolerance(
+          String(userAnswer || ''),
+          acceptable
+        );
+
+        let pedagogicalTip: string | undefined;
+        if (hasAccentWarning) {
+          pedagogicalTip = `Great job! Notice the accent mark in "${canonicalMatch}".`;
+        }
 
         return {
           isCorrect,
-          correctAnswer: acceptable[0] || '',
-          explanation: exercise.explanation || `The correct word is "${acceptable[0]}".`,
+          hasAccentWarning,
+          pedagogicalTip,
+          correctAnswer: canonicalMatch || acceptable[0] || '',
+          explanation: exercise.explanation || `The correct word is "${canonicalMatch || acceptable[0]}".`,
           hint: exercise.hint,
         };
       }
 
       case 'TRANSLATION': {
         const acceptable: string[] = data.acceptableAnswers || [];
-        const normalizedUser = this.normalizeText(String(userAnswer));
-        const isCorrect = acceptable.some((ans) => this.normalizeText(ans) === normalizedUser);
+        const { isCorrect, hasAccentWarning, canonicalMatch } = this.compareWithAccentTolerance(
+          String(userAnswer || ''),
+          acceptable
+        );
+
+        let pedagogicalTip: string | undefined;
+        if (hasAccentWarning) {
+          pedagogicalTip = `Correct translation! Watch the accent marks: "${canonicalMatch}".`;
+        }
 
         return {
           isCorrect,
-          correctAnswer: acceptable[0] || '',
-          explanation: exercise.explanation || `Correct translation: "${acceptable[0]}"`,
+          hasAccentWarning,
+          pedagogicalTip,
+          correctAnswer: canonicalMatch || acceptable[0] || '',
+          explanation: exercise.explanation || `Correct translation: "${canonicalMatch || acceptable[0]}"`,
           hint: exercise.hint,
         };
       }
 
       case 'WORD_ORDER': {
         const correctOrder: string[] = data.correctOrder || [];
-        let isCorrect = false;
+        const fullSent = data.fullSentence || correctOrder.join(' ');
+        const acceptableList = [fullSent, correctOrder.join(' ')];
 
+        let userString = '';
         if (Array.isArray(userAnswer)) {
-          const userJoined = userAnswer.map((w) => this.normalizeText(w)).join(' ');
-          const correctJoined = correctOrder.map((w) => this.normalizeText(w)).join(' ');
-          isCorrect = userJoined === correctJoined;
+          userString = userAnswer.join(' ');
         } else if (typeof userAnswer === 'string') {
-          const userNorm = this.normalizeText(userAnswer);
-          const fullSent = this.normalizeText(data.fullSentence || correctOrder.join(' '));
-          isCorrect = userNorm === fullSent;
+          userString = userAnswer;
         }
+
+        const { isCorrect, hasAccentWarning, canonicalMatch } = this.compareWithAccentTolerance(
+          userString,
+          acceptableList
+        );
 
         return {
           isCorrect,
-          correctAnswer: data.fullSentence || correctOrder.join(' '),
+          hasAccentWarning,
+          pedagogicalTip: hasAccentWarning ? `Correct order! Remember: "${canonicalMatch}"` : undefined,
+          correctAnswer: fullSent,
           explanation: exercise.explanation || '',
           hint: exercise.hint,
         };
@@ -90,41 +174,53 @@ export class ExerciseValidator {
 
       case 'SENTENCE_CONSTRUCTION': {
         const correctSentence: string[] = data.correctSentence || [];
-        let isCorrect = false;
-
-        if (Array.isArray(userAnswer)) {
-          const userJoined = userAnswer.map((w) => this.normalizeText(w)).join(' ');
-          const correctJoined = correctSentence.map((w) => this.normalizeText(w)).join(' ');
-          isCorrect = userJoined === correctJoined;
-        } else if (typeof userAnswer === 'string') {
-          const userNorm = this.normalizeText(userAnswer);
-          const fullSent = this.normalizeText(correctSentence.join(' '));
-          isCorrect = userNorm === fullSent;
+        const fullSent = correctSentence.join(' ');
+        const acceptableList = [fullSent];
+        if (data.acceptableSentences && Array.isArray(data.acceptableSentences)) {
+          acceptableList.push(...data.acceptableSentences);
         }
+
+        let userString = '';
+        if (Array.isArray(userAnswer)) {
+          userString = userAnswer.join(' ');
+        } else if (typeof userAnswer === 'string') {
+          userString = userAnswer;
+        }
+
+        const { isCorrect, hasAccentWarning, canonicalMatch } = this.compareWithAccentTolerance(
+          userString,
+          acceptableList
+        );
 
         return {
           isCorrect,
-          correctAnswer: correctSentence.join(' '),
+          hasAccentWarning,
+          pedagogicalTip: hasAccentWarning ? `Almost perfect! Notice the accents: "${canonicalMatch}"` : undefined,
+          correctAnswer: fullSent,
           explanation: exercise.explanation || '',
           hint: exercise.hint,
         };
       }
 
       case 'MATCHING_PAIRS': {
-        // Pairs structure: [{ id, leftText, rightText }]
-        // User answers should be map of leftId -> rightId or array of matched pairs
         const pairs: Array<{ id: string; leftText: string; rightText: string }> = data.pairs || [];
         let correctCount = 0;
 
         if (typeof userAnswer === 'object' && userAnswer !== null) {
           pairs.forEach((pair) => {
-            if (userAnswer[pair.id] === pair.id || userAnswer[pair.leftText] === pair.rightText) {
-              correctCount++;
+            const userRight = userAnswer[pair.id] ?? userAnswer[pair.leftText];
+            if (userRight !== undefined) {
+              const matchedById = String(userRight).trim() === String(pair.id).trim();
+              const matchedByText =
+                this.normalizeText(String(userRight)) === this.normalizeText(pair.rightText);
+              if (matchedById || matchedByText) {
+                correctCount++;
+              }
             }
           });
         }
 
-        const isCorrect = correctCount === pairs.length;
+        const isCorrect = pairs.length > 0 && correctCount === pairs.length;
 
         return {
           isCorrect,
@@ -135,13 +231,18 @@ export class ExerciseValidator {
       }
 
       case 'IMAGE_SELECT': {
-        const correctId = data.correctOptionId;
-        const isCorrect = String(userAnswer).trim() === String(correctId).trim();
-        const correctOption = data.options?.find((opt: any) => String(opt.id) === String(correctId));
+        const correctId = String(data.correctOptionId || '').trim();
+        const correctOption = data.options?.find((opt: any) => String(opt.id).trim() === correctId);
+        const correctText = correctOption ? correctOption.text : correctId;
+
+        const rawUser = String(userAnswer || '').trim();
+        const isMatchById = rawUser === correctId;
+        const isMatchByText = correctOption && this.normalizeText(correctOption.text) === this.normalizeText(rawUser);
+        const isCorrect = Boolean(isMatchById || isMatchByText);
 
         return {
           isCorrect,
-          correctAnswer: correctOption ? correctOption.text : String(correctId),
+          correctAnswer: correctText,
           explanation: exercise.explanation || '',
           hint: exercise.hint,
         };
@@ -150,8 +251,12 @@ export class ExerciseValidator {
       case 'LISTENING_COMPREHENSION': {
         const correctId = data.correctOptionId;
         if (correctId) {
-          const isCorrect = String(userAnswer).trim() === String(correctId).trim();
           const correctOption = data.options?.find((opt: any) => String(opt.id) === String(correctId));
+          const rawUser = String(userAnswer || '').trim();
+          const isCorrect =
+            rawUser === String(correctId).trim() ||
+            (correctOption && this.normalizeText(correctOption.text) === this.normalizeText(rawUser));
+
           return {
             isCorrect,
             correctAnswer: correctOption ? correctOption.text : data.transcript || '',
@@ -159,12 +264,18 @@ export class ExerciseValidator {
             hint: exercise.hint,
           };
         } else {
-          // If free text transcript match
-          const normalizedUser = this.normalizeText(String(userAnswer));
-          const normalizedTranscript = this.normalizeText(data.transcript || '');
-          const isCorrect = normalizedUser === normalizedTranscript;
+          // Free text transcript match
+          const acceptable = [data.transcript || ''];
+          if (Array.isArray(data.acceptableAnswers)) acceptable.push(...data.acceptableAnswers);
+          const { isCorrect, hasAccentWarning, canonicalMatch } = this.compareWithAccentTolerance(
+            String(userAnswer || ''),
+            acceptable
+          );
+
           return {
             isCorrect,
+            hasAccentWarning,
+            pedagogicalTip: hasAccentWarning ? `Great listening! Note the accent in: "${canonicalMatch}"` : undefined,
             correctAnswer: data.transcript,
             explanation: exercise.explanation || `Transcript: "${data.transcript}"`,
             hint: exercise.hint,
@@ -186,19 +297,18 @@ export class ExerciseValidator {
       }
 
       case 'SPEAKING_PRONUNCIATION': {
-        const target = this.normalizeText(data.phraseToSpeak || exercise.prompt);
-        const spoken = this.normalizeText(String(userAnswer));
+        const target = this.stripAccents(this.normalizeText(data.phraseToSpeak || exercise.prompt));
+        const spoken = this.stripAccents(this.normalizeText(String(userAnswer || '')));
 
-        // Token match similarity calculation
-        const targetWords = target.split(' ');
-        const spokenWords = spoken.split(' ');
+        const targetWords = target.split(' ').filter(Boolean);
+        const spokenWords = spoken.split(' ').filter(Boolean);
         let matches = 0;
         targetWords.forEach((word) => {
           if (spokenWords.includes(word)) matches++;
         });
 
         const similarity = targetWords.length > 0 ? matches / targetWords.length : 0;
-        const isCorrect = similarity >= 0.75; // 75% accuracy threshold for speech
+        const isCorrect = similarity >= 0.70; // 70% threshold for mobile speech input
 
         return {
           isCorrect,
