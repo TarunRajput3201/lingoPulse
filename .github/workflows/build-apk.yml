@@ -11,6 +11,11 @@ on:
         options:
           - debug
           - release
+      api_url:
+        description: 'Live Backend URL (e.g. https://lingopulse-api.onrender.com)'
+        required: false
+        default: ''
+        type: string
   push:
     branches:
       - main
@@ -60,6 +65,18 @@ jobs:
               console.log('Patched ExpoModulesCorePlugin.gradle successfully');
             }
           "
+
+      - name: Configure Live API URL
+        working-directory: mobile
+        run: |
+          API="${{ inputs.api_url }}"
+          if [ -z "$API" ]; then
+            API="${{ vars.EXPO_PUBLIC_API_URL }}"
+          fi
+          if [ -n "$API" ]; then
+            echo "EXPO_PUBLIC_API_URL=$API" >> .env
+            echo "Configured EXPO_PUBLIC_API_URL=$API"
+          fi
 
       - name: Make Gradle executable
         working-directory: mobile/android
