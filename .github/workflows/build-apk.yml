@@ -84,11 +84,20 @@ jobs:
 
       - name: Build Android APK
         working-directory: mobile/android
-        run: ./gradlew assembleDebug --no-daemon
+        run: |
+          BUILD_TYPE="${{ inputs.build_type }}"
+          if [ -z "$BUILD_TYPE" ]; then
+            BUILD_TYPE="release"
+          fi
+          if [ "$BUILD_TYPE" = "debug" ]; then
+            ./gradlew assembleDebug --no-daemon
+          else
+            ./gradlew assembleRelease --no-daemon
+          fi
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LingoPulse-v1.0.0-debug-apk
-          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          name: LingoPulse-v1.0.0-apk
+          path: mobile/android/app/build/outputs/apk/*/*.apk
           retention-days: 14
