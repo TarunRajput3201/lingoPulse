@@ -27,7 +27,20 @@ export const createApp = (): express.Application => {
   app.use('/assets', express.static(path.join(__dirname, '../public/assets')));
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-  // Health check
+  // Health checks
+  app.get('/', (req, res) => {
+    res.json({
+      status: 'healthy',
+      app: 'LingoPulse API',
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  app.get('/healthz', (req, res) => {
+    res.status(200).send('OK');
+  });
+
   app.get('/api/health', (req, res) => {
     res.json({
       status: 'healthy',
