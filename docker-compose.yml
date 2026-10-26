@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: lingopulse-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: lingopulse
+    volumes:
+      - mongo-data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: lingopulse-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      MONGO_URI: mongodb://mongodb:27017/lingopulse
+      JWT_SECRET: super_secret_lingopulse_jwt_key_2026
+      JWT_EXPIRES_IN: 30d
+      ADMIN_SECRET_KEY: admin_secret_lingo_master_key
+      CLIENT_ORIGIN: "*"
+    depends_on:
+      - mongodb
+
+  mongo-express:
+    image: mongo-express:1.0.2
+    container_name: lingopulse-mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_SERVER: mongodb
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: pass
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo-data:
