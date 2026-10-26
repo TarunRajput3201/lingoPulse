@@ -7,21 +7,27 @@ import { Lesson } from '../models/Lesson';
 import { Exercise } from '../models/Exercise';
 import { Achievement } from '../models/Achievement';
 
-export const seedDatabase = async () => {
+export const seedDatabase = async (options: { preserveUsers?: boolean } = {}) => {
   console.log('🌱 Starting LingoPulse Database Seeding...');
-  await mongoose.connect(ENV.MONGO_URI);
+  if (mongoose.connection.readyState !== 1) {
+    await mongoose.connect(ENV.MONGO_URI);
+  }
 
-  // Clear existing collections
-  await Promise.all([
-    User.deleteMany({}),
+  // Clear existing curriculum collections
+  const clearPromises: Promise<any>[] = [
     Course.deleteMany({}),
     Unit.deleteMany({}),
     Lesson.deleteMany({}),
     Exercise.deleteMany({}),
     Achievement.deleteMany({}),
-  ]);
+  ];
 
-  console.log('🧹 Cleared existing database records.');
+  if (!options.preserveUsers) {
+    clearPromises.push(User.deleteMany({}));
+  }
+
+  await Promise.all(clearPromises);
+  console.log('🧹 Cleared existing curriculum records.');
 
   // 1. Seed Achievements
   const achievements = await Achievement.create([
