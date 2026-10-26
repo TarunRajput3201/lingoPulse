@@ -39,12 +39,27 @@ jobs:
           cache: 'npm'
           cache-dependency-path: mobile/package-lock.json
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Accept Android SDK Licenses
+        run: |
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Install mobile dependencies
         working-directory: mobile
         run: npm ci
+
+      - name: Patch Expo Modules Gradle Plugin
+        working-directory: mobile
+        run: |
+          node -e "
+            const fs = require('fs');
+            const file = 'node_modules/expo-modules-core/android/ExpoModulesCorePlugin.gradle';
+            if (fs.existsSync(file)) {
+              let c = fs.readFileSync(file, 'utf8');
+              c = c.replace('from components.release', 'def rel = components.findByName(\"release\"); if (rel != null) { from rel }');
+              fs.writeFileSync(file, c);
+              console.log('Patched ExpoModulesCorePlugin.gradle successfully');
+            }
+          "
 
       - name: Make Gradle executable
         working-directory: mobile/android
