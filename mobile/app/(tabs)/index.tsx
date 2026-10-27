@@ -42,11 +42,20 @@ export default function HomeScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const courseJson = await courseRes.json();
-      const firstCourse = courseJson.courses?.[0];
+      const allCourses = courseJson.courses || [];
+      const userTarget = user?.targetLanguage?.toLowerCase();
+      const matchedCourse = allCourses.find((c: any) => {
+        if (!userTarget) return false;
+        return (
+          c.toLanguage?.toLowerCase() === userTarget ||
+          c.code?.toLowerCase().startsWith(userTarget) ||
+          c.title?.toLowerCase().includes(userTarget)
+        );
+      }) || allCourses[0];
 
-      if (firstCourse) {
+      if (matchedCourse) {
         // 2. Fetch learning path for this course
-        const pathRes = await fetch(ENDPOINTS.COURSE_PATH(firstCourse._id), {
+        const pathRes = await fetch(ENDPOINTS.COURSE_PATH(matchedCourse._id), {
           headers: { Authorization: `Bearer ${token}` },
         });
         const pathJson = await pathRes.json();

@@ -29,9 +29,15 @@ export const CourseManager: React.FC = () => {
   const loadCourses = () => {
     setLoading(true);
     api.getCourses().then((data) => {
-      setCourses(data.courses || []);
-      if (data.courses?.length > 0 && !selectedCourse) {
-        selectCourse(data.courses[0]);
+      const fetchedCourses = data.courses || [];
+      setCourses(fetchedCourses);
+      if (fetchedCourses.length > 0) {
+        if (!selectedCourse) {
+          selectCourse(fetchedCourses[0]);
+        } else {
+          const updated = fetchedCourses.find((c: any) => c._id === selectedCourse._id);
+          if (updated) setSelectedCourse(updated);
+        }
       }
       setLoading(false);
     });

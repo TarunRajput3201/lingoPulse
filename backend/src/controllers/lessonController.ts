@@ -89,7 +89,7 @@ export const submitAnswer = async (req: AuthenticatedRequest, res: Response): Pr
     lessonId: exercise.lessonId,
     exerciseId: exercise._id,
     isCorrect: validation.isCorrect,
-    userAnswer,
+    userAnswer: userAnswer !== undefined ? userAnswer : '',
     durationMs: durationMs || 0,
     reviewed: false,
   });

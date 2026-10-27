@@ -150,7 +150,7 @@ export const completeOnboarding = async (req: AuthenticatedRequest, res: Respons
   user.hasCompletedOnboarding = true;
   await user.save();
 
-  res.json({ user: user.toSafeProfile() });
+  res.json({ success: true, user: user.toSafeProfile() });
 };
 
 export const deleteAccount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {

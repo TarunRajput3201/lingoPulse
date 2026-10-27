@@ -29,6 +29,7 @@ export const ExerciseEditor: React.FC = () => {
   const [scrambledWords, setScrambledWords] = useState('Mucho, gusto, tarde, hola');
   const [wordOrderCorrect, setWordOrderCorrect] = useState('Mucho, gusto');
   const [trueFalseVal, setTrueFalseVal] = useState(true);
+  const [matchingPairsInput, setMatchingPairsInput] = useState('Hola:Hello, Adiós:Goodbye, Gracias:Thank you');
 
   // Load initial courses
   useEffect(() => {
@@ -104,6 +105,32 @@ export const ExerciseEditor: React.FC = () => {
         statement: prompt,
         isTrue: trueFalseVal,
       };
+    } else if (type === 'MATCHING_PAIRS') {
+      const parsedPairs = matchingPairsInput.split(',').map((pair, idx) => {
+        const [left, right] = pair.split(':').map((s) => s.trim());
+        return {
+          id: `pair-${idx + 1}`,
+          left: left || '',
+          right: right || '',
+        };
+      });
+      exerciseData = { pairs: parsedPairs };
+    } else if (type === 'LISTENING_COMPREHENSION') {
+      exerciseData = {
+        audioUrl: audioUrl || 'https://assets.lingopulse.com/audio/hola.mp3',
+        acceptableAnswers: acceptableAnswer.split(',').map((s) => s.trim()),
+      };
+    } else if (type === 'SPEAKING_PRONUNCIATION') {
+      exerciseData = {
+        targetPhrase: prompt,
+        acceptableAnswers: acceptableAnswer.split(',').map((s) => s.trim()),
+        accuracyThreshold: 0.7,
+      };
+    } else if (type === 'SENTENCE_CONSTRUCTION') {
+      exerciseData = {
+        wordBank: scrambledWords.split(',').map((s) => s.trim()),
+        correctSentence: wordOrderCorrect.replace(/,/g, ' ').replace(/\s+/g, ' ').trim(),
+      };
     }
 
     await api.createExercise({
@@ -123,7 +150,10 @@ export const ExerciseEditor: React.FC = () => {
   };
 
   const handleDeleteExercise = async (exerciseId: string) => {
-    if (confirm('Are you sure you want to delete this exercise?')) {
+    const confirmed = typeof window !== 'undefined' && typeof window.confirm === 'function'
+      ? window.confirm('Are you sure you want to delete this exercise?')
+      : true;
+    if (confirmed) {
       await api.deleteExercise(exerciseId);
       loadExercises();
     }
@@ -204,6 +234,10 @@ export const ExerciseEditor: React.FC = () => {
                   <option value="WORD_ORDER">Word Ordering</option>
                   <option value="FILL_IN_THE_BLANK">Fill in the Blank</option>
                   <option value="TRUE_FALSE">True / False</option>
+                  <option value="MATCHING_PAIRS">Matching Pairs</option>
+                  <option value="LISTENING_COMPREHENSION">Listening Comprehension</option>
+                  <option value="SPEAKING_PRONUNCIATION">Speaking / Pronunciation</option>
+                  <option value="SENTENCE_CONSTRUCTION">Sentence Construction</option>
                 </select>
               </div>
 
@@ -315,6 +349,19 @@ export const ExerciseEditor: React.FC = () => {
                     className="w-full mt-1 p-2 rounded-lg border border-slate-300 text-sm font-bold"
                   />
                 </div>
+              </div>
+            )}
+
+            {type === 'MATCHING_PAIRS' && (
+              <div className="space-y-2 p-4 bg-slate-50 rounded-2xl border border-slate-200">
+                <label className="text-xs font-bold text-slate-600">Matching Pairs (left:right, comma-separated)</label>
+                <input
+                  type="text"
+                  value={matchingPairsInput}
+                  onChange={(e) => setMatchingPairsInput(e.target.value)}
+                  placeholder="Hola:Hello, Adiós:Goodbye, Gracias:Thank you"
+                  className="w-full mt-1 p-2 rounded-lg border border-slate-300 text-sm font-bold"
+                />
               </div>
             )}
 
@@ -432,6 +479,35 @@ export const ExerciseEditor: React.FC = () => {
                       {word.trim()}
                     </span>
                   ))}
+                </div>
+              )}
+
+              {type === 'MATCHING_PAIRS' && (
+                <div className="grid grid-cols-2 gap-2 pt-2">
+                  {matchingPairsInput.split(',').map((pair, i) => {
+                    const [left, right] = pair.split(':').map((s) => s.trim());
+                    return (
+                      <React.Fragment key={i}>
+                        <div className="p-2.5 rounded-xl border-2 border-slate-200 text-center font-bold text-xs bg-slate-50 text-slate-700">
+                          {left || '—'}
+                        </div>
+                        <div className="p-2.5 rounded-xl border-2 border-slate-200 text-center font-bold text-xs bg-slate-50 text-slate-700">
+                          {right || '—'}
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+              )}
+
+              {(type === 'LISTENING_COMPREHENSION' || type === 'SPEAKING_PRONUNCIATION') && (
+                <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                  <div className="w-12 h-12 rounded-full bg-blue-500 text-white flex items-center justify-center shadow">
+                    <Volume2 size={24} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-600">
+                    {type === 'LISTENING_COMPREHENSION' ? 'Tap to listen & transcribe' : 'Tap microphone & speak'}
+                  </span>
                 </div>
               )}
 

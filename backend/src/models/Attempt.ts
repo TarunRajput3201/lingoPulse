@@ -38,7 +38,8 @@ const AttemptSchema = new Schema<IAttempt>(
     },
     userAnswer: {
       type: Schema.Types.Mixed,
-      required: true,
+      required: false,
+      default: '',
     },
     durationMs: {
       type: Number,
