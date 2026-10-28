@@ -1,9 +1,9 @@
 import { Platform } from 'react-native';
 
-// In Android emulator, localhost is 10.0.2.2. On iOS simulator or web, it's localhost.
-const DEFAULT_HOST = Platform.OS === 'android' ? 'http://10.0.2.2:5000' : 'http://localhost:5000';
+// Production Render API as authoritative cloud backend
+const PRODUCTION_API_URL = 'https://lingopulse-api-84f2.onrender.com';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || DEFAULT_HOST;
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || PRODUCTION_API_URL;
 
 export const ENDPOINTS = {
   HEALTH: `${API_BASE_URL}/api/health`,

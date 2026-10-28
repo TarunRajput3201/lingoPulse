@@ -30,7 +30,10 @@ export default function ProfileScreen() {
   const [remindersEnabled, setRemindersEnabled] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     fetch(ENDPOINTS.ACHIEVEMENTS, {
       headers: { Authorization: `Bearer ${token}` },
     })

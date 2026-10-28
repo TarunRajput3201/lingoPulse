@@ -24,7 +24,10 @@ export default function PracticeScreen() {
   const [statusMessage, setStatusMessage] = useState('');
 
   const loadMistakes = async () => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch(ENDPOINTS.PRACTICE_MISTAKES, {
         headers: { Authorization: `Bearer ${token}` },

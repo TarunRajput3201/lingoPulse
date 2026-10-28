@@ -22,7 +22,10 @@ export default function CoursesScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     fetch(ENDPOINTS.COURSES, {
       headers: { Authorization: `Bearer ${token}` },
     })

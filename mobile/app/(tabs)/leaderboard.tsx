@@ -19,7 +19,10 @@ export default function LeaderboardScreen() {
   const [yearWeek, setYearWeek] = useState('');
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     fetch(ENDPOINTS.LEADERBOARD, {
       headers: { Authorization: `Bearer ${token}` },
     })

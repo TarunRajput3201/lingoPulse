@@ -19,7 +19,7 @@ import { HapticsService } from '../../src/services/hapticsService';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user, token } = useAuth();
+  const { user, token, isLoading } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,13 +29,16 @@ export default function HomeScreen() {
 
   // If learner is not logged in, redirect to login
   useEffect(() => {
-    if (!token && !loading) {
+    if (!isLoading && !token) {
       router.replace('/(auth)/login');
     }
-  }, [token, loading]);
+  }, [token, isLoading]);
 
   const loadLearningPath = async () => {
-    if (!token) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     try {
       // 1. Fetch available courses to get current course ID
       const courseRes = await fetch(ENDPOINTS.COURSES, {
@@ -127,7 +130,23 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
         }
       >
-        {units.map((unit, unitIdx) => (
+        {units.length === 0 ? (
+          <View style={{ alignItems: 'center', justifyContent: 'center', padding: 40, marginTop: 40 }}>
+            <Sparkles size={48} color={COLORS.primary} />
+            <Text style={{ fontSize: 18, fontWeight: '800', color: COLORS.charcoal, marginTop: 16 }}>
+              Welcome to LingoPulse!
+            </Text>
+            <Text style={{ fontSize: 14, color: COLORS.grayText, textAlign: 'center', marginTop: 8 }}>
+              Explore available courses to start your learning journey.
+            </Text>
+            <Button3D
+              title="Explore Courses"
+              onPress={() => router.push('/(tabs)/courses')}
+              style={{ marginTop: 24, width: 220 }}
+            />
+          </View>
+        ) : (
+          units.map((unit, unitIdx) => (
           <View key={unit.id} style={styles.unitSection}>
             {/* Unit Header Card */}
             <View
@@ -193,7 +212,7 @@ export default function HomeScreen() {
               })}
             </View>
           </View>
-        ))}
+        )))}
       </ScrollView>
 
       {/* Floating Continue Bottom Button */}

@@ -58,22 +58,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (savedToken) {
         setToken(savedToken);
-        if (savedUser) setUser(savedUser);
+        if (savedUser) {
+          setUser(savedUser);
+          // Instantly unblock UI with cached credentials
+          setIsLoading(false);
+        }
 
-        // Fetch fresh profile in background
-        const res = await fetch(ENDPOINTS.PROFILE, {
-          headers: { Authorization: `Bearer ${savedToken}` },
-        });
+        // Fetch fresh profile with safety timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
-          await StorageService.setUserCache(data.user);
-        } else if (res.status === 401) {
-          // Token expired
-          await StorageService.clearAll();
-          setToken(null);
-          setUser(null);
+        try {
+          const res = await fetch(ENDPOINTS.PROFILE, {
+            headers: { Authorization: `Bearer ${savedToken}` },
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (res.ok) {
+            const data = await res.json();
+            setUser(data.user);
+            await StorageService.setUserCache(data.user);
+          } else if (res.status === 401) {
+            // Token expired
+            await StorageService.clearAll();
+            setToken(null);
+            setUser(null);
+          }
+        } catch (fetchErr) {
+          console.warn('[AuthContext] Profile sync deferred or timed out:', fetchErr);
         }
       }
     } catch (e) {
