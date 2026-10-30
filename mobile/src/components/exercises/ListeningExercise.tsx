@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Volume2, Turtle } from 'lucide-react-native';
-import { COLORS, RADII } from '../../constants/theme';
+import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { SoundService } from '../../services/soundService';
 import { HapticsService } from '../../services/hapticsService';
 
@@ -17,12 +17,12 @@ interface ListeningExerciseProps {
 export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
   prompt,
   audioUrl,
-  options,
+  options = [],
   selectedOptionId,
   onSelectOption,
   disabled = false,
 }) => {
-  const handlePlayAudio = () => {
+  const handlePlayAudio = (isSlow: boolean = false) => {
     HapticsService.lightTap();
     SoundService.playRemoteAudio(audioUrl);
   };
@@ -34,14 +34,18 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
       {/* Audio Playback Controls */}
       <View style={styles.audioRow}>
         <Pressable
-          onPress={handlePlayAudio}
+          accessibilityRole="button"
+          accessibilityLabel="Play audio"
+          onPress={() => handlePlayAudio(false)}
           style={styles.bigAudioButton}
         >
           <Volume2 size={36} color={COLORS.white} />
         </Pressable>
 
         <Pressable
-          onPress={handlePlayAudio}
+          accessibilityRole="button"
+          accessibilityLabel="Play audio slowly"
+          onPress={() => handlePlayAudio(true)}
           style={styles.slowAudioButton}
         >
           <Turtle size={24} color={COLORS.secondaryDark} />
@@ -56,6 +60,9 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
             <Pressable
               key={opt.id}
               disabled={disabled}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isSelected, disabled }}
+              accessibilityLabel={`Answer option: ${opt.text}`}
               onPress={() => {
                 HapticsService.lightTap();
                 onSelectOption(opt.id);
@@ -86,7 +93,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   prompt: {
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: '800',
     color: COLORS.charcoal,
     lineHeight: 28,
@@ -112,10 +119,11 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#E0F2FE',
+    backgroundColor: COLORS.secondarySubtle,
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: '#BAE6FD',
+    borderBottomColor: '#7DD3FC',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -124,16 +132,18 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     padding: 18,
-    borderRadius: RADII.lg,
+    borderRadius: RADII.xl,
     backgroundColor: COLORS.white,
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: '#CBD5E1',
+    minHeight: 64,
   },
   optionCardSelected: {
     borderColor: COLORS.secondary,
     borderBottomColor: COLORS.secondaryDark,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: COLORS.secondarySubtle,
   },
   optionText: {
     fontSize: 16,

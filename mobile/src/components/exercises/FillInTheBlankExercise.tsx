@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
-import { COLORS, RADII } from '../../constants/theme';
+import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
 
 interface FillInTheBlankExerciseProps {
@@ -14,7 +14,7 @@ interface FillInTheBlankExerciseProps {
 
 export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
   prompt,
-  sentenceWithBlank,
+  sentenceWithBlank = '',
   options = [],
   selectedWord,
   onSelectWord,
@@ -26,18 +26,18 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
     <View style={styles.container}>
       <Text style={styles.prompt}>{prompt}</Text>
 
-      {/* Sentence with Blank Container */}
+      {/* Sentence with Blank Card */}
       <View style={styles.sentenceCard}>
         <Text style={styles.sentenceText}>
           {parts[0]}
           <Text style={styles.blankSlot}>
-            {selectedWord ? ` ${selectedWord} ` : ' ______ '}
+            {selectedWord ? ` ${selectedWord} ` : ' _______ '}
           </Text>
           {parts[1] || ''}
         </Text>
       </View>
 
-      {/* Word Options or Input */}
+      {/* Word Options Chips or Input */}
       {options && options.length > 0 ? (
         <View style={styles.optionsGrid}>
           {options.map((opt, idx) => {
@@ -54,6 +54,8 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
                   styles.optionButton,
                   isSelected && styles.optionButtonSelected,
                 ]}
+                accessibilityRole="button"
+                accessibilityLabel={`Word option: ${opt}`}
               >
                 <Text
                   style={[
@@ -74,7 +76,7 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
             value={selectedWord}
             onChangeText={onSelectWord}
             placeholder="Type missing word..."
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor="#94A3B8"
             style={styles.textInput}
             autoCapitalize="none"
           />
@@ -89,20 +91,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   prompt: {
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: '800',
     color: COLORS.charcoal,
     lineHeight: 28,
     marginBottom: 20,
   },
   sentenceCard: {
-    padding: 20,
-    borderRadius: RADII.lg,
+    padding: 24,
+    borderRadius: RADII.xl,
     backgroundColor: '#F8FAFC',
     borderWidth: 2,
     borderColor: COLORS.grayBorder,
-    marginBottom: 24,
+    marginBottom: 28,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   sentenceText: {
     fontSize: 22,
@@ -130,13 +133,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: '#CBD5E1',
     minWidth: 100,
     alignItems: 'center',
   },
   optionButtonSelected: {
     borderColor: COLORS.secondary,
     borderBottomColor: COLORS.secondaryDark,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: COLORS.secondarySubtle,
   },
   optionText: {
     fontSize: 16,
@@ -148,10 +152,11 @@ const styles = StyleSheet.create({
   },
   textInputWrapper: {
     backgroundColor: COLORS.white,
-    borderRadius: RADII.lg,
+    borderRadius: RADII.xl,
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: '#CBD5E1',
     padding: 14,
   },
   textInput: {

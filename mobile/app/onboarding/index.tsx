@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { COLORS, RADII } from '../../src/constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Check } from 'lucide-react-native';
+import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
 import { Button3D } from '../../src/components/Button3D';
 import { MascotPip } from '../../src/components/MascotPip';
 import { useAuth } from '../../src/context/AuthContext';
@@ -9,12 +11,14 @@ import { HapticsService } from '../../src/services/hapticsService';
 
 export default function OnboardingScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { completeOnboarding } = useAuth();
 
   const [step, setStep] = useState(1);
   const [targetLanguage, setTargetLanguage] = useState('es');
   const [learningLevel, setLearningLevel] = useState('beginner');
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number>(10);
+  const [submitting, setSubmitting] = useState(false);
 
   const languages = [
     { code: 'es', name: 'Spanish', flag: '🇪🇸', tagline: '500M+ native speakers worldwide' },
@@ -29,10 +33,10 @@ export default function OnboardingScreen() {
   ];
 
   const goals = [
-    { minutes: 5, label: 'Casual', desc: '5 min / day' },
-    { minutes: 10, label: 'Regular', desc: '10 min / day (Recommended)' },
-    { minutes: 15, label: 'Serious', desc: '15 min / day' },
-    { minutes: 20, label: 'Intense', desc: '20 min / day' },
+    { minutes: 5, label: 'Casual', desc: '5 min / day • Light habit' },
+    { minutes: 10, label: 'Regular', desc: '10 min / day • Recommended' },
+    { minutes: 15, label: 'Serious', desc: '15 min / day • Rapid progress' },
+    { minutes: 20, label: 'Intense', desc: '20 min / day • Total immersion' },
   ];
 
   const handleNext = async () => {
@@ -41,19 +45,27 @@ export default function OnboardingScreen() {
       setStep(step + 1);
     } else {
       // Save onboarding choices to backend
-      await completeOnboarding({
-        targetLanguage,
-        learningLevel,
-        dailyGoalMinutes,
-      });
-      router.replace('/(tabs)');
+      setSubmitting(true);
+      try {
+        await completeOnboarding({
+          targetLanguage,
+          learningLevel,
+          dailyGoalMinutes,
+        });
+        HapticsService.success();
+        router.replace('/(tabs)');
+      } catch (e) {
+        console.error('[Onboarding] Error:', e);
+      } finally {
+        setSubmitting(false);
+      }
     }
   };
 
   return (
     <View style={styles.container}>
       {/* Progress Top Bar */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(50, insets.top + 16) }]}>
         <View style={styles.progressBarBackground}>
           <View
             style={[
@@ -62,9 +74,10 @@ export default function OnboardingScreen() {
             ]}
           />
         </View>
+        <Text style={styles.stepCounterText}>Step {step} of 3</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}>
         {step === 1 && (
           <View style={styles.stepContainer}>
             <MascotPip mood="happy" size={90} message="What language do you want to master?" />
@@ -76,6 +89,8 @@ export default function OnboardingScreen() {
                 return (
                   <Pressable
                     key={lang.code}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
                     onPress={() => {
                       HapticsService.lightTap();
                       setTargetLanguage(lang.code);
@@ -92,6 +107,11 @@ export default function OnboardingScreen() {
                       </Text>
                       <Text style={styles.cardDesc}>{lang.tagline}</Text>
                     </View>
+                    {isSelected ? (
+                      <View style={styles.checkBadge}>
+                        <Check size={16} color={COLORS.white} strokeWidth={3} />
+                      </View>
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -110,6 +130,8 @@ export default function OnboardingScreen() {
                 return (
                   <Pressable
                     key={lvl.id}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
                     onPress={() => {
                       HapticsService.lightTap();
                       setLearningLevel(lvl.id);
@@ -125,6 +147,11 @@ export default function OnboardingScreen() {
                       </Text>
                       <Text style={styles.cardDesc}>{lvl.desc}</Text>
                     </View>
+                    {isSelected ? (
+                      <View style={styles.checkBadge}>
+                        <Check size={16} color={COLORS.white} strokeWidth={3} />
+                      </View>
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -143,6 +170,8 @@ export default function OnboardingScreen() {
                 return (
                   <Pressable
                     key={g.minutes}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
                     onPress={() => {
                       HapticsService.lightTap();
                       setDailyGoalMinutes(g.minutes);
@@ -158,6 +187,11 @@ export default function OnboardingScreen() {
                       </Text>
                       <Text style={styles.cardDesc}>{g.desc}</Text>
                     </View>
+                    {isSelected ? (
+                      <View style={styles.checkBadge}>
+                        <Check size={16} color={COLORS.white} strokeWidth={3} />
+                      </View>
+                    ) : null}
                   </Pressable>
                 );
               })}
@@ -166,11 +200,13 @@ export default function OnboardingScreen() {
         )}
       </ScrollView>
 
-      {/* Footer Continue Bar */}
-      <View style={styles.footer}>
+      {/* Safe-Area Aware Bottom Footer (BUG-011 Fix) */}
+      <View style={[styles.footer, { paddingBottom: Math.max(16, insets.bottom + 12) }]}>
         <Button3D
           title={step === 3 ? "Let's Go!" : 'Continue'}
           onPress={handleNext}
+          loading={submitting}
+          disabled={submitting}
         />
       </View>
     </View>
@@ -184,12 +220,15 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 50,
     paddingBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   progressBarBackground: {
+    flex: 1,
     height: 12,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#E2E8F0',
     borderRadius: RADII.pill,
     overflow: 'hidden',
   },
@@ -198,15 +237,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: RADII.pill,
   },
+  stepCounterText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.grayText,
+  },
   content: {
     paddingHorizontal: 20,
-    paddingBottom: 100,
   },
   stepContainer: {
-    marginTop: 10,
+    marginTop: 6,
   },
   stepTitle: {
-    fontSize: 24,
+    fontSize: TYPOGRAPHY.sizes.xxl,
     fontWeight: '900',
     color: COLORS.charcoal,
     textAlign: 'center',
@@ -219,19 +262,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: RADII.lg,
+    borderRadius: RADII.xl,
     backgroundColor: COLORS.white,
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: '#CBD5E1',
   },
   choiceCardSelected: {
     borderColor: COLORS.secondary,
     borderBottomColor: COLORS.secondaryDark,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: COLORS.secondarySubtle,
   },
   cardEmoji: {
-    fontSize: 32,
+    fontSize: 34,
     marginRight: 16,
   },
   cardInfo: {
@@ -250,14 +294,22 @@ const styles = StyleSheet.create({
     color: COLORS.grayText,
     marginTop: 2,
   },
+  checkBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: COLORS.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderTopWidth: 2,
+    paddingTop: 14,
+    borderTopWidth: 1.5,
     borderTopColor: COLORS.grayBorder,
     backgroundColor: COLORS.white,
   },

@@ -81,4 +81,34 @@ test.describe('Authentication & Session Management Suite', () => {
     const res = await request.get('/api/auth/profile');
     expect(res.status()).toBe(401);
   });
+
+  test('TC-AUTH-07: Persists user preferences updates across profile fetches', async ({ request }) => {
+    const updateRes = await request.put('/api/auth/profile', {
+      headers: { Authorization: `Bearer ${authToken}` },
+      data: {
+        preferences: {
+          soundEffects: false,
+          hapticFeedback: true,
+          dailyReminder: false,
+        },
+      },
+    });
+    expect(updateRes.status()).toBe(200);
+    const updateBody = await updateRes.json();
+    expect(updateBody.user.preferences.soundEffects).toBe(false);
+    expect(updateBody.user.preferences.hapticFeedback).toBe(true);
+    expect(updateBody.user.preferences.dailyReminder).toBe(false);
+
+    // Verify subsequent GET retrieves persisted preferences
+    const getRes = await request.get('/api/auth/profile', {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    expect(getRes.status()).toBe(200);
+    const getBody = await getRes.json();
+    expect(getBody.user.preferences.soundEffects).toBe(false);
+    expect(getBody.user.preferences.hapticFeedback).toBe(true);
+    expect(getBody.user.preferences.dailyReminder).toBe(false);
+  });
 });
+
+

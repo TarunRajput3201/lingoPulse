@@ -7,11 +7,11 @@ import {
   Pressable,
   ActivityIndicator,
   Modal,
-  SafeAreaView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { X, Heart, CheckCircle2, AlertCircle, Sparkles, Flame } from 'lucide-react-native';
-import { COLORS, RADII } from '../../src/constants/theme';
+import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
+import { X, Heart, CheckCircle2, AlertCircle, Sparkles, Flame, RefreshCw, ArrowLeft } from 'lucide-react-native';
+import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
 import { Button3D } from '../../src/components/Button3D';
 import { MascotPip } from '../../src/components/MascotPip';
 import { useAuth } from '../../src/context/AuthContext';
@@ -32,6 +32,7 @@ import { SpeakingExercise } from '../../src/components/exercises/SpeakingExercis
 export default function LessonScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, token, refreshUser, updateUserLocally } = useAuth();
 
   const [lesson, setLesson] = useState<any>(null);
@@ -53,10 +54,13 @@ export default function LessonScreen() {
     status: 'none' | 'correct' | 'incorrect';
     correctAnswer?: string;
     explanation?: string;
+    pedagogicalTip?: string;
+    hasAccentWarning?: boolean;
   }>({ status: 'none' });
 
   const [attempts, setAttempts] = useState<any[]>([]);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [showOutOfHeartsModal, setShowOutOfHeartsModal] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completionResult, setCompletionResult] = useState<any>(null);
 
@@ -76,7 +80,7 @@ export default function LessonScreen() {
         startTimeRef.current = Date.now();
       })
       .catch((e) => {
-        console.error(e);
+        console.error('[LessonScreen] Fetch error:', e);
         setLoading(false);
       });
   }, [token, id]);
@@ -112,6 +116,7 @@ export default function LessonScreen() {
     const ans = getCurrentUserAnswer();
     if (ans === null || ans === undefined || ans === '') return false;
     if (Array.isArray(ans) && ans.length === 0) return false;
+    if (typeof ans === 'object' && !Array.isArray(ans) && Object.keys(ans).length === 0) return false;
     return true;
   };
 
@@ -155,23 +160,34 @@ export default function LessonScreen() {
         HapticsService.success();
         setFeedback({
           status: 'correct',
-          explanation: result.explanation || 'Excellent work!',
+          explanation: result.explanation || 'Nicely done!',
+          pedagogicalTip: result.pedagogicalTip,
+          hasAccentWarning: result.hasAccentWarning,
         });
       } else {
         SoundService.playErrorThud();
         HapticsService.error();
         // Update user hearts locally
+        const remaining = result.heartsRemaining ?? Math.max(0, (user?.hearts ?? 5) - 1);
         updateUserLocally((prev) =>
-          prev ? { ...prev, hearts: result.heartsRemaining } : null
+          prev ? { ...prev, hearts: remaining } : null
         );
+
         setFeedback({
           status: 'incorrect',
-          correctAnswer: String(result.correctAnswer),
+          correctAnswer: String(result.correctAnswer || ''),
           explanation: result.explanation || '',
         });
+
+        // Trigger Out of Hearts Modal if hearts dropped to 0
+        if (remaining <= 0) {
+          setTimeout(() => {
+            setShowOutOfHeartsModal(true);
+          }, 800);
+        }
       }
     } catch (e) {
-      console.error(e);
+      console.error('[LessonScreen] Submit error:', e);
     } finally {
       setSubmitting(false);
     }
@@ -216,7 +232,7 @@ export default function LessonScreen() {
         SoundService.playFanfare();
         await refreshUser();
       } catch (e) {
-        console.error(e);
+        console.error('[LessonScreen] Completion error:', e);
       } finally {
         setLoading(false);
       }
@@ -229,6 +245,24 @@ export default function LessonScreen() {
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Preparing interactive lesson...</Text>
       </View>
+    );
+  }
+
+  // Empty State Fallback (BUG-009 Fix)
+  if (!lesson || exercises.length === 0) {
+    return (
+      <SafeAreaView style={styles.emptyContainer}>
+        <MascotPip mood="thinking" size={110} message="No exercises found in this lesson yet." />
+        <Text style={styles.emptyTitle}>Lesson In Progress</Text>
+        <Text style={styles.emptyDesc}>
+          Exercises for this lesson are currently being prepared. Check back shortly or continue with another lesson!
+        </Text>
+        <Button3D
+          title="Return to Path"
+          onPress={() => router.replace('/(tabs)')}
+          style={{ width: '100%', maxWidth: 280, marginTop: 24 }}
+        />
+      </SafeAreaView>
     );
   }
 
@@ -280,6 +314,8 @@ export default function LessonScreen() {
       {/* Lesson Header: Exit, Progress Bar, Hearts */}
       <View style={styles.header}>
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Quit lesson"
           onPress={() => setShowExitModal(true)}
           style={styles.exitButton}
         >
@@ -296,8 +332,13 @@ export default function LessonScreen() {
         </View>
       </View>
 
-      {/* Main Exercise Question Renderer */}
-      <ScrollView contentContainerStyle={styles.exerciseScroll}>
+      {/* Main Exercise Question Area */}
+      <ScrollView
+        contentContainerStyle={[
+          styles.exerciseScroll,
+          { paddingBottom: insets.bottom + 160 },
+        ]}
+      >
         {currentExercise?.type === 'MULTIPLE_CHOICE' && (
           <MultipleChoiceExercise
             prompt={currentExercise.prompt}
@@ -311,9 +352,10 @@ export default function LessonScreen() {
         {currentExercise?.type === 'TRANSLATION' && (
           <TranslationExercise
             prompt={currentExercise.prompt}
-            sourceText={currentExercise.instruction}
+            sourceText={currentExercise.instruction || currentExercise.data?.sourcePrompt}
             userAnswer={typedAnswer}
             onChangeAnswer={setTypedAnswer}
+            targetLanguage={user?.targetLanguage || 'es'}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -329,10 +371,7 @@ export default function LessonScreen() {
               []
             }
             selectedWords={selectedWords}
-            onSelectWord={(w) => setSelectedWords((prev) => [...prev, w])}
-            onRemoveWord={(w, idx) =>
-              setSelectedWords((prev) => prev.filter((_, i) => i !== idx))
-            }
+            onChangeWords={setSelectedWords}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -341,7 +380,6 @@ export default function LessonScreen() {
           <MatchingPairsExercise
             prompt={currentExercise.prompt}
             pairs={currentExercise.data?.pairs || []}
-            matchedPairIds={[]}
             onCompleteAllPairs={setMatchedPairs}
             disabled={feedback.status !== 'none'}
           />
@@ -391,10 +429,11 @@ export default function LessonScreen() {
         )}
       </ScrollView>
 
-      {/* Bottom Feedback Drawer / Action Bar */}
+      {/* Bottom Feedback Drawer / Action Bar with Safe Area Insets (BUG-011 Fix) */}
       <View
         style={[
           styles.footerBar,
+          { paddingBottom: Math.max(16, insets.bottom + 12) },
           feedback.status === 'correct' && styles.footerBarCorrect,
           feedback.status === 'incorrect' && styles.footerBarIncorrect,
         ]}
@@ -402,17 +441,20 @@ export default function LessonScreen() {
         {feedback.status === 'correct' && (
           <View style={styles.feedbackInfo}>
             <View style={styles.feedbackTitleRow}>
-              <CheckCircle2 size={24} color={COLORS.primaryDark} />
+              <CheckCircle2 size={24} color={COLORS.primaryDark} strokeWidth={3} />
               <Text style={styles.feedbackTitleCorrect}>Nicely done!</Text>
             </View>
             <Text style={styles.feedbackExplanation}>{feedback.explanation}</Text>
+            {feedback.hasAccentWarning && feedback.pedagogicalTip ? (
+              <Text style={styles.accentWarningText}>{feedback.pedagogicalTip}</Text>
+            ) : null}
           </View>
         )}
 
         {feedback.status === 'incorrect' && (
           <View style={styles.feedbackInfo}>
             <View style={styles.feedbackTitleRow}>
-              <AlertCircle size={24} color={COLORS.accentDark} />
+              <AlertCircle size={24} color={COLORS.accentDark} strokeWidth={3} />
               <Text style={styles.feedbackTitleIncorrect}>Correct Solution:</Text>
             </View>
             <Text style={styles.feedbackCorrectAnswer}>{feedback.correctAnswer}</Text>
@@ -463,6 +505,40 @@ export default function LessonScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Out of Hearts Modal (BUG-012 Fix) */}
+      <Modal visible={showOutOfHeartsModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <MascotPip mood="sad" size={100} />
+            <Text style={[styles.modalTitle, { color: COLORS.accentDark }]}>
+              You Ran Out of Hearts!
+            </Text>
+            <Text style={styles.modalDesc}>
+              Don't worry! Review your previous mistakes in the Practice Hub to earn hearts back and continue learning.
+            </Text>
+
+            <Button3D
+              title="Practice & Refill Hearts"
+              variant="primary"
+              onPress={() => {
+                setShowOutOfHeartsModal(false);
+                router.replace('/(tabs)/practice');
+              }}
+              style={{ width: '100%', marginTop: 14 }}
+            />
+            <Button3D
+              title="Return Home"
+              variant="outline"
+              onPress={() => {
+                setShowOutOfHeartsModal(false);
+                router.replace('/(tabs)');
+              }}
+              style={{ width: '100%', marginTop: 8 }}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -484,6 +560,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.grayText,
   },
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: COLORS.white,
+  },
+  emptyTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: COLORS.charcoal,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  emptyDesc: {
+    fontSize: 14,
+    color: COLORS.grayText,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+    maxWidth: 280,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -497,7 +595,7 @@ const styles = StyleSheet.create({
   progressBarBackground: {
     flex: 1,
     height: 14,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#E2E8F0',
     borderRadius: RADII.pill,
     overflow: 'hidden',
   },
@@ -518,7 +616,6 @@ const styles = StyleSheet.create({
   },
   exerciseScroll: {
     paddingHorizontal: 20,
-    paddingBottom: 160,
   },
   footerBar: {
     position: 'absolute',
@@ -526,18 +623,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 16,
     backgroundColor: COLORS.white,
     borderTopWidth: 2,
     borderTopColor: COLORS.grayBorder,
   },
   footerBarCorrect: {
-    backgroundColor: '#D7FFB8',
-    borderTopColor: COLORS.primaryDark,
+    backgroundColor: COLORS.primarySubtle,
+    borderTopColor: '#A7F3D0',
   },
   footerBarIncorrect: {
-    backgroundColor: '#FFDFE0',
-    borderTopColor: COLORS.accentDark,
+    backgroundColor: COLORS.accentSubtle,
+    borderTopColor: '#FECDD3',
   },
   feedbackInfo: {
     marginBottom: 12,
@@ -565,12 +662,19 @@ const styles = StyleSheet.create({
   },
   feedbackExplanation: {
     fontSize: 13,
-    color: COLORS.charcoal,
+    color: COLORS.slate,
     marginTop: 2,
+    lineHeight: 18,
+  },
+  accentWarningText: {
+    fontSize: 13,
+    color: COLORS.goldDark,
+    fontWeight: '700',
+    marginTop: 4,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -582,10 +686,10 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: COLORS.charcoal,
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.15,
-    shadowRadius: 10,
+    shadowRadius: 12,
     elevation: 8,
   },
   modalTitle: {
@@ -601,6 +705,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 6,
     marginBottom: 8,
+    lineHeight: 20,
   },
   completedContainer: {
     flex: 1,
@@ -639,6 +744,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: '#CBD5E1',
     alignItems: 'center',
   },
   rewardValue: {

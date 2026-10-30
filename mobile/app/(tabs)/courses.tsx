@@ -8,8 +8,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Check, Globe, Sparkles } from 'lucide-react-native';
-import { COLORS, RADII } from '../../src/constants/theme';
+import { Check, Globe, Sparkles, BookOpen } from 'lucide-react-native';
+import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
@@ -20,6 +20,7 @@ export default function CoursesScreen() {
   const { user, token, refreshUser } = useAuth();
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -35,14 +36,16 @@ export default function CoursesScreen() {
         setLoading(false);
       })
       .catch((e) => {
-        console.error(e);
+        console.error('[CoursesScreen] Load error:', e);
         setLoading(false);
       });
   }, [token]);
 
   const handleSelectCourse = async (course: any) => {
     HapticsService.lightTap();
-    if (!token) return;
+    if (!token || switchingId) return;
+
+    setSwitchingId(course._id);
     try {
       // Update user target language
       await fetch(ENDPOINTS.PROFILE, {
@@ -54,9 +57,12 @@ export default function CoursesScreen() {
         body: JSON.stringify({ targetLanguage: course.toLanguage }),
       });
       await refreshUser();
+      HapticsService.success();
       router.push('/(tabs)');
     } catch (e) {
-      console.error(e);
+      console.error('[CoursesScreen] Switch error:', e);
+    } finally {
+      setSwitchingId(null);
     }
   };
 
@@ -66,11 +72,11 @@ export default function CoursesScreen() {
 
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerTitleContainer}>
-          <Globe size={24} color={COLORS.secondary} />
+          <Globe size={26} color={COLORS.secondary} />
           <Text style={styles.headerTitle}>Language Courses</Text>
         </View>
         <Text style={styles.headerSubtitle}>
-          Choose your active language. Your progress is saved independently across all courses.
+          Choose your active language course. Your learning progress and streaks are preserved independently across all languages.
         </Text>
 
         {loading ? (
@@ -78,28 +84,44 @@ export default function CoursesScreen() {
         ) : (
           <View style={styles.coursesList}>
             {courses.map((course) => {
-              const isCurrent = user?.targetLanguage === course.toLanguage;
+              const isCurrent = user?.targetLanguage?.toLowerCase() === course.toLanguage?.toLowerCase();
+              const isSwitching = switchingId === course._id;
+
               return (
                 <Pressable
                   key={course._id}
+                  disabled={isSwitching}
                   onPress={() => handleSelectCourse(course)}
                   style={[
                     styles.courseCard,
                     isCurrent && styles.courseCardActive,
                   ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Course: ${course.title}. ${isCurrent ? 'Currently active' : 'Tap to switch'}`}
                 >
-                  <Text style={styles.flagEmoji}>{course.flagIcon}</Text>
+                  <Text style={styles.flagEmoji}>{course.flagIcon || '🌐'}</Text>
+
                   <View style={styles.courseDetails}>
-                    <Text style={styles.courseTitle}>{course.title}</Text>
+                    <View style={styles.titleRow}>
+                      <Text style={styles.courseTitle}>{course.title}</Text>
+                      <View style={styles.cefrBadge}>
+                        <Text style={styles.cefrText}>CEFR {course.level || 'A1'}</Text>
+                      </View>
+                    </View>
+
                     <Text style={styles.courseDesc}>{course.description}</Text>
+
                     <View style={styles.metricsRow}>
+                      <BookOpen size={14} color={COLORS.grayText} />
                       <Text style={styles.metricText}>
                         {course.totalUnits || 2} Units • {course.totalLessons || 4} Lessons
                       </Text>
                     </View>
                   </View>
 
-                  {isCurrent ? (
+                  {isSwitching ? (
+                    <ActivityIndicator size="small" color={COLORS.secondary} style={{ marginLeft: 8 }} />
+                  ) : isCurrent ? (
                     <View style={styles.activeCheckBadge}>
                       <Check size={18} color={COLORS.white} strokeWidth={3} />
                     </View>
@@ -117,7 +139,7 @@ export default function CoursesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.grayBackground,
   },
   content: {
     padding: 20,
@@ -126,11 +148,11 @@ const styles = StyleSheet.create({
   headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     marginTop: 4,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: TYPOGRAPHY.sizes.xxl,
     fontWeight: '900',
     color: COLORS.charcoal,
   },
@@ -147,48 +169,68 @@ const styles = StyleSheet.create({
   courseCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: 18,
     borderRadius: RADII.xl,
     backgroundColor: COLORS.white,
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: '#CBD5E1',
   },
   courseCardActive: {
     borderColor: COLORS.secondary,
     borderBottomColor: COLORS.secondaryDark,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: COLORS.secondarySubtle,
   },
   flagEmoji: {
-    fontSize: 36,
+    fontSize: 38,
     marginRight: 16,
   },
   courseDetails: {
     flex: 1,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   courseTitle: {
     fontSize: 17,
     fontWeight: '800',
     color: COLORS.charcoal,
   },
+  cefrBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: RADII.xs,
+    backgroundColor: '#F1F5F9',
+  },
+  cefrText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.grayText,
+  },
   courseDesc: {
     fontSize: 12,
     color: COLORS.grayText,
-    marginTop: 2,
+    marginTop: 3,
     lineHeight: 16,
   },
   metricsRow: {
-    marginTop: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
   },
   metricText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    color: COLORS.secondaryDark,
+    color: COLORS.grayText,
   },
   activeCheckBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: COLORS.secondary,
     alignItems: 'center',
     justifyContent: 'center',

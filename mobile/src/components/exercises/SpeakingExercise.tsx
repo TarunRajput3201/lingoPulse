@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Mic, Volume2 } from 'lucide-react-native';
-import { COLORS, RADII } from '../../constants/theme';
+import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { SoundService } from '../../services/soundService';
 import { HapticsService } from '../../services/hapticsService';
 
@@ -27,6 +27,7 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
   const [isRecording, setIsRecording] = useState(false);
 
   const handlePlayReference = () => {
+    HapticsService.lightTap();
     if (referenceAudioUrl) {
       SoundService.playRemoteAudio(referenceAudioUrl);
     }
@@ -38,7 +39,7 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
       setIsRecording(false);
     } else {
       setIsRecording(true);
-      // Simulate real speech capture fallback for the target phrase
+      // Realistic speech capture simulation with target phrase callback
       setTimeout(() => {
         setIsRecording(false);
         HapticsService.success();
@@ -53,9 +54,16 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
 
       {/* Target Phrase Box */}
       <View style={styles.phraseCard}>
-        <Pressable onPress={handlePlayReference} style={styles.audioIcon}>
-          <Volume2 size={24} color={COLORS.secondaryDark} />
-        </Pressable>
+        {referenceAudioUrl ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Listen to pronunciation"
+            onPress={handlePlayReference}
+            style={styles.audioIcon}
+          >
+            <Volume2 size={24} color={COLORS.secondaryDark} />
+          </Pressable>
+        ) : null}
         <Text style={styles.targetPhrase}>{phraseToSpeak}</Text>
         {phoneticGuide ? (
           <Text style={styles.phoneticGuide}>[{phoneticGuide}]</Text>
@@ -66,6 +74,8 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
       <View style={styles.micContainer}>
         <Pressable
           disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel={isRecording ? 'Stop recording' : 'Start speaking'}
           onPress={handleToggleRecord}
           style={[
             styles.micButton,
@@ -93,7 +103,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   prompt: {
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: '800',
     color: COLORS.charcoal,
     lineHeight: 28,
@@ -112,7 +122,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#E0F2FE',
+    backgroundColor: COLORS.secondarySubtle,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,

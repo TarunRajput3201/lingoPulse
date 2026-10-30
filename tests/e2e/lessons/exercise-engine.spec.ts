@@ -121,4 +121,27 @@ test.describe('Exercise Engine & Answer Validation Suite', () => {
     const practiceBody = await practiceRes.json();
     expect(practiceBody.totalMistakesToReview).toBeGreaterThanOrEqual(1);
   });
+
+  test('TC-EXE-05: Validates WORD_ORDER exercises with word array or joined string payloads', async ({ request }) => {
+    const lessonRes = await request.get(`/api/lessons/${lesson1Id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const { exercises } = await lessonRes.json();
+    const woEx = exercises.find((e: any) => e.type === 'WORD_ORDER');
+    if (woEx) {
+      // Test sending array of tokens
+      const res = await request.post('/api/lessons/submit-answer', {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          exerciseId: woEx.id,
+          userAnswer: woEx.data.sentence || ['Hola', 'mucho', 'gusto'],
+          durationMs: 2100,
+        },
+      });
+      expect(res.status()).toBe(200);
+      const body = await res.json();
+      expect(typeof body.isCorrect).toBe('boolean');
+    }
+  });
 });
+

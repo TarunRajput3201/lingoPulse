@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { COLORS, RADII } from '../../constants/theme';
+import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
 
 interface MultipleChoiceExerciseProps {
@@ -13,7 +13,7 @@ interface MultipleChoiceExerciseProps {
 
 export const MultipleChoiceExercise: React.FC<MultipleChoiceExerciseProps> = ({
   prompt,
-  options,
+  options = [],
   selectedOptionId,
   onSelectOption,
   disabled = false,
@@ -27,8 +27,11 @@ export const MultipleChoiceExercise: React.FC<MultipleChoiceExerciseProps> = ({
           const isSelected = selectedOptionId === option.id;
           return (
             <Pressable
-              key={option.id}
+              key={option.id || index}
               disabled={disabled}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: isSelected, disabled }}
+              accessibilityLabel={`Option ${index + 1}: ${option.text}`}
               onPress={() => {
                 HapticsService.lightTap();
                 onSelectOption(option.id);
@@ -65,7 +68,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   prompt: {
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: '800',
     color: COLORS.charcoal,
     lineHeight: 28,
@@ -78,33 +81,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: RADII.lg,
+    borderRadius: RADII.xl,
     backgroundColor: COLORS.white,
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: '#CBD5E1',
+    minHeight: 64,
   },
   optionCardSelected: {
     borderColor: COLORS.secondary,
     borderBottomColor: COLORS.secondaryDark,
-    backgroundColor: '#F0F9FF',
+    backgroundColor: COLORS.secondarySubtle,
   },
   indexBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     borderWidth: 1.5,
     borderColor: COLORS.grayBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
+    backgroundColor: '#F8FAFC',
   },
   indexBadgeSelected: {
     borderColor: COLORS.secondary,
     backgroundColor: COLORS.secondary,
   },
   indexText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     color: COLORS.grayText,
   },

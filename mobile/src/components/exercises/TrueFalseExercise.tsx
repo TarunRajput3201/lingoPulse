@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Check, X } from 'lucide-react-native';
-import { COLORS, RADII } from '../../constants/theme';
+import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
 
 interface TrueFalseExerciseProps {
@@ -31,6 +31,8 @@ export const TrueFalseExercise: React.FC<TrueFalseExerciseProps> = ({
         {/* True Option */}
         <Pressable
           disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel="True"
           onPress={() => {
             HapticsService.lightTap();
             onSelectValue(true);
@@ -41,7 +43,7 @@ export const TrueFalseExercise: React.FC<TrueFalseExerciseProps> = ({
           ]}
         >
           <View style={[styles.iconCircle, { backgroundColor: '#DCFCE7' }]}>
-            <Check size={28} color={COLORS.primaryDark} />
+            <Check size={28} color={COLORS.primaryDark} strokeWidth={3} />
           </View>
           <Text
             style={[
@@ -56,6 +58,8 @@ export const TrueFalseExercise: React.FC<TrueFalseExerciseProps> = ({
         {/* False Option */}
         <Pressable
           disabled={disabled}
+          accessibilityRole="button"
+          accessibilityLabel="False"
           onPress={() => {
             HapticsService.lightTap();
             onSelectValue(false);
@@ -66,7 +70,7 @@ export const TrueFalseExercise: React.FC<TrueFalseExerciseProps> = ({
           ]}
         >
           <View style={[styles.iconCircle, { backgroundColor: '#FEE2E2' }]}>
-            <X size={28} color={COLORS.accentDark} />
+            <X size={28} color={COLORS.accentDark} strokeWidth={3} />
           </View>
           <Text
             style={[
@@ -87,7 +91,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   prompt: {
-    fontSize: 20,
+    fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: '800',
     color: COLORS.charcoal,
     lineHeight: 28,
@@ -121,6 +125,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -128,12 +133,12 @@ const styles = StyleSheet.create({
   choiceButtonSelectedTrue: {
     borderColor: COLORS.primary,
     borderBottomColor: COLORS.primaryDark,
-    backgroundColor: '#F0FDF4',
+    backgroundColor: COLORS.primarySubtle,
   },
   choiceButtonSelectedFalse: {
     borderColor: COLORS.accent,
     borderBottomColor: COLORS.accentDark,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: COLORS.accentSubtle,
   },
   iconCircle: {
     width: 48,
