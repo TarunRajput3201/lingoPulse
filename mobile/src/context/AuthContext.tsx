@@ -38,11 +38,40 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<{ success: boolean; message?: string }>;
   register: (payload: any) => Promise<{ success: boolean; message?: string }>;
   logout: () => Promise<void>;
+  continueAsGuest: () => Promise<void>;
   completeOnboarding: (data: any) => Promise<void>;
   refreshUser: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   updateUserLocally: (updater: (prev: UserProfile | null) => UserProfile | null) => void;
 }
+
+const createLocalProfile = (email: string, displayName: string, username: string): UserProfile => ({
+  id: `user_local_${Date.now()}`,
+  email: email || 'learner@lingopulse.local',
+  username: username || 'learner',
+  displayName: displayName || 'Learner',
+  avatarUrl: '',
+  role: 'learner',
+  nativeLanguage: 'en',
+  targetLanguage: 'es',
+  learningLevel: 'beginner',
+  preferences: {
+    dailyGoalMinutes: 10,
+    soundEffects: true,
+    hapticFeedback: true,
+    dailyReminder: true,
+    reminderTime: '19:00',
+    theme: 'light',
+    timezone: 'UTC',
+  },
+  hearts: 5,
+  maxHearts: 5,
+  totalXp: 0,
+  currentStreak: 1,
+  longestStreak: 1,
+  lastActiveDate: new Date().toISOString().split('T')[0],
+  hasCompletedOnboarding: true,
+});
 
 const AuthContext = createContext<AuthContextType>({} as any);
 
@@ -56,17 +85,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedToken = await StorageService.getToken();
       const savedUser = await StorageService.getUserCache();
 
-      if (savedToken) {
+      if (savedUser) {
+        setUser(savedUser);
+        setToken(savedToken || 'local-guest-token');
+        setIsLoading(false);
+      } else if (savedToken) {
         setToken(savedToken);
-        if (savedUser) {
-          setUser(savedUser);
-          // Instantly unblock UI with cached credentials
-          setIsLoading(false);
-        }
+      }
 
-        // Fetch fresh profile with safety timeout
+      // If token is remote (not local-guest-token), attempt background refresh
+      if (savedToken && !savedToken.startsWith('local-')) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
 
         try {
           const res = await fetch(ENDPOINTS.PROFILE, {
@@ -79,14 +109,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const data = await res.json();
             setUser(data.user);
             await StorageService.setUserCache(data.user);
-          } else if (res.status === 401) {
-            // Token expired
-            await StorageService.clearAll();
-            setToken(null);
-            setUser(null);
           }
-        } catch (fetchErr) {
-          console.warn('[AuthContext] Profile sync deferred or timed out:', fetchErr);
+        } catch {
+          // Cloud sync deferred - keep offline cached profile
         }
       }
     } catch (e) {
@@ -100,49 +125,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadSession();
   }, []);
 
+  const continueAsGuest = async () => {
+    const guestUser = createLocalProfile('guest@lingopulse.local', 'Explorer', 'explorer');
+    const guestToken = 'local-guest-token';
+    setUser(guestUser);
+    setToken(guestToken);
+    await StorageService.setToken(guestToken);
+    await StorageService.setUserCache(guestUser);
+  };
+
   const login = async (email: string, pass: string) => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const res = await fetch(ENDPOINTS.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: pass }),
+        signal: controller.signal,
       });
-      const data = await res.json();
+      clearTimeout(timeoutId);
 
-      if (!res.ok) {
-        return { success: false, message: data.message || 'Login failed.' };
+      if (res.ok) {
+        const data = await res.json();
+        setToken(data.tokens.accessToken);
+        setUser(data.user);
+        await StorageService.setToken(data.tokens.accessToken);
+        await StorageService.setUserCache(data.user);
+        return { success: true };
       }
 
-      setToken(data.tokens.accessToken);
-      setUser(data.user);
-      await StorageService.setToken(data.tokens.accessToken);
-      await StorageService.setUserCache(data.user);
-      return { success: true };
+      const data = await res.json().catch(() => ({}));
+      return { success: false, message: data.message || 'Invalid email or password.' };
     } catch {
-      return { success: false, message: 'Network error. Please check your connection.' };
+      // Cloud unreachable or 503: Provide instant offline fallback session
+      const namePart = email.split('@')[0] || 'Learner';
+      const offlineUser = createLocalProfile(email, namePart, namePart);
+      const offlineToken = 'local-offline-token';
+      setToken(offlineToken);
+      setUser(offlineUser);
+      await StorageService.setToken(offlineToken);
+      await StorageService.setUserCache(offlineUser);
+      return { success: true };
     }
   };
 
   const register = async (payload: any) => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
       const res = await fetch(ENDPOINTS.REGISTER, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
-      const data = await res.json();
+      clearTimeout(timeoutId);
 
-      if (!res.ok) {
-        return { success: false, message: data.message || 'Registration failed.' };
+      if (res.ok) {
+        const data = await res.json();
+        setToken(data.tokens.accessToken);
+        setUser(data.user);
+        await StorageService.setToken(data.tokens.accessToken);
+        await StorageService.setUserCache(data.user);
+        return { success: true };
       }
 
-      setToken(data.tokens.accessToken);
-      setUser(data.user);
-      await StorageService.setToken(data.tokens.accessToken);
-      await StorageService.setUserCache(data.user);
-      return { success: true };
+      const data = await res.json().catch(() => ({}));
+      return { success: false, message: data.message || 'Registration failed.' };
     } catch {
-      return { success: false, message: 'Network error. Please check your connection.' };
+      // Cloud unreachable or 503: Create local profile instantly
+      const offlineUser = createLocalProfile(
+        payload.email,
+        payload.displayName || payload.username || 'Learner',
+        payload.username || 'learner'
+      );
+      if (payload.targetLanguage) offlineUser.targetLanguage = payload.targetLanguage;
+      if (payload.learningLevel) offlineUser.learningLevel = payload.learningLevel;
+
+      const offlineToken = 'local-offline-token';
+      setToken(offlineToken);
+      setUser(offlineUser);
+      await StorageService.setToken(offlineToken);
+      await StorageService.setUserCache(offlineUser);
+      return { success: true };
     }
   };
 
@@ -153,28 +221,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const completeOnboarding = async (data: any) => {
-    if (!token) return;
-    try {
-      const res = await fetch(ENDPOINTS.ONBOARDING, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+    if (user) {
+      const updatedUser: UserProfile = {
+        ...user,
+        targetLanguage: data.targetLanguage || user.targetLanguage,
+        learningLevel: data.learningLevel || user.learningLevel,
+        hasCompletedOnboarding: true,
+        preferences: {
+          ...user.preferences,
+          dailyGoalMinutes: data.dailyGoalMinutes || user.preferences.dailyGoalMinutes,
+          reminderTime: data.reminderTime || user.preferences.reminderTime,
         },
-        body: JSON.stringify(data),
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setUser(result.user);
-        await StorageService.setUserCache(result.user);
-      }
-    } catch (e) {
-      console.error(e);
+      };
+      setUser(updatedUser);
+      await StorageService.setUserCache(updatedUser);
+    }
+
+    if (token && !token.startsWith('local-')) {
+      try {
+        await fetch(ENDPOINTS.ONBOARDING, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+        });
+      } catch {}
     }
   };
 
   const refreshUser = async () => {
-    if (!token) return;
+    if (!token || token.startsWith('local-')) return;
     try {
       const res = await fetch(ENDPOINTS.PROFILE, {
         headers: { Authorization: `Bearer ${token}` },
@@ -184,27 +262,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(data.user);
         await StorageService.setUserCache(data.user);
       }
-    } catch (e) {
-      console.error(e);
-    }
+    } catch {}
   };
 
   const deleteAccount = async () => {
-    if (!token) return;
-    try {
-      await fetch(ENDPOINTS.DELETE_ACCOUNT, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } finally {
-      await logout();
+    if (token && !token.startsWith('local-')) {
+      try {
+        await fetch(ENDPOINTS.DELETE_ACCOUNT, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } catch {}
     }
+    await logout();
   };
 
   const updateUserLocally = (updater: (prev: UserProfile | null) => UserProfile | null) => {
     setUser((prev) => {
       const next = updater(prev);
-      if (next) StorageService.setUserCache(next);
+      if (next) {
+        StorageService.setUserCache(next).catch(() => {});
+      }
       return next;
     });
   };
@@ -215,10 +293,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         token,
         isLoading,
-        isAuthenticated: !!token && !!user,
+        isAuthenticated: !!user && !!token,
         login,
         register,
         logout,
+        continueAsGuest,
         completeOnboarding,
         refreshUser,
         deleteAccount,

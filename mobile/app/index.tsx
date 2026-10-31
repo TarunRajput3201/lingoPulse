@@ -10,6 +10,7 @@ export default function RootIndex() {
   const { user, token, isLoading } = useAuth();
 
   useEffect(() => {
+
     if (isLoading) return;
 
     if (!token || !user) {
@@ -20,6 +21,20 @@ export default function RootIndex() {
       router.replace('/(tabs)');
     }
   }, [isLoading, token, user]);
+
+  // Failsafe: Never allow splash to hang longer than 2.5s under any condition
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      if (!token || !user) {
+        router.replace('/(auth)/login');
+      } else {
+        router.replace('/(tabs)');
+      }
+    }, 2500);
+
+    return () => clearTimeout(fallbackTimer);
+  }, []);
+
 
   return (
     <View style={styles.container}>

@@ -17,6 +17,7 @@ import { Button3D } from '../../src/components/Button3D';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { HapticsService } from '../../src/services/hapticsService';
+import { CurriculumService } from '../../src/services/curriculumService';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -37,63 +38,68 @@ export default function HomeScreen() {
   }, [token, isLoading]);
 
   const loadLearningPath = async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
     try {
-      // 1. Fetch available courses to get current course ID
-      const courseRes = await fetch(ENDPOINTS.COURSES, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const courseJson = await courseRes.json();
-      const allCourses = courseJson.courses || [];
-      const userTarget = user?.targetLanguage?.toLowerCase();
-      const matchedCourse = allCourses.find((c: any) => {
-        if (!userTarget) return false;
-        return (
-          c.toLanguage?.toLowerCase() === userTarget ||
-          c.code?.toLowerCase().startsWith(userTarget) ||
-          c.title?.toLowerCase().includes(userTarget)
-        );
-      }) || allCourses[0];
+      // 1. Instant load from local static curriculum
+      const localData = await CurriculumService.getLearningPath(undefined, user?.targetLanguage);
+      setCourseData(localData.course);
+      setUnits(localData.units);
 
-      if (matchedCourse) {
-        // 2. Fetch learning path for this course
-        const pathRes = await fetch(ENDPOINTS.COURSE_PATH(matchedCourse._id), {
+      let foundCurrent: string | null = null;
+      for (const u of localData.units) {
+        for (const l of u.lessons) {
+          if (l.isCurrent) {
+            foundCurrent = l.id;
+            break;
+          }
+        }
+        if (foundCurrent) break;
+      }
+      if (!foundCurrent && localData.units?.[0]?.lessons?.[0]) {
+        foundCurrent = localData.units[0].lessons[0].id;
+      }
+      setCurrentLessonId(foundCurrent);
+      setLoading(false);
+
+      // 2. Optional remote refresh if online and connected
+      if (token && !token.startsWith('local-')) {
+        const courseRes = await fetch(ENDPOINTS.COURSES, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const pathJson = await pathRes.json();
+        if (courseRes.ok) {
+          const courseJson = await courseRes.json();
+          const allCourses = courseJson.courses || [];
+          const userTarget = user?.targetLanguage?.toLowerCase();
+          const matchedCourse = allCourses.find((c: any) => {
+            if (!userTarget) return false;
+            return (
+              c.toLanguage?.toLowerCase() === userTarget ||
+              c.code?.toLowerCase().startsWith(userTarget) ||
+              c.title?.toLowerCase().includes(userTarget)
+            );
+          }) || allCourses[0];
 
-        setCourseData(pathJson.course);
-        setUnits(pathJson.units || []);
-
-        // Find current incomplete lesson
-        let foundCurrent: string | null = null;
-        for (const u of pathJson.units || []) {
-          for (const l of u.lessons || []) {
-            if (l.isCurrent) {
-              foundCurrent = l.id;
-              break;
+          if (matchedCourse) {
+            const pathRes = await fetch(ENDPOINTS.COURSE_PATH(matchedCourse._id), {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (pathRes.ok) {
+              const pathJson = await pathRes.json();
+              if (pathJson.units?.length) {
+                setCourseData(pathJson.course);
+                setUnits(pathJson.units);
+              }
             }
           }
-          if (foundCurrent) break;
         }
-
-        // If none is current (e.g. all completed), default to first lesson
-        if (!foundCurrent && pathJson.units?.[0]?.lessons?.[0]) {
-          foundCurrent = pathJson.units[0].lessons[0].id;
-        }
-
-        setCurrentLessonId(foundCurrent);
       }
     } catch (e) {
-      console.error('[HomeScreen] Error loading path:', e);
+      console.warn('[HomeScreen] Using offline curriculum:', e);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
+
 
   useEffect(() => {
     loadLearningPath();

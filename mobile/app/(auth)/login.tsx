@@ -21,7 +21,7 @@ import { HapticsService } from '../../src/services/hapticsService';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, continueAsGuest } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,11 +50,19 @@ export default function LoginScreen() {
     }
   };
 
+  const handleGuestLogin = async () => {
+    Keyboard.dismiss();
+    HapticsService.mediumTap();
+    await continueAsGuest();
+    router.replace('/(tabs)');
+  };
+
   const handleDemoLogin = () => {
     HapticsService.lightTap();
     setEmail('learner@lingopulse.com');
     setPassword('LearnerPassword123!');
   };
+
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -129,6 +137,14 @@ export default function LoginScreen() {
               loading={loading}
               disabled={loading}
               style={styles.submitButton}
+            />
+
+            {/* Instant Offline / Guest Learning */}
+            <Button3D
+              title="Start Learning (No Account Needed)"
+              variant="secondary"
+              onPress={handleGuestLogin}
+              style={{ marginTop: 12 }}
             />
 
             {/* Quick Demo Fill Button */}

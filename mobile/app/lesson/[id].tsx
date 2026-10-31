@@ -18,6 +18,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { SoundService } from '../../src/services/soundService';
 import { HapticsService } from '../../src/services/hapticsService';
+import { CurriculumService } from '../../src/services/curriculumService';
 
 // Exercise Components
 import { MultipleChoiceExercise } from '../../src/components/exercises/MultipleChoiceExercise';
@@ -68,22 +69,35 @@ export default function LessonScreen() {
 
   // Load lesson and exercises
   useEffect(() => {
-    if (!token || !id) return;
-    fetch(ENDPOINTS.LESSON(id as string), {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setLesson(data.lesson);
-        setExercises(data.exercises || []);
+    if (!id) return;
+
+    // 1. Instant load from local static curriculum
+    CurriculumService.getLesson(id as string).then((localData) => {
+      if (localData) {
+        setLesson(localData.lesson);
+        setExercises(localData.exercises || []);
         setLoading(false);
         startTimeRef.current = Date.now();
+      }
+    });
+
+    // 2. Optional remote refresh if connected to live server
+    if (token && !token.startsWith('local-')) {
+      fetch(ENDPOINTS.LESSON(id as string), {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch((e) => {
-        console.error('[LessonScreen] Fetch error:', e);
-        setLoading(false);
-      });
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.lesson && data.exercises?.length) {
+            setLesson(data.lesson);
+            setExercises(data.exercises);
+            setLoading(false);
+          }
+        })
+        .catch(() => {});
+    }
   }, [token, id]);
+
 
   const currentExercise = exercises[currentIndex];
 
@@ -129,54 +143,62 @@ export default function LessonScreen() {
     const durationMs = Date.now() - startTimeRef.current;
 
     try {
-      const res = await fetch(ENDPOINTS.SUBMIT_ANSWER, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          exerciseId: currentExercise.id,
-          userAnswer,
-          durationMs,
-        }),
-      });
+      // 1. Instant local validation via CurriculumService
+      const localResult = await CurriculumService.submitAnswer(
+        id as string,
+        currentExercise.id,
+        userAnswer
+      );
 
-      const result = await res.json();
-
-      // Record this attempt in our local list
       setAttempts((prev) => [
         ...prev,
         {
           exerciseId: currentExercise.id,
-          isCorrect: result.isCorrect,
+          isCorrect: localResult.isCorrect,
           userAnswer,
           durationMs,
         },
       ]);
 
-      if (result.isCorrect) {
+      // 2. Optional cloud sync if connected
+      if (token && !token.startsWith('local-')) {
+        fetch(ENDPOINTS.SUBMIT_ANSWER, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            exerciseId: currentExercise.id,
+            userAnswer,
+            durationMs,
+          }),
+        }).catch(() => {});
+      }
+
+      if (localResult.isCorrect) {
         SoundService.playSuccessChime();
         HapticsService.success();
         setFeedback({
           status: 'correct',
-          explanation: result.explanation || 'Nicely done!',
-          pedagogicalTip: result.pedagogicalTip,
-          hasAccentWarning: result.hasAccentWarning,
+          explanation: localResult.explanation || currentExercise.explanation || 'Nicely done!',
         });
       } else {
         SoundService.playErrorThud();
         HapticsService.error();
-        // Update user hearts locally
-        const remaining = result.heartsRemaining ?? Math.max(0, (user?.hearts ?? 5) - 1);
+        const remaining = localResult.heartsRemaining;
         updateUserLocally((prev) =>
           prev ? { ...prev, hearts: remaining } : null
         );
 
         setFeedback({
           status: 'incorrect',
-          correctAnswer: String(result.correctAnswer || ''),
-          explanation: result.explanation || '',
+          correctAnswer:
+            currentExercise.data?.acceptableAnswers?.[0] ||
+            currentExercise.data?.fullSentence ||
+            currentExercise.explanation ||
+            '',
+          explanation: localResult.explanation || currentExercise.explanation || '',
         });
 
         // Trigger Out of Hearts Modal if hearts dropped to 0
@@ -187,7 +209,7 @@ export default function LessonScreen() {
         }
       }
     } catch (e) {
-      console.error('[LessonScreen] Submit error:', e);
+      console.warn('[LessonScreen] Submit error:', e);
     } finally {
       setSubmitting(false);
     }
@@ -210,34 +232,63 @@ export default function LessonScreen() {
     if (currentIndex + 1 < exercises.length) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      // Completed all exercises! Call /complete endpoint
+      // Completed all exercises! Call complete endpoint locally first
       setLoading(true);
       try {
-        const res = await fetch(ENDPOINTS.COMPLETE_LESSON, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            lessonId: lesson.id,
-            attempts,
-            startedAt: new Date(Date.now() - 120000).toISOString(),
-            completedAt: new Date().toISOString(),
-          }),
-        });
-        const completionData = await res.json();
+        const xpEarned = lesson?.xpReward || 15;
+        const correctCount = attempts.filter((a) => a.isCorrect).length;
+        const total = exercises.length || 1;
+        const accuracy = Math.round((correctCount / total) * 100);
+
+        // Complete locally via CurriculumService
+        const localCompletion = await CurriculumService.completeLesson(id as string, xpEarned);
+
+        const completionData = {
+          xpEarned,
+          accuracy,
+          totalXp: localCompletion.totalXp,
+          streak: localCompletion.streak,
+          heartsRemaining: localCompletion.hearts,
+        };
         setCompletionResult(completionData);
         setIsCompleted(true);
         SoundService.playFanfare();
-        await refreshUser();
+
+        updateUserLocally((prev) =>
+          prev
+            ? {
+                ...prev,
+                totalXp: localCompletion.totalXp,
+                currentStreak: localCompletion.streak,
+                hearts: localCompletion.hearts,
+              }
+            : null
+        );
+
+        // Optional cloud sync
+        if (token && !token.startsWith('local-')) {
+          fetch(ENDPOINTS.COMPLETE_LESSON, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              lessonId: lesson.id,
+              attempts,
+              startedAt: new Date(Date.now() - 120000).toISOString(),
+              completedAt: new Date().toISOString(),
+            }),
+          }).catch(() => {});
+        }
       } catch (e) {
-        console.error('[LessonScreen] Completion error:', e);
+        console.warn('[LessonScreen] Completion notice:', e);
       } finally {
         setLoading(false);
       }
     }
   };
+
 
   if (loading) {
     return (

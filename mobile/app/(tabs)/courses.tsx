@@ -14,57 +14,68 @@ import { HeaderBar } from '../../src/components/HeaderBar';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { HapticsService } from '../../src/services/hapticsService';
+import { CurriculumService } from '../../src/services/curriculumService';
 
 export default function CoursesScreen() {
   const router = useRouter();
-  const { user, token, refreshUser } = useAuth();
+  const { user, token, updateUserLocally } = useAuth();
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) {
+    // 1. Instant load from local static catalog
+    CurriculumService.getCourses().then((localList) => {
+      setCourses(localList);
       setLoading(false);
-      return;
-    }
-    fetch(ENDPOINTS.COURSES, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setCourses(data.courses || []);
-        setLoading(false);
+    });
+
+    // 2. Optional remote fetch
+    if (token && !token.startsWith('local-')) {
+      fetch(ENDPOINTS.COURSES, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch((e) => {
-        console.error('[CoursesScreen] Load error:', e);
-        setLoading(false);
-      });
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.courses?.length) {
+            setCourses(data.courses);
+          }
+        })
+        .catch(() => {});
+    }
   }, [token]);
 
   const handleSelectCourse = async (course: any) => {
     HapticsService.lightTap();
-    if (!token || switchingId) return;
+    if (switchingId) return;
 
-    setSwitchingId(course._id);
+    setSwitchingId(course._id || course.id);
     try {
-      // Update user target language
-      await fetch(ENDPOINTS.PROFILE, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ targetLanguage: course.toLanguage }),
-      });
-      await refreshUser();
+      updateUserLocally((prev) =>
+        prev ? { ...prev, targetLanguage: course.toLanguage } : null
+      );
+
+      // Optional cloud sync
+      if (token && !token.startsWith('local-')) {
+        fetch(ENDPOINTS.PROFILE, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ targetLanguage: course.toLanguage }),
+        }).catch(() => {});
+      }
+
       HapticsService.success();
       router.push('/(tabs)');
     } catch (e) {
-      console.error('[CoursesScreen] Switch error:', e);
+      console.warn('[CoursesScreen] Switch notice:', e);
     } finally {
       setSwitchingId(null);
     }
   };
+
 
   return (
     <View style={styles.container}>

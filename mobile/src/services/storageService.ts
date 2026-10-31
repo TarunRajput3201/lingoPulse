@@ -7,78 +7,78 @@ const USER_KEY = 'lingopulse_user_cache';
 let memoryStorage: { [key: string]: string } = {};
 
 export const StorageService = {
-  async setToken(token: string): Promise<void> {
+  async setItem(key: string, value: string): Promise<void> {
     try {
       if (Platform.OS === 'web') {
-        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(key, value);
       } else {
-        await SecureStore.setItemAsync(TOKEN_KEY, token);
+        await SecureStore.setItemAsync(key, value);
       }
     } catch {
-      memoryStorage[TOKEN_KEY] = token;
+      memoryStorage[key] = value;
     }
+  },
+
+  async getItem(key: string): Promise<string | null> {
+    try {
+      if (Platform.OS === 'web') {
+        return localStorage.getItem(key);
+      }
+      return await SecureStore.getItemAsync(key);
+    } catch {
+      return memoryStorage[key] || null;
+    }
+  },
+
+  async removeItem(key: string): Promise<void> {
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(key);
+      } else {
+        await SecureStore.deleteItemAsync(key);
+      }
+    } catch {
+      delete memoryStorage[key];
+    }
+  },
+
+  async setJSON<T>(key: string, val: T): Promise<void> {
+    await this.setItem(key, JSON.stringify(val));
+  },
+
+  async getJSON<T>(key: string, defaultVal: T): Promise<T> {
+    try {
+      const raw = await this.getItem(key);
+      if (!raw) return defaultVal;
+      return JSON.parse(raw) as T;
+    } catch {
+      return defaultVal;
+    }
+  },
+
+  async setToken(token: string): Promise<void> {
+    await this.setItem(TOKEN_KEY, token);
   },
 
   async getToken(): Promise<string | null> {
-    try {
-      if (Platform.OS === 'web') {
-        return localStorage.getItem(TOKEN_KEY);
-      }
-      return await SecureStore.getItemAsync(TOKEN_KEY);
-    } catch {
-      return memoryStorage[TOKEN_KEY] || null;
-    }
+    return await this.getItem(TOKEN_KEY);
   },
 
   async removeToken(): Promise<void> {
-    try {
-      if (Platform.OS === 'web') {
-        localStorage.removeItem(TOKEN_KEY);
-      } else {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
-      }
-    } catch {
-      delete memoryStorage[TOKEN_KEY];
-    }
+    await this.removeItem(TOKEN_KEY);
   },
 
   async setUserCache(user: any): Promise<void> {
-    try {
-      const serialized = JSON.stringify(user);
-      if (Platform.OS === 'web') {
-        localStorage.setItem(USER_KEY, serialized);
-      } else {
-        await SecureStore.setItemAsync(USER_KEY, serialized);
-      }
-    } catch {
-      memoryStorage[USER_KEY] = JSON.stringify(user);
-    }
+    await this.setJSON(USER_KEY, user);
   },
 
   async getUserCache(): Promise<any | null> {
-    try {
-      let raw: string | null = null;
-      if (Platform.OS === 'web') {
-        raw = localStorage.getItem(USER_KEY);
-      } else {
-        raw = await SecureStore.getItemAsync(USER_KEY);
-      }
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      const raw = memoryStorage[USER_KEY];
-      return raw ? JSON.parse(raw) : null;
-    }
+    return await this.getJSON(USER_KEY, null);
   },
 
   async clearAll(): Promise<void> {
     await this.removeToken();
-    try {
-      if (Platform.OS === 'web') {
-        localStorage.removeItem(USER_KEY);
-      } else {
-        await SecureStore.deleteItemAsync(USER_KEY);
-      }
-    } catch {}
+    await this.removeItem(USER_KEY);
     memoryStorage = {};
   },
 };

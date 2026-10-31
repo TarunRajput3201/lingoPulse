@@ -16,6 +16,7 @@ import { Button3D } from '../../src/components/Button3D';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { HapticsService } from '../../src/services/hapticsService';
+import { CurriculumService } from '../../src/services/curriculumService';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -38,23 +39,25 @@ export default function ProfileScreen() {
   }, [user]);
 
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    fetch(ENDPOINTS.ACHIEVEMENTS, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setAchievements(data.achievements || []);
-        setLoading(false);
+    // 1. Instant load from static achievements
+    setAchievements(CurriculumService.getAchievements());
+    setLoading(false);
+
+    // 2. Optional remote fetch
+    if (token && !token.startsWith('local-')) {
+      fetch(ENDPOINTS.ACHIEVEMENTS, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch((e) => {
-        console.error('[ProfileScreen] Load error:', e);
-        setLoading(false);
-      });
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.achievements?.length) {
+            setAchievements(data.achievements);
+          }
+        })
+        .catch(() => {});
+    }
   }, [token]);
+
 
   // Persistent preference updater
   const handleTogglePreference = async (key: 'soundEffects' | 'hapticFeedback' | 'dailyReminder', value: boolean) => {

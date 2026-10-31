@@ -17,8 +17,10 @@ import { ENDPOINTS } from '../../src/constants/api';
 import { SoundService } from '../../src/services/soundService';
 import { HapticsService } from '../../src/services/hapticsService';
 
+import { CurriculumService } from '../../src/services/curriculumService';
+
 export default function PracticeScreen() {
-  const { user, token, refreshUser } = useAuth();
+  const { user, token, updateUserLocally } = useAuth();
   const [mistakes, setMistakes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
@@ -30,18 +32,26 @@ export default function PracticeScreen() {
   const [revealedSolution, setRevealedSolution] = useState(false);
 
   const loadMistakes = async () => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
     try {
-      const res = await fetch(ENDPOINTS.PRACTICE_MISTAKES, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      setMistakes(data.practiceItems || []);
+      // 1. Load local mistakes
+      const localMistakes = await CurriculumService.getMistakes();
+      setMistakes(localMistakes);
+      setLoading(false);
+
+      // 2. Optional remote fetch
+      if (token && !token.startsWith('local-')) {
+        const res = await fetch(ENDPOINTS.PRACTICE_MISTAKES, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.practiceItems?.length) {
+            setMistakes(data.practiceItems);
+          }
+        }
+      }
     } catch (e) {
-      console.error('[PracticeScreen] Load error:', e);
+      console.warn('[PracticeScreen] Load notice:', e);
     } finally {
       setLoading(false);
     }
@@ -67,33 +77,42 @@ export default function PracticeScreen() {
       setPracticeIndex(practiceIndex + 1);
       setRevealedSolution(false);
     } else {
-      // Completed all mistake cards! Finalize on backend and recover hearts
+      // Completed all mistake cards! Finalize locally and recover hearts
       setCompleting(true);
       try {
-        const resolvedIds = mistakes.map((m) => m.id);
-        const res = await fetch(ENDPOINTS.COMPLETE_PRACTICE, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ resolvedExerciseIds: resolvedIds }),
-        });
-        const data = await res.json();
+        for (const m of mistakes) {
+          await CurriculumService.resolveMistake(m.id);
+        }
+        updateUserLocally((prev) =>
+          prev ? { ...prev, hearts: Math.min(5, (prev.hearts || 0) + 1) } : null
+        );
 
         SoundService.playSuccessChime();
         HapticsService.success();
-        setStatusMessage(data.message || 'Practice complete! Recovered +1 Heart.');
-        await refreshUser();
+        setStatusMessage('Practice complete! Recovered +1 Heart.');
         setMistakes([]);
+
+        // Optional cloud sync
+        if (token && !token.startsWith('local-')) {
+          const resolvedIds = mistakes.map((m) => m.id);
+          fetch(ENDPOINTS.COMPLETE_PRACTICE, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ resolvedExerciseIds: resolvedIds }),
+          }).catch(() => {});
+        }
       } catch (e) {
-        console.error('[PracticeScreen] Complete error:', e);
+        console.warn('[PracticeScreen] Complete notice:', e);
       } finally {
         setCompleting(false);
         setIsPracticing(false);
       }
     }
   };
+
 
   const currentMistake = mistakes[practiceIndex];
 
