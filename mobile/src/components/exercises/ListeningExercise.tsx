@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
-    borderBottomColor: '#CBD5E1',
+    borderBottomColor: COLORS.grayBorderDark,
     minHeight: 64,
   },
   optionCardSelected: {

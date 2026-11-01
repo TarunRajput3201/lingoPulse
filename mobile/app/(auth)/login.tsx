@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.surfaceAlt,
     borderWidth: 2,
     borderColor: COLORS.grayBorder,
     borderRadius: RADII.lg,

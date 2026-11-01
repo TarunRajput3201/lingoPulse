@@ -72,7 +72,8 @@ export const Button3D: React.FC<Button3DProps> = ({
       case 'outline':
         return {
           bg: COLORS.white,
-          border: COLORS.grayBorder,
+          border: COLORS.grayBorderDark,
+          borderSide: COLORS.grayBorder,
           text: COLORS.charcoal,
         };
       case 'ghost':
@@ -94,7 +95,7 @@ export const Button3D: React.FC<Button3DProps> = ({
     switch (size) {
       case 'sm':
         return {
-          paddingVertical: 10,
+          paddingVertical: 8,
           paddingHorizontal: 16,
           fontSize: TYPOGRAPHY.sizes.sm,
           minHeight: 40,
@@ -102,7 +103,7 @@ export const Button3D: React.FC<Button3DProps> = ({
         };
       case 'lg':
         return {
-          paddingVertical: 18,
+          paddingVertical: 16,
           paddingHorizontal: 24,
           fontSize: TYPOGRAPHY.sizes.lg,
           minHeight: 56,
@@ -111,10 +112,10 @@ export const Button3D: React.FC<Button3DProps> = ({
       case 'md':
       default:
         return {
-          paddingVertical: 14,
+          paddingVertical: 12,
           paddingHorizontal: 20,
           fontSize: TYPOGRAPHY.sizes.md,
-          minHeight: 48,
+          minHeight: 50,
           depth: 4,
         };
     }
@@ -144,12 +145,12 @@ export const Button3D: React.FC<Button3DProps> = ({
           paddingVertical: sizeStyles.paddingVertical,
           paddingHorizontal: sizeStyles.paddingHorizontal,
           backgroundColor: !isInteractive
-            ? '#E2E8F0'
+            ? COLORS.locked
             : variant === 'ghost'
             ? 'transparent'
             : colors.bg,
           borderBottomColor: !isInteractive
-            ? '#CBD5E1'
+            ? COLORS.lockedDark
             : variant === 'ghost'
             ? 'transparent'
             : colors.border,
@@ -158,19 +159,15 @@ export const Button3D: React.FC<Button3DProps> = ({
         },
         variant === 'outline' && {
           borderWidth: 2,
-          borderColor: !isInteractive ? '#CBD5E1' : COLORS.grayBorder,
-          borderBottomColor: !isInteractive ? '#CBD5E1' : '#CBD5E1',
-          borderBottomWidth: pressed ? 2 : sizeStyles.depth,
+          borderColor: !isInteractive ? COLORS.lockedDark : COLORS.grayBorder,
+          borderBottomWidth: pressed ? 2 : sizeStyles.depth + 1,
+          borderBottomColor: !isInteractive ? COLORS.lockedDark : COLORS.grayBorderDark,
         },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={variant === 'outline' ? COLORS.primary : COLORS.white}
-          style={styles.spinner}
-        />
+        <ActivityIndicator color={variant === 'outline' ? COLORS.charcoal : COLORS.white} size="small" />
       ) : (
         <View style={styles.contentRow}>
           {icon ? <View style={styles.iconContainer}>{icon}</View> : null}
@@ -179,9 +176,7 @@ export const Button3D: React.FC<Button3DProps> = ({
               styles.baseText,
               {
                 fontSize: sizeStyles.fontSize,
-                color: !isInteractive
-                  ? '#94A3B8'
-                  : colors.text,
+                color: !isInteractive ? COLORS.lockedText : colors.text,
               },
               textStyle,
             ]}
@@ -196,27 +191,23 @@ export const Button3D: React.FC<Button3DProps> = ({
 
 const styles = StyleSheet.create({
   baseButton: {
-    borderRadius: RADII.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: RADII.card,
     justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
   },
   contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
   iconContainer: {
-    marginRight: 4,
+    marginRight: 8,
   },
   baseText: {
     fontWeight: '800',
+    textAlign: 'center',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    textAlign: 'center',
-  },
-  spinner: {
-    paddingVertical: 2,
   },
 });

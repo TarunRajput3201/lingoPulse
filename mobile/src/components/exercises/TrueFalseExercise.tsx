@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   statementCard: {
     padding: 24,
     borderRadius: RADII.xl,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.surfaceAlt,
     borderWidth: 2,
     borderColor: COLORS.grayBorder,
     marginBottom: 32,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
-    borderBottomColor: '#CBD5E1',
+    borderBottomColor: COLORS.grayBorderDark,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,

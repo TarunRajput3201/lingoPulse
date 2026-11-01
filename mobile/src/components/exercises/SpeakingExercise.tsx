@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   phraseCard: {
     padding: 24,
     borderRadius: RADII.xl,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.surfaceAlt,
     borderWidth: 2,
     borderColor: COLORS.grayBorder,
     alignItems: 'center',

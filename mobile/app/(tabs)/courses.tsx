@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
-    borderBottomColor: '#CBD5E1',
+    borderBottomColor: COLORS.grayBorderDark,
   },
   courseCardActive: {
     borderColor: COLORS.secondary,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: RADII.xs,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.surfaceAlt,
   },
   cefrText: {
     fontSize: 10,

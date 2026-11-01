@@ -1,65 +1,75 @@
 /**
- * LingoPulse Unified Design System & Semantic Design Tokens
- * Follows accessibility contrast standards (WCAG AAA / AA)
- * Crafted for focus, high engagement, and pleasant long-session learning.
+ * LingoPulse Unified Design System & Gamified Semantic Design Tokens
+ * Inspired by top-tier modern language learning applications (Duolingo, Speak).
+ * Vibrant, tactile, high-contrast, and delightfully habit-forming.
  */
 
 export const COLORS = {
-  // Brand Primary (Fresh, confident emerald green - growth, achievement, success)
-  primary: '#059669',
-  primaryDark: '#047857',
-  primaryLight: '#D1FAE5',
-  primarySubtle: '#ECFDF5',
+  // Brand Primary (Feather Green - Growth, Action, Success)
+  primary: '#58CC02',
+  primaryDark: '#46A302', // 3D Bottom Lip Bevel
+  primaryLight: '#D7FFB8', // Soft pastel for correct feedback drawer
+  primarySubtle: '#F2FFE5',
 
-  // Brand Secondary (Deep oceanic blue / indigo - action, interaction, clarity)
-  secondary: '#2563EB',
-  secondaryDark: '#1D4ED8',
-  secondaryLight: '#DBEAFE',
-  secondarySubtle: '#EFF6FF',
+  // Brand Secondary (Macaw Sky Blue - Action, Selection, Audio)
+  secondary: '#1CB0F6',
+  secondaryDark: '#1899D6', // 3D Bottom Lip Bevel
+  secondaryLight: '#DDF4FF', // Soft selection highlight
+  secondarySubtle: '#F0F9FF',
 
-  // Accent (Warm coral rose - error, heart depletion, alerts)
-  accent: '#EF4444',
-  accentDark: '#DC2626',
-  accentLight: '#FEE2E2',
-  accentSubtle: '#FEF2F2',
+  // Accent (Cardinal Red - Errors, Lost Hearts, Corrections)
+  accent: '#FF4B4B',
+  accentDark: '#EA2B2B', // 3D Bottom Lip Bevel
+  accentLight: '#FFDFE0', // Soft pastel for incorrect feedback drawer
+  accentSubtle: '#FFF0F0',
 
-  // Gold / Amber (Warm luminous gold - daily streak, XP, rewards, crowns)
-  gold: '#F59E0B',
-  goldDark: '#D97706',
-  goldLight: '#FEF3C7',
-  goldSubtle: '#FFFBEB',
+  // Bee Gold (Rewards, Crowns, Active START Node, 1st Place Podium)
+  gold: '#FFC800',
+  goldDark: '#E5A500', // 3D Bottom Lip Bevel
+  goldLight: '#FFF5D1',
+  goldSubtle: '#FFFDF2',
 
-  // Amethyst Purple (Milestones, gems, elite leagues, achievements)
-  purple: '#8B5CF6',
-  purpleDark: '#7C3AED',
-  purpleLight: '#EDE9FE',
+  // Fox Orange (Daily Habit Flame, Streak)
+  orange: '#FF9600',
+  orangeDark: '#E58500', // 3D Bottom Lip Bevel
+  orangeLight: '#FFEACC',
+
+  // Amethyst Purple (Milestones, Gems, Elite Leagues, Achievements)
+  purple: '#CE82FF',
+  purpleDark: '#A559D9', // 3D Bottom Lip Bevel
+  purpleLight: '#F6E6FF',
   purpleSubtle: '#FAF5FF',
 
-  // Neutral Scales (Deep navy charcoal for high contrast, slate for body, muted for secondary)
-  charcoal: '#0F172A', // Slate 900
-  slateDark: '#1E293B', // Slate 800
-  slate: '#334155', // Slate 700
-  grayText: '#64748B', // Slate 500
-  grayLight: '#94A3B8', // Slate 400
-  grayBorder: '#E2E8F0', // Slate 200
-  grayBorderLight: '#F1F5F9', // Slate 100
-  grayBackground: '#F8FAFC', // Slate 50 - Warm clean porcelain canvas
+  // Neutral Scales (Warm Eel Charcoal for soft readable text, never harsh black)
+  charcoal: '#4B4B4B', // Eel Charcoal
+  slateDark: '#3C3C3C',
+  slate: '#4B4B4B',
+  grayText: '#777777', // Wolf Gray - Subheadings & captions
+  grayLight: '#AFAFAF', // Beetle Gray - Disabled text / icons
+  grayBorder: '#E5E5E5', // Hare Gray - Signature 2px card & button borders
+  grayBorderDark: '#D6D6D6', // 3D bottom bevel for unselected tiles
+  grayBackground: '#F7F7F7', // Polar Canvas - Warm, clean, bright background
 
-  // Surfaces & Semantic Feedback
+  // Surfaces & Feedback
   white: '#FFFFFF',
   surfaceCard: '#FFFFFF',
-  surfaceSubtle: '#F8FAFC',
-  success: '#059669',
-  successLight: '#D1FAE5',
-  error: '#EF4444',
-  errorLight: '#FEE2E2',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
+  surfaceSubtle: '#F7F7F7',
+  surfaceAlt: '#F7F7F7',
+  success: '#58CC02',
+  successDark: '#46A302',
+  successLight: '#D7FFB8',
+  error: '#FF4B4B',
+  errorDark: '#EA2B2B',
+  errorLight: '#FFDFE0',
+  warning: '#FF9600',
+  warningLight: '#FFEACC',
 
-  // Locked / Inactive State
-  locked: '#94A3B8',
-  lockedBackground: '#F1F5F9',
-  lockedBorder: '#CBD5E1',
+  // Locked / Inactive Stepping Stones & Buttons
+  locked: '#E5E5E5',
+  lockedDark: '#D6D6D6',
+  lockedBackground: '#E5E5E5',
+  lockedBorder: '#D6D6D6',
+  lockedText: '#AFAFAF',
 };
 
 export const TYPOGRAPHY = {
@@ -101,62 +111,39 @@ export const SPACING = {
 };
 
 export const RADII = {
-  xs: 6,
-  sm: 10,
-  md: 14,
-  lg: 18,
-  xl: 24,
-  full: 9999,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  card: 16,
   pill: 9999,
+  circle: 9999,
 };
 
 export const SHADOWS = {
+  tactileBevel: {
+    borderBottomWidth: 4,
+  },
   card: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardHover: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.09,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  floating: {
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  buttonPrimary: {
-    backgroundColor: COLORS.primary,
-    borderBottomWidth: 4,
-    borderBottomColor: COLORS.primaryDark,
-  },
-  buttonSecondary: {
-    backgroundColor: COLORS.secondary,
-    borderBottomWidth: 4,
-    borderBottomColor: COLORS.secondaryDark,
-  },
-  buttonAccent: {
-    backgroundColor: COLORS.accent,
-    borderBottomWidth: 4,
-    borderBottomColor: COLORS.accentDark,
-  },
-  buttonGold: {
-    backgroundColor: COLORS.gold,
-    borderBottomWidth: 4,
-    borderBottomColor: COLORS.goldDark,
-  },
-  buttonOutline: {
-    backgroundColor: COLORS.white,
     borderWidth: 2,
     borderColor: COLORS.grayBorder,
     borderBottomWidth: 4,
-    borderBottomColor: COLORS.grayBorder,
+    borderBottomColor: COLORS.grayBorderDark,
   },
+  modal: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  glow: (color: string) => ({
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+  }),
 };

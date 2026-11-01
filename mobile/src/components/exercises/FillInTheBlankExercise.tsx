@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   sentenceCard: {
     padding: 24,
     borderRadius: RADII.xl,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.surfaceAlt,
     borderWidth: 2,
     borderColor: COLORS.grayBorder,
     marginBottom: 28,
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
-    borderBottomColor: '#CBD5E1',
+    borderBottomColor: COLORS.grayBorderDark,
     minWidth: 100,
     alignItems: 'center',
   },
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
-    borderBottomColor: '#CBD5E1',
+    borderBottomColor: COLORS.grayBorderDark,
     padding: 14,
   },
   textInput: {

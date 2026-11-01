@@ -340,8 +340,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: RADII.lg,
     backgroundColor: COLORS.white,
-    borderWidth: 1.5,
+    borderWidth: 2,
+    borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: COLORS.grayBorderDark,
   },
   typeBadge: {
     alignSelf: 'flex-start',
@@ -372,8 +374,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: 20,
     borderRadius: RADII.xl,
-    borderWidth: 1.5,
+    borderWidth: 2,
+    borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
+    borderBottomColor: COLORS.grayBorderDark,
   },
   drillHeader: {
     flexDirection: 'row',
@@ -399,8 +403,8 @@ const styles = StyleSheet.create({
   drillCard: {
     padding: 20,
     borderRadius: RADII.lg,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 2,
     borderColor: COLORS.grayBorder,
   },
   drillPrompt: {

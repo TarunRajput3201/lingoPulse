@@ -151,11 +151,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sourceBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.surfaceAlt,
     padding: 16,
     borderRadius: RADII.lg,
     marginBottom: 16,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: COLORS.grayBorder,
   },
   sourceLabel: {
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     borderRadius: RADII.xl,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: '#CBD5E1',
+    borderColor: COLORS.grayBorderDark,
     padding: 14,
     justifyContent: 'center',
     marginBottom: 24,
@@ -220,14 +220,14 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
-    borderBottomColor: '#CBD5E1',
+    borderBottomColor: COLORS.grayBorderDark,
   },
   bankTokenUsed: {
-    backgroundColor: '#F1F5F9',
-    borderColor: '#E2E8F0',
-    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#E5E5E5',
+    borderColor: '#E5E5E5',
+    borderBottomColor: '#E5E5E5',
     borderBottomWidth: 2,
-    opacity: 0.35,
+    opacity: 0.4,
   },
   bankTokenText: {
     fontSize: 16,
@@ -235,6 +235,6 @@ const styles = StyleSheet.create({
     color: COLORS.charcoal,
   },
   bankTokenTextUsed: {
-    color: '#94A3B8',
+    color: '#AFAFAF',
   },
 });

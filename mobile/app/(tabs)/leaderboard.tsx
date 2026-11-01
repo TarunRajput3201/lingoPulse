@@ -93,7 +93,7 @@ export default function LeaderboardScreen() {
                 {/* 2nd Place (Silver) */}
                 {top3[1] ? (
                   <View style={[styles.podiumColumn, styles.podiumSecond]}>
-                    <View style={[styles.podiumAvatarCircle, { borderColor: '#94A3B8' }]}>
+                    <View style={[styles.podiumAvatarCircle, { borderColor: '#CBD5E1' }]}>
                       <Text style={styles.podiumInitial}>
                         {(top3[1].displayName || '2')[0].toUpperCase()}
                       </Text>
@@ -101,9 +101,9 @@ export default function LeaderboardScreen() {
                     <Text style={styles.podiumName} numberOfLines={1}>
                       {top3[1].displayName}
                     </Text>
-                    <Text style={styles.podiumXp}>{top3[1].weeklyXp} XP</Text>
+                    <Text style={styles.podiumXp}>{top3[1].weeklyXp ?? top3[1].totalXp ?? 0} XP</Text>
                     <View style={[styles.pedestal, styles.pedestalSecond]}>
-                      <Text style={styles.pedestalNumber}>2</Text>
+                      <Text style={[styles.pedestalNumber, { color: '#64748B' }]}>2</Text>
                     </View>
                   </View>
                 ) : (
@@ -114,7 +114,7 @@ export default function LeaderboardScreen() {
                 {top3[0] ? (
                   <View style={[styles.podiumColumn, styles.podiumFirst]}>
                     <View style={styles.crownWrapper}>
-                      <Trophy size={20} color={COLORS.gold} />
+                      <Trophy size={24} color={COLORS.gold} />
                     </View>
                     <View style={[styles.podiumAvatarCircle, { borderColor: COLORS.gold }]}>
                       <Text style={styles.podiumInitial}>
@@ -124,11 +124,11 @@ export default function LeaderboardScreen() {
                     <Text style={styles.podiumName} numberOfLines={1}>
                       {top3[0].displayName}
                     </Text>
-                    <Text style={[styles.podiumXp, { color: COLORS.goldDark }]}>
-                      {top3[0].weeklyXp} XP
+                    <Text style={[styles.podiumXp, { color: COLORS.goldDark, fontWeight: '900' }]}>
+                      {top3[0].weeklyXp ?? top3[0].totalXp ?? 0} XP
                     </Text>
                     <View style={[styles.pedestal, styles.pedestalFirst]}>
-                      <Text style={styles.pedestalNumber}>1</Text>
+                      <Text style={[styles.pedestalNumber, { color: COLORS.white }]}>1</Text>
                     </View>
                   </View>
                 ) : null}
@@ -136,7 +136,7 @@ export default function LeaderboardScreen() {
                 {/* 3rd Place (Bronze) */}
                 {top3[2] ? (
                   <View style={[styles.podiumColumn, styles.podiumThird]}>
-                    <View style={[styles.podiumAvatarCircle, { borderColor: '#B45309' }]}>
+                    <View style={[styles.podiumAvatarCircle, { borderColor: '#CD7F32' }]}>
                       <Text style={styles.podiumInitial}>
                         {(top3[2].displayName || '3')[0].toUpperCase()}
                       </Text>
@@ -144,9 +144,9 @@ export default function LeaderboardScreen() {
                     <Text style={styles.podiumName} numberOfLines={1}>
                       {top3[2].displayName}
                     </Text>
-                    <Text style={styles.podiumXp}>{top3[2].weeklyXp} XP</Text>
+                    <Text style={styles.podiumXp}>{top3[2].weeklyXp ?? top3[2].totalXp ?? 0} XP</Text>
                     <View style={[styles.pedestal, styles.pedestalThird]}>
-                      <Text style={styles.pedestalNumber}>3</Text>
+                      <Text style={[styles.pedestalNumber, { color: COLORS.white }]}>3</Text>
                     </View>
                   </View>
                 ) : (
@@ -196,7 +196,7 @@ export default function LeaderboardScreen() {
                     </View>
 
                     <View style={styles.xpBadge}>
-                      <Text style={styles.xpText}>{entry.weeklyXp} XP</Text>
+                      <Text style={styles.xpText}>{entry.weeklyXp ?? entry.totalXp ?? 0} XP</Text>
                     </View>
                   </View>
                 );
@@ -225,7 +225,7 @@ export default function LeaderboardScreen() {
           </View>
           <View style={styles.myRankRight}>
             <Sparkles size={16} color={COLORS.gold} />
-            <Text style={styles.myRankXp}>{myEntry.weeklyXp} XP</Text>
+            <Text style={styles.myRankXp}>{myEntry.weeklyXp ?? myEntry.totalXp ?? 0} XP</Text>
           </View>
         </View>
       )}
@@ -329,25 +329,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pedestalFirst: {
-    height: 90,
-    backgroundColor: '#FEF3C7',
+    height: 94,
+    backgroundColor: '#FFC800',
     borderWidth: 2,
-    borderColor: '#FDE68A',
+    borderColor: '#FFC800',
+    borderBottomWidth: 6,
+    borderBottomColor: '#E5A500',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
   },
   pedestalSecond: {
-    height: 70,
-    backgroundColor: '#F1F5F9',
+    height: 74,
+    backgroundColor: '#E5E5E5',
     borderWidth: 2,
-    borderColor: '#E2E8F0',
+    borderColor: '#E5E5E5',
+    borderBottomWidth: 5,
+    borderBottomColor: '#CBD5E1',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
   },
   pedestalThird: {
-    height: 56,
-    backgroundColor: '#FFEDD5',
+    height: 58,
+    backgroundColor: '#FED7AA',
     borderWidth: 2,
     borderColor: '#FED7AA',
+    borderBottomWidth: 4,
+    borderBottomColor: '#EA580C',
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
   },
   pedestalNumber: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
     color: COLORS.charcoal,
   },

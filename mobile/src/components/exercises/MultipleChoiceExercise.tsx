@@ -81,29 +81,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: RADII.xl,
+    borderRadius: RADII.card,
     backgroundColor: COLORS.white,
     borderWidth: 2,
     borderBottomWidth: 4,
     borderColor: COLORS.grayBorder,
-    borderBottomColor: '#CBD5E1',
+    borderBottomColor: COLORS.grayBorderDark,
     minHeight: 64,
   },
   optionCardSelected: {
     borderColor: COLORS.secondary,
     borderBottomColor: COLORS.secondaryDark,
-    backgroundColor: COLORS.secondarySubtle,
+    backgroundColor: COLORS.secondaryLight,
   },
   indexBadge: {
     width: 32,
     height: 32,
-    borderRadius: 10,
+    borderRadius: 8,
     borderWidth: 1.5,
     borderColor: COLORS.grayBorder,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.white,
   },
   indexBadgeSelected: {
     borderColor: COLORS.secondary,
@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
   },
   indexText: {
     fontSize: 13,
-    fontWeight: '800',
+    fontWeight: '900',
     color: COLORS.grayText,
   },
   indexTextSelected: {
@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   optionText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
     color: COLORS.charcoal,
   },
@@ -130,8 +130,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   translationText: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.grayText,
     marginTop: 2,
+    fontWeight: '500',
   },
 });
+

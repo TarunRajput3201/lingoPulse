@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
-import { Flame, Diamond, Heart, Plus } from 'lucide-react-native';
+import { Flame, Diamond, Heart, Plus, ChevronDown } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'expo-router';
@@ -51,6 +51,7 @@ export const HeaderBar: React.FC = () => {
         style={styles.flagButton}
       >
         <Text style={styles.flagText}>{getFlagEmoji()}</Text>
+        <ChevronDown size={14} color={COLORS.grayText} strokeWidth={2.5} style={{ marginLeft: 4 }} />
       </Pressable>
 
       {/* Stats Pills Row */}
@@ -59,20 +60,19 @@ export const HeaderBar: React.FC = () => {
         <View
           style={[
             styles.statPill,
-            styles.streakPill,
-            streak > 0 && styles.streakPillActive,
+            streak > 0 ? styles.streakPillActive : styles.statPillInactive,
           ]}
           accessibilityLabel={`${streak} day streak`}
         >
           <Flame
             size={18}
-            color={streak > 0 ? COLORS.goldDark : COLORS.grayLight}
-            fill={streak > 0 ? COLORS.gold : 'transparent'}
+            color={streak > 0 ? COLORS.orange : COLORS.grayLight}
+            fill={streak > 0 ? COLORS.orange : 'transparent'}
           />
           <Text
             style={[
               styles.statText,
-              { color: streak > 0 ? COLORS.goldDark : COLORS.grayLight },
+              { color: streak > 0 ? COLORS.orange : COLORS.grayLight },
             ]}
           >
             {streak}
@@ -85,7 +85,7 @@ export const HeaderBar: React.FC = () => {
           accessibilityLabel={`${xp} total XP points`}
         >
           <Diamond
-            size={18}
+            size={16}
             color={COLORS.secondary}
             fill={COLORS.secondary}
           />
@@ -106,7 +106,12 @@ export const HeaderBar: React.FC = () => {
             color={COLORS.accent}
             fill={hearts > 0 ? COLORS.accent : 'transparent'}
           />
-          <Text style={[styles.statText, { color: COLORS.accentDark }]}>
+          <Text
+            style={[
+              styles.statText,
+              { color: hearts > 0 ? COLORS.accentDark : COLORS.grayLight },
+            ]}
+          >
             {hearts}
           </Text>
           {hearts < 5 ? (
@@ -129,19 +134,23 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 12 : 8,
     paddingBottom: 10,
     backgroundColor: COLORS.white,
-    borderBottomWidth: 1.5,
+    borderBottomWidth: 2,
     borderBottomColor: COLORS.grayBorder,
   },
   flagButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: RADII.md,
-    backgroundColor: '#F1F5F9',
-    borderWidth: 1.5,
+    paddingVertical: 6,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
     borderColor: COLORS.grayBorder,
+    borderBottomWidth: 3,
+    borderBottomColor: COLORS.grayBorderDark,
   },
   flagText: {
-    fontSize: 22,
+    fontSize: 20,
   },
   statsRow: {
     flexDirection: 'row',
@@ -151,27 +160,33 @@ const styles = StyleSheet.create({
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: RADII.pill,
-    borderWidth: 1.5,
-  },
-  streakPill: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
     borderColor: COLORS.grayBorder,
+    borderBottomWidth: 3,
+    borderBottomColor: COLORS.grayBorderDark,
+    gap: 5,
   },
   streakPillActive: {
-    backgroundColor: COLORS.goldSubtle,
-    borderColor: '#FDE68A',
+    borderColor: '#FFEACC',
+    borderBottomColor: '#FFD699',
+    backgroundColor: '#FFFDF9',
+  },
+  statPillInactive: {
+    borderColor: COLORS.grayBorder,
   },
   xpPill: {
+    borderColor: COLORS.secondaryLight,
+    borderBottomColor: '#BAE6FD',
     backgroundColor: COLORS.secondarySubtle,
-    borderColor: '#BFDBFE',
   },
   heartPill: {
+    borderColor: COLORS.accentLight,
+    borderBottomColor: '#FECACA',
     backgroundColor: COLORS.accentSubtle,
-    borderColor: '#FECDD3',
   },
   statText: {
     fontSize: TYPOGRAPHY.sizes.sm,
@@ -181,9 +196,9 @@ const styles = StyleSheet.create({
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 2,
+    marginLeft: 1,
   },
 });
