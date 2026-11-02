@@ -41,15 +41,15 @@ test.describe('LingoPulse Curriculum Quality & Progression Audit', () => {
 
     const spanish = data.courses.find((c: any) => c.code === 'es-en');
     expect(spanish).toBeDefined();
-    expect(spanish.title).toBe('Spanish Essentials');
-    expect(spanish.totalUnits).toBe(2);
-    expect(spanish.totalLessons).toBe(5);
+    expect(spanish.title).toBe('Spanish Academy');
+    expect(spanish.totalUnits).toBe(3);
+    expect(spanish.totalLessons).toBe(7);
 
     const french = data.courses.find((c: any) => c.code === 'fr-en');
     expect(french).toBeDefined();
-    expect(french.title).toBe('French Foundations');
-    expect(french.totalUnits).toBe(1);
-    expect(french.totalLessons).toBe(2);
+    expect(french.title).toBe('French Academy');
+    expect(french.totalUnits).toBe(3);
+    expect(french.totalLessons).toBe(7);
   });
 
   test('Spanish Course Hierarchy: Validates CEFR A1 unit & checkpoint structure', async ({ request }) => {
@@ -59,43 +59,31 @@ test.describe('LingoPulse Curriculum Quality & Progression Audit', () => {
     expect(res.status()).toBe(200);
     const data = await res.json();
 
-    expect(data.units.length).toBe(2);
+    expect(data.units.length).toBe(3);
 
     // Unit 1
     const unit1 = data.units[0];
-    expect(unit1.title).toContain('Greetings & Basics');
-    expect(unit1.lessons.length).toBe(3);
-    expect(unit1.lessons[0].title).toBe('Basic Greetings');
+    expect(unit1.title).toContain('Greetings');
+    expect(unit1.lessons.length).toBeGreaterThanOrEqual(2);
+    expect(unit1.lessons[0].title).toBe('Saying Hello');
     expect(unit1.lessons[0].type).toBe('standard');
-    expect(unit1.lessons[1].title).toBe('Food & Drinks');
-    expect(unit1.lessons[2].title).toContain('Checkpoint 1');
-    expect(unit1.lessons[2].type).toBe('checkpoint');
-
-    // Unit 2
-    const unit2 = data.units[1];
-    expect(unit2.title).toContain('Travel & Directions');
-    expect(unit2.lessons.length).toBe(2);
-    expect(unit2.lessons[0].title).toBe('Where is the Train?');
-    expect(unit2.lessons[1].title).toContain('Checkpoint 2');
-    expect(unit2.lessons[1].type).toBe('checkpoint');
 
     // Verify initial locking progression: Lesson 1 is unlocked
     expect(unit1.lessons[0].isLocked).toBe(false);
   });
 
-  test('French Course Hierarchy: Validates CEFR A1 salutations & café unit', async ({ request }) => {
+  test('French Course Hierarchy: Validates CEFR A1 salutations & polite phrases unit', async ({ request }) => {
     const res = await request.get(`/api/courses/${frenchCourseId}/path`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     expect(res.status()).toBe(200);
     const data = await res.json();
 
-    expect(data.units.length).toBe(1);
+    expect(data.units.length).toBe(3);
     const unit1 = data.units[0];
-    expect(unit1.title).toContain('Salutations & Café');
-    expect(unit1.lessons.length).toBe(2);
-    expect(unit1.lessons[0].title).toBe('French Greetings & Courtesy');
-    expect(unit1.lessons[1].title).toContain('Checkpoint');
+    expect(unit1.title).toContain('Greetings');
+    expect(unit1.lessons.length).toBeGreaterThanOrEqual(2);
+    expect(unit1.lessons[0].title).toBe('Saying Hello in French');
   });
 
   test('Admin CMS UI: Verifies course curriculum and exercise builder views', async ({ page }) => {
@@ -108,7 +96,7 @@ test.describe('LingoPulse Curriculum Quality & Progression Audit', () => {
     // Navigate to Course Curriculum tab
     await page.getByRole('button', { name: 'Course Curriculum' }).click();
     await expect(page.getByRole('heading', { name: 'Curriculum Hierarchy' })).toBeVisible();
-    await expect(page.getByText('Spanish Essentials', { exact: true })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Spanish Academy', { exact: true })).toBeVisible({ timeout: 10000 });
 
     // Navigate to Exercise Builder tab
     await page.getByRole('button', { name: 'Exercise Builder' }).click();

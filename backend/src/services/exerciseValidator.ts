@@ -52,20 +52,33 @@ export class ExerciseValidator {
     }
 
     const normUser = this.normalizeText(userInput);
+    const strippedUser = this.stripAccents(normUser);
+
+    // Find the canonical accented version if one exists in acceptableAnswers
+    const accentedCanonical = acceptableAnswers.find(
+      (ans) => this.stripAccents(this.normalizeText(ans)) !== this.normalizeText(ans)
+    );
 
     // 1. Exact normalized match (including accents)
     for (const ans of acceptableAnswers) {
       if (this.normalizeText(ans) === normUser) {
+        // If an accented canonical answer exists, but user's input omitted the accents:
+        if (
+          accentedCanonical &&
+          strippedUser === normUser &&
+          this.stripAccents(this.normalizeText(accentedCanonical)) === normUser
+        ) {
+          return { isCorrect: true, hasAccentWarning: true, canonicalMatch: accentedCanonical };
+        }
         return { isCorrect: true, hasAccentWarning: false, canonicalMatch: ans };
       }
     }
 
     // 2. Accent-tolerant match (NFD diacritic stripping)
-    const strippedUser = this.stripAccents(normUser);
     for (const ans of acceptableAnswers) {
       const strippedAns = this.stripAccents(this.normalizeText(ans));
       if (strippedAns === strippedUser) {
-        return { isCorrect: true, hasAccentWarning: true, canonicalMatch: ans };
+        return { isCorrect: true, hasAccentWarning: true, canonicalMatch: accentedCanonical || ans };
       }
     }
 

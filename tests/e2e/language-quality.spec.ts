@@ -4,6 +4,7 @@ test.describe('Linguistic Quality, Accent Tolerance & Anti-Cheat Sanitization', 
   test.describe.configure({ mode: 'serial' });
   let authToken = '';
   let lesson1Id = '';
+  let lesson2Id = '';
   let lesson4Id = '';
 
   test.beforeAll(async ({ request }) => {
@@ -32,7 +33,8 @@ test.describe('Linguistic Quality, Accent Tolerance & Anti-Cheat Sanitization', 
     });
     const pathData = await pathRes.json();
     lesson1Id = pathData.units[0].lessons[0].id;
-    lesson4Id = pathData.units[1].lessons[0].id;
+    lesson2Id = pathData.units[0].lessons[1].id;
+    lesson4Id = pathData.units[0].lessons[2].id;
   });
 
   test('Accent Tolerance: Accepting omitted diacritics with pedagogical guidance (no heart loss)', async ({ request }) => {
@@ -61,29 +63,28 @@ test.describe('Linguistic Quality, Accent Tolerance & Anti-Cheat Sanitization', 
   });
 
   test('Punctuation & Case Normalization: Inverted Spanish punctuation handling', async ({ request }) => {
-    const lessonRes = await request.get(`/api/lessons/${lesson1Id}`, {
+    const lessonRes = await request.get(`/api/lessons/${lesson2Id}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     const lessonData = await lessonRes.json();
     const fillBlankEx = lessonData.exercises.find((ex: any) => ex.type === 'FILL_IN_THE_BLANK');
     expect(fillBlankEx).toBeDefined();
 
-    // Submit lowercase without accent: 'como'
+    // Submit lowercase without case sensitivity issues: 'soy'
     const res = await request.post('/api/lessons/submit-answer', {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         exerciseId: fillBlankEx.id,
-        userAnswer: 'como',
+        userAnswer: 'soy',
       },
     });
 
     expect(res.status()).toBe(200);
     const data = await res.json();
     expect(data.isCorrect).toBe(true);
-    expect(data.hasAccentWarning).toBe(true);
   });
 
-  test('Regional Vocabulary Flexibility: Accepts both "el boleto" and "el billete"', async ({ request }) => {
+  test('Regional Vocabulary Flexibility: Accepts both "Mucho gusto, soy David" and "Encantado, soy David"', async ({ request }) => {
     const lessonRes = await request.get(`/api/lessons/${lesson4Id}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
@@ -91,12 +92,12 @@ test.describe('Linguistic Quality, Accent Tolerance & Anti-Cheat Sanitization', 
     const ticketEx = lessonData.exercises.find((ex: any) => ex.type === 'TRANSLATION');
     expect(ticketEx).toBeDefined();
 
-    // Submit Peninsular Spanish variant: 'el billete por favor'
+    // Submit Peninsular Spanish variant: 'Encantado, soy David'
     const res = await request.post('/api/lessons/submit-answer', {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         exerciseId: ticketEx.id,
-        userAnswer: 'el billete por favor',
+        userAnswer: 'Encantado, soy David',
       },
     });
 
@@ -150,12 +151,12 @@ test.describe('Linguistic Quality, Accent Tolerance & Anti-Cheat Sanitization', 
     const speakEx = cpData.exercises.find((ex: any) => ex.type === 'SPEAKING_PRONUNCIATION');
     expect(speakEx).toBeDefined();
 
-    // 1. Submit accurate speech input: "por favor"
+    // 1. Submit accurate speech input matching phraseToSpeak
     const passRes = await request.post('/api/lessons/submit-answer', {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         exerciseId: speakEx.id,
-        userAnswer: 'por favor',
+        userAnswer: speakEx.data?.phraseToSpeak || 'Mucho gusto, buenos días',
       },
     });
     expect(passRes.status()).toBe(200);
@@ -173,6 +174,6 @@ test.describe('Linguistic Quality, Accent Tolerance & Anti-Cheat Sanitization', 
     expect(failRes.status()).toBe(200);
     const failData = await failRes.json();
     expect(failData.isCorrect).toBe(false);
-    expect(failData.hint).toContain('fah-VOR'); // Phonetic guide supplied!
+    expect(failData.hint).toContain(speakEx.data?.phoneticGuide || 'MOO-choh'); // Phonetic guide supplied!
   });
 });

@@ -29,7 +29,7 @@ test.describe('Admin CMS Web Application Suite', () => {
     await expect(page.locator('button:has-text("New Course")')).toBeVisible();
 
     // Verify course listing renders at least Spanish course
-    await expect(page.getByText('Spanish Essentials', { exact: true })).toBeVisible();
+    await expect(page.getByText('Spanish Academy', { exact: true })).toBeVisible();
   });
 
   test('TC-ADM-03: Navigates to Exercise Builder with interactive authoring and mobile preview', async ({ page }) => {
