@@ -143,5 +143,40 @@ test.describe('Exercise Engine & Answer Validation Suite', () => {
       expect(typeof body.isCorrect).toBe('boolean');
     }
   });
+
+  test('TC-EXE-06: Verifies MCQ options contain no answer spoiler translation hints in payload', async ({ request }) => {
+    const lessonRes = await request.get(`/api/lessons/${lesson1Id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const { exercises } = await lessonRes.json();
+    const mcEx = exercises.find((e: any) => e.type === 'MULTIPLE_CHOICE');
+    expect(mcEx).toBeDefined();
+
+    // Verify each option does not expose a translation spoiler in the payload
+    for (const opt of mcEx.data.options) {
+      expect(opt).toHaveProperty('id');
+      expect(opt).toHaveProperty('text');
+      expect(opt.translation).toBeUndefined();
+    }
+  });
+
+  test('TC-EXE-07: Progressive Learning Engine: Enforces Unit 15 boundary for hard complete sentence construction', async () => {
+    const { ProgressiveLearningEngine } = require('../../../backend/dist/services/progressiveLearningEngine');
+
+    // Units 1 to 14: Steps 1-2 must be easy, Steps 3-5 medium, sentence construction forbidden
+    for (let u = 1; u <= 14; u++) {
+      expect(ProgressiveLearningEngine.isSentenceConstructionAllowed(u)).toBe(false);
+      expect(ProgressiveLearningEngine.getStepDifficulty(u, 1)).toBe('easy');
+      expect(ProgressiveLearningEngine.getStepDifficulty(u, 2)).toBe('easy');
+      expect(ProgressiveLearningEngine.getStepDifficulty(u, 3)).toBe('medium');
+      expect(ProgressiveLearningEngine.getStepDifficulty(u, 4)).toBe('medium');
+      expect(ProgressiveLearningEngine.getStepDifficulty(u, 5)).toBe('medium');
+    }
+
+    // Unit 15+: Sentence construction permitted, difficulty reaches hard
+    expect(ProgressiveLearningEngine.isSentenceConstructionAllowed(15)).toBe(true);
+    expect(ProgressiveLearningEngine.getStepDifficulty(15, 5)).toBe('hard');
+    expect(ProgressiveLearningEngine.isSentenceConstructionAllowed(16)).toBe(true);
+  });
 });
 

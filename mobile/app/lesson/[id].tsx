@@ -21,6 +21,7 @@ import { SoundService } from '../../src/services/soundService';
 import { HapticsService } from '../../src/services/hapticsService';
 import { CurriculumService } from '../../src/services/curriculumService';
 import { StorageService } from '../../src/services/storageService';
+import { ProgressiveLearningEngine } from '../../src/services/progressiveLearningEngine';
 
 // Exercise Components
 import { MultipleChoiceExercise } from '../../src/components/exercises/MultipleChoiceExercise';
@@ -122,6 +123,13 @@ export default function LessonScreen() {
         .catch(() => {});
     }
   }, [id]);
+
+  const unitNumber =
+    lesson?.unitNumber ||
+    (lesson?.unitId && parseInt(String(lesson.unitId).replace(/[^0-9]/g, ''), 10)) ||
+    1;
+  const stepNumber = lesson?.lessonNumber || 1;
+  const stepPedagogy = ProgressiveLearningEngine.getStepPedagogy(unitNumber, stepNumber);
 
   const currentExercise = exercises[currentIndex];
 
@@ -404,18 +412,32 @@ export default function LessonScreen() {
         </View>
       </View>
 
-      {/* Course & Lesson Indicator Banner */}
+      {/* Course & Lesson Indicator Banner with Progressive Difficulty Badge */}
       {course && (
         <View style={styles.courseBadgeContainer}>
           <View style={styles.courseBadge}>
             <Text style={styles.courseBadgeFlag}>{course.flagIcon || '🌐'}</Text>
             <Text style={styles.courseBadgeTitle}>{course.title}</Text>
           </View>
-          {lesson?.title ? (
-            <Text style={styles.courseBadgeLesson} numberOfLines={1}>
-              • {lesson.title}
+          <View
+            style={[
+              styles.pedagogyPill,
+              stepPedagogy.difficulty === 'easy' && styles.pedagogyPillEasy,
+              stepPedagogy.difficulty === 'medium' && styles.pedagogyPillMedium,
+              stepPedagogy.difficulty === 'hard' && styles.pedagogyPillHard,
+            ]}
+          >
+            <Text
+              style={[
+                styles.pedagogyPillText,
+                stepPedagogy.difficulty === 'easy' && styles.pedagogyTextEasy,
+                stepPedagogy.difficulty === 'medium' && styles.pedagogyTextMedium,
+                stepPedagogy.difficulty === 'hard' && styles.pedagogyTextHard,
+              ]}
+            >
+              {stepPedagogy.label}
             </Text>
-          ) : null}
+          </View>
         </View>
       )}
 
@@ -453,7 +475,7 @@ export default function LessonScreen() {
         {currentExercise?.type === 'TRANSLATION' && (
           <TranslationExercise
             prompt={currentExercise.prompt}
-            sourceText={currentExercise.instruction || currentExercise.data?.sourcePrompt}
+            sourceText={currentExercise.data?.sourcePrompt || currentExercise.data?.phraseToTranslate}
             userAnswer={typedAnswer}
             onChangeAnswer={setTypedAnswer}
             targetLanguage={course?.toLanguage || user?.targetLanguage || 'fr'}
@@ -740,6 +762,38 @@ const styles = StyleSheet.create({
     color: COLORS.grayText,
     marginLeft: 6,
     flex: 1,
+  },
+  pedagogyPill: {
+    marginLeft: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: RADII.pill,
+    borderWidth: 1,
+  },
+  pedagogyPillEasy: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC',
+  },
+  pedagogyPillMedium: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  pedagogyPillHard: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  pedagogyPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  pedagogyTextEasy: {
+    color: '#15803D',
+  },
+  pedagogyTextMedium: {
+    color: '#B45309',
+  },
+  pedagogyTextHard: {
+    color: '#B91C1C',
   },
   exerciseScroll: {
     paddingHorizontal: 16,

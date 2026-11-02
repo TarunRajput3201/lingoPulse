@@ -87,21 +87,37 @@ export class AdaptiveEngine {
   /**
    * Generates context-aware, entertaining dialogue for Pip the Robot
    */
-  public static getPipDialogue(context: 'start' | 'correct' | 'incorrect' | 'hint' | 'streak'): string {
+  public static getPipDialogue(
+    context:
+      | 'start'
+      | 'correct'
+      | 'incorrect'
+      | 'hint'
+      | 'streak'
+      | 'easy_single_word'
+      | 'missing_value'
+      | 'sentence_building'
+  ): string {
     switch (context) {
       case 'start':
         return "Don't worry, I'll help you!";
+      case 'easy_single_word':
+        return 'Spot the single word meaning! You got this!';
+      case 'missing_value':
+        return 'Fit the missing word puzzle piece into place!';
+      case 'sentence_building':
+        return "Unit 15+ Mastery: Let's construct the complete sentence!";
       case 'correct':
         if (this.metrics.consecutiveCorrect >= 3) {
           return `Awesome! ${this.metrics.consecutiveCorrect} in a row! ⚡`;
         }
-        return "Buzzzz! Spot on!";
+        return 'Buzzzz! Spot on!';
       case 'incorrect':
         return "Almost there! Let's examine the clues.";
       case 'hint':
-        return "Pro-tip: Focus on the root word!";
+        return 'Pro-tip: Focus on the root word!';
       case 'streak':
-        return "Unstoppable momentum! Keep going!";
+        return 'Unstoppable momentum! Keep going!';
       default:
         return "I'm with you all the way!";
     }

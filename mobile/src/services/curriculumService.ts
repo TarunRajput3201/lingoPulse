@@ -11,6 +11,7 @@ import {
   StaticExercise,
 } from '../data/staticCurriculum';
 import { StorageService } from './storageService';
+import { ProgressiveLearningEngine, StepPedagogy } from './progressiveLearningEngine';
 
 const COMPLETED_LESSONS_KEY = 'lingopulse_completed_lessons';
 const MISTAKES_KEY = 'lingopulse_mistakes';
@@ -60,6 +61,7 @@ export const CurriculumService = {
         isUnlocked: boolean;
         isCompleted: boolean;
         isCurrent: boolean;
+        pedagogy?: StepPedagogy;
       }>;
     }>;
   }> {
@@ -107,6 +109,8 @@ export const CurriculumService = {
           foundCurrent = true;
         }
 
+        const pedagogy = ProgressiveLearningEngine.getStepPedagogy(unit.unitNumber, lesson.lessonNumber);
+
         return {
           id: lesson.id,
           lessonNumber: lesson.lessonNumber,
@@ -117,6 +121,7 @@ export const CurriculumService = {
           isUnlocked,
           isCompleted,
           isCurrent,
+          pedagogy,
         };
       });
 

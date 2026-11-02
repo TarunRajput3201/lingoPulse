@@ -73,6 +73,17 @@ export const getLesson = async (req: AuthenticatedRequest, res: Response): Promi
     delete safeData.correctSentence;
     delete safeData.isTrue;
 
+    // Strip spoiler translations from options to eliminate confusing answer hints
+    if (Array.isArray(safeData.options)) {
+      safeData.options = safeData.options.map((opt: any) => {
+        if (typeof opt === 'object' && opt !== null) {
+          const { translation, ...cleanOpt } = opt;
+          return cleanOpt;
+        }
+        return opt;
+      });
+    }
+
     return {
       id: ex._id.toString(),
       lessonId: ex.lessonId.toString(),

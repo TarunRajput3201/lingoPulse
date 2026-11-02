@@ -20,22 +20,37 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
   onSelectWord,
   disabled = false,
 }) => {
-  const parts = sentenceWithBlank.split('___');
+  // Support standard blanks: ___, ____, [blank], <blank>, or missing value markers
+  const blankRegex = /_{2,}|\[blank\]|<blank>/i;
+  const parts = sentenceWithBlank.includes('___')
+    ? sentenceWithBlank.split('___')
+    : sentenceWithBlank.split(blankRegex);
 
   return (
     <View style={styles.container}>
       <Text style={styles.prompt}>{prompt}</Text>
 
-      {/* Sentence with Blank Card */}
-      <View style={styles.sentenceCard}>
+      {/* Sentence with Blank Card - Tap to clear if filled */}
+      <Pressable
+        disabled={disabled || !selectedWord}
+        accessibilityRole="button"
+        accessibilityLabel="Clear filled slot"
+        onPress={() => {
+          if (selectedWord) {
+            HapticsService.lightTap();
+            onSelectWord('');
+          }
+        }}
+        style={styles.sentenceCard}
+      >
         <Text style={styles.sentenceText}>
           {parts[0]}
-          <Text style={styles.blankSlot}>
+          <Text style={[styles.blankSlot, selectedWord ? styles.blankSlotFilled : null]}>
             {selectedWord ? ` ${selectedWord} ` : ' _______ '}
           </Text>
           {parts[1] || ''}
         </Text>
-      </View>
+      </Pressable>
 
       {/* Word Options Chips or Input */}
       {options && options.length > 0 ? (
@@ -48,7 +63,11 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
                 disabled={disabled}
                 onPress={() => {
                   HapticsService.lightTap();
-                  onSelectWord(opt);
+                  if (isSelected) {
+                    onSelectWord(''); // Toggle off
+                  } else {
+                    onSelectWord(opt);
+                  }
                 }}
                 style={[
                   styles.optionButton,
@@ -118,6 +137,14 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryDark,
     fontWeight: '900',
     textDecorationLine: 'underline',
+  },
+  blankSlotFilled: {
+    color: COLORS.secondaryDark,
+    backgroundColor: COLORS.secondaryLight,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+    textDecorationLine: 'none',
   },
   optionsGrid: {
     flexDirection: 'row',

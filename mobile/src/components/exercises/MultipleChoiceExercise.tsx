@@ -51,9 +51,6 @@ export const MultipleChoiceExercise: React.FC<MultipleChoiceExerciseProps> = ({
                 <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
                   {option.text}
                 </Text>
-                {option.translation ? (
-                  <Text style={styles.translationText}>{option.translation}</Text>
-                ) : null}
               </View>
             </Pressable>
           );
@@ -128,12 +125,6 @@ const styles = StyleSheet.create({
   optionTextSelected: {
     color: COLORS.secondaryDark,
     fontWeight: '800',
-  },
-  translationText: {
-    fontSize: 13,
-    color: COLORS.grayText,
-    marginTop: 2,
-    fontWeight: '500',
   },
 });
 

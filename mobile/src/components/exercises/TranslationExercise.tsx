@@ -34,6 +34,24 @@ export const TranslationExercise: React.FC<TranslationExerciseProps> = ({
           placeholder: 'Type your answer in German...',
           accents: ['ä', 'ö', 'ü', 'ß', 'Ä', 'Ö', 'Ü'],
         };
+      case 'it':
+        return {
+          name: 'Italian',
+          placeholder: 'Type your answer in Italian...',
+          accents: ['à', 'è', 'é', 'ì', 'í', 'î', 'ò', 'ó', 'ù', 'ú'],
+        };
+      case 'pt':
+        return {
+          name: 'Portuguese',
+          placeholder: 'Type your answer in Portuguese...',
+          accents: ['á', 'â', 'ã', 'à', 'ç', 'é', 'ê', 'í', 'ó', 'ô', 'õ', 'ú'],
+        };
+      case 'en':
+        return {
+          name: 'English',
+          placeholder: 'Type your answer in English...',
+          accents: [],
+        };
       case 'es':
       default:
         return {
@@ -52,11 +70,19 @@ export const TranslationExercise: React.FC<TranslationExerciseProps> = ({
     onChangeAnswer((userAnswer || '') + char);
   };
 
+  // Only show source box if genuine phrase to translate (not an instruction)
+  const shouldShowSourceBox =
+    Boolean(sourceText) &&
+    !sourceText?.trim().toLowerCase().startsWith('type your') &&
+    !sourceText?.trim().toLowerCase().startsWith('translate to') &&
+    !sourceText?.trim().toLowerCase().startsWith('enter your') &&
+    sourceText?.trim() !== prompt.trim();
+
   return (
     <View style={styles.container}>
       <Text style={styles.prompt}>{prompt}</Text>
 
-      {sourceText ? (
+      {shouldShowSourceBox ? (
         <View style={styles.sourceBox}>
           <Text style={styles.sourceLabel}>Phrase:</Text>
           <Text style={styles.sourceText}>{sourceText}</Text>
