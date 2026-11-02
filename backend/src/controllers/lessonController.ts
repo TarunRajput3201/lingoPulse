@@ -13,11 +13,49 @@ import { XPService } from '../services/xpService';
 
 export const getLesson = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { lessonId } = req.params;
+  const { courseId, expectedLanguage } = req.query as {
+    courseId?: string;
+    expectedLanguage?: string;
+  };
 
-  const lesson = await Lesson.findById(lessonId);
+  const lesson = await Lesson.findById(lessonId).populate({
+    path: 'unitId',
+    populate: { path: 'courseId' },
+  });
+
   if (!lesson) {
     res.status(404).json({ message: 'Lesson not found.' });
     return;
+  }
+
+  const unit: any = lesson.unitId;
+  const course: any = unit?.courseId;
+
+  // Strict Cross-Language Isolation Guard
+  if (courseId) {
+    const courseMatch =
+      course?._id?.toString() === courseId ||
+      course?.code?.toLowerCase() === courseId.toLowerCase() ||
+      course?.id === courseId;
+    if (!courseMatch) {
+      res.status(400).json({
+        error: 'CROSS_LANGUAGE_VIOLATION',
+        message: `Cross-language violation: Lesson "${lesson.title}" does not belong to course "${courseId}".`,
+      });
+      return;
+    }
+  }
+
+  if (expectedLanguage) {
+    const expectedNorm = expectedLanguage.toLowerCase().trim();
+    const courseLang = course?.toLanguage?.toLowerCase().trim();
+    if (courseLang && courseLang !== expectedNorm && !course?.code?.startsWith(expectedNorm)) {
+      res.status(400).json({
+        error: 'CROSS_LANGUAGE_VIOLATION',
+        message: `Cross-language violation: Lesson language "${courseLang}" does not match expected language "${expectedLanguage}".`,
+      });
+      return;
+    }
   }
 
   // Fetch exercises ordered by order index
@@ -107,23 +145,57 @@ export const submitAnswer = async (req: AuthenticatedRequest, res: Response): Pr
 
 export const completeLesson = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const user = req.user!;
-  const { lessonId, attempts } = req.body;
+  const { lessonId, attempts, courseId, expectedLanguage } = req.body;
 
-  const lesson = await Lesson.findById(lessonId).populate('unitId');
+  const lesson = await Lesson.findById(lessonId).populate({
+    path: 'unitId',
+    populate: { path: 'courseId' },
+  });
+
   if (!lesson) {
     res.status(404).json({ message: 'Lesson not found.' });
     return;
   }
 
   const unit: any = lesson.unitId;
-  const courseId = unit?.courseId;
+  const course: any = unit?.courseId;
+  const actualCourseId = course?._id || unit?.courseId;
 
-  // Calculate lesson accuracy
-  const totalAttempts = Array.isArray(attempts) ? attempts.length : 1;
-  const correctCount = Array.isArray(attempts)
-    ? attempts.filter((a: any) => a.isCorrect).length
-    : 1;
-  const accuracyPercentage = Math.round((correctCount / totalAttempts) * 100);
+  // Strict Cross-Language Protection on Completion
+  if (courseId) {
+    const courseMatch =
+      course?._id?.toString() === courseId ||
+      course?.code?.toLowerCase() === courseId.toLowerCase() ||
+      course?.id === courseId;
+    if (!courseMatch) {
+      res.status(400).json({
+        error: 'CROSS_LANGUAGE_VIOLATION',
+        message: 'Cross-language violation: Lesson does not belong to submitted course.',
+      });
+      return;
+    }
+  }
+
+  if (expectedLanguage) {
+    const expectedNorm = expectedLanguage.toLowerCase().trim();
+    const courseLang = course?.toLanguage?.toLowerCase().trim();
+    if (courseLang && courseLang !== expectedNorm && !course?.code?.startsWith(expectedNorm)) {
+      res.status(400).json({
+        error: 'CROSS_LANGUAGE_VIOLATION',
+        message: 'Cross-language violation: Lesson language does not match expected language.',
+      });
+      return;
+    }
+  }
+
+  // Calculate lesson accuracy safely (prevent NaN crash on empty attempts array)
+  let accuracyPercentage = 100;
+  if (typeof req.body.accuracy === 'number' && !isNaN(req.body.accuracy)) {
+    accuracyPercentage = Math.max(0, Math.min(100, Math.round(req.body.accuracy)));
+  } else if (Array.isArray(attempts) && attempts.length > 0) {
+    const correctCount = attempts.filter((a: any) => a.isCorrect).length;
+    accuracyPercentage = Math.round((correctCount / attempts.length) * 100);
+  }
   const isPerfect = accuracyPercentage === 100;
 
   // Calculate XP reward: Base + bonus for perfection
@@ -139,11 +211,11 @@ export const completeLesson = async (req: AuthenticatedRequest, res: Response): 
   await user.save();
 
   // Update or record user progress for this course
-  let progress = await Progress.findOne({ userId: user._id, courseId });
+  let progress = await Progress.findOne({ userId: user._id, courseId: actualCourseId });
   if (!progress) {
     progress = new Progress({
       userId: user._id,
-      courseId,
+      courseId: actualCourseId,
       completedLessons: [],
       courseCompletionPercentage: 0,
     });
@@ -162,7 +234,7 @@ export const completeLesson = async (req: AuthenticatedRequest, res: Response): 
     });
 
     // Recalculate course percentage scoped to this course
-    const courseUnits = await Unit.find({ courseId, status: 'published' });
+    const courseUnits = await Unit.find({ courseId: actualCourseId, status: 'published' });
     const unitIds = courseUnits.map((u) => u._id);
     const totalCourseLessons = await Lesson.countDocuments({
       unitId: { $in: unitIds },

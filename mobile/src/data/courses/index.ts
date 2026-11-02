@@ -41,13 +41,69 @@ export const getCourseByCode = (code: string): StaticCourse | undefined => {
   return ALL_COURSES.find((c) => c.code.toLowerCase() === norm);
 };
 
-export const getCourseByLanguage = (targetLang?: string): StaticCourse => {
-  if (!targetLang) return SPANISH_COURSE;
+// Explicit canonical mapping table for all 10 flagship languages
+const LANGUAGE_COURSE_MAP: Record<string, StaticCourse> = {
+  en: ENGLISH_COURSE,
+  english: ENGLISH_COURSE,
+  'en-es': ENGLISH_COURSE,
+
+  es: SPANISH_COURSE,
+  spanish: SPANISH_COURSE,
+  'es-en': SPANISH_COURSE,
+
+  fr: FRENCH_COURSE,
+  french: FRENCH_COURSE,
+  'fr-en': FRENCH_COURSE,
+
+  ja: JAPANESE_COURSE,
+  japanese: JAPANESE_COURSE,
+  'ja-en': JAPANESE_COURSE,
+
+  de: GERMAN_COURSE,
+  german: GERMAN_COURSE,
+  'de-en': GERMAN_COURSE,
+
+  ko: KOREAN_COURSE,
+  korean: KOREAN_COURSE,
+  'ko-en': KOREAN_COURSE,
+
+  it: ITALIAN_COURSE,
+  italian: ITALIAN_COURSE,
+  'it-en': ITALIAN_COURSE,
+
+  zh: MANDARIN_COURSE,
+  mandarin: MANDARIN_COURSE,
+  chinese: MANDARIN_COURSE,
+  'zh-en': MANDARIN_COURSE,
+
+  pt: PORTUGUESE_COURSE,
+  portuguese: PORTUGUESE_COURSE,
+  'pt-en': PORTUGUESE_COURSE,
+
+  hi: HINDI_COURSE,
+  hindi: HINDI_COURSE,
+  'hi-en': HINDI_COURSE,
+};
+
+export const getCourseByLanguage = (targetLang?: string): StaticCourse | undefined => {
+  if (!targetLang) return undefined;
   const lang = targetLang.toLowerCase().trim();
+
+  // 1. Direct canonical map lookup
+  if (LANGUAGE_COURSE_MAP[lang]) {
+    return LANGUAGE_COURSE_MAP[lang];
+  }
+
+  // 2. Exact match in catalog
   const found = ALL_COURSES.find(
-    (c) => c.toLanguage.toLowerCase() === lang || c.code.toLowerCase().startsWith(`${lang}-`)
+    (c) =>
+      c.toLanguage.toLowerCase() === lang ||
+      c.code.toLowerCase() === lang ||
+      c.code.toLowerCase().startsWith(`${lang}-`) ||
+      c.title.toLowerCase().startsWith(lang)
   );
-  return found || SPANISH_COURSE;
+
+  return found;
 };
 
 export const getCourseById = (courseId: string): StaticCourse | undefined => {

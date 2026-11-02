@@ -11,6 +11,7 @@ export default defineConfig({
     ['json', { outputFile: 'tests/reports/playwright-results.json' }],
     ['html', { open: 'never', outputFolder: 'tests/reports/playwright-html' }],
   ],
+  outputDir: 'tests/reports/test-artifacts',
   use: {
     baseURL: 'http://localhost:5050',
     trace: 'retain-on-failure',

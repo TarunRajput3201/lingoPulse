@@ -14,6 +14,7 @@ import { HeaderBar } from '../../src/components/HeaderBar';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { HapticsService } from '../../src/services/hapticsService';
+import { StorageService } from '../../src/services/storageService';
 import { CurriculumService } from '../../src/services/curriculumService';
 
 export default function CoursesScreen() {
@@ -49,11 +50,15 @@ export default function CoursesScreen() {
     HapticsService.lightTap();
     if (switchingId) return;
 
-    setSwitchingId(course._id || course.id);
+    const courseKey = course._id || course.id || course.code;
+    setSwitchingId(courseKey);
     try {
       updateUserLocally((prev) =>
         prev ? { ...prev, targetLanguage: course.toLanguage } : null
       );
+
+      await StorageService.setItem('lingopulse_active_course_code', course.code);
+      await StorageService.setItem('lingopulse_active_target_lang', course.toLanguage);
 
       // Optional cloud sync
       if (token && !token.startsWith('local-')) {
@@ -68,7 +73,7 @@ export default function CoursesScreen() {
       }
 
       HapticsService.success();
-      router.push('/(tabs)');
+      router.replace('/(tabs)');
     } catch (e) {
       console.warn('[CoursesScreen] Switch notice:', e);
     } finally {

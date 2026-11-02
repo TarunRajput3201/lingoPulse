@@ -63,15 +63,21 @@ export const CurriculumService = {
       }>;
     }>;
   }> {
-    const course = courseId
-      ? getStaticCourseById(courseId) || getStaticCourseByLanguage(targetLang)
-      : getStaticCourseByLanguage(targetLang);
+    const resolvedCourse =
+      (courseId ? getStaticCourseById(courseId) : undefined) ||
+      (targetLang ? getStaticCourseByLanguage(targetLang) : undefined) ||
+      getStaticCourses()[0];
 
-    const completedLessons = await StorageService.getJSON<string[]>(COMPLETED_LESSONS_KEY, []);
+    if (!resolvedCourse) {
+      throw new Error(`[CurriculumService] Course not found for id: "${courseId}" or targetLang: "${targetLang}"`);
+    }
+
+    const courseProgressKey = `lingopulse_completed_lessons_${resolvedCourse.code.toLowerCase().trim()}`;
+    const completedLessons = await StorageService.getJSON<string[]>(courseProgressKey, []);
 
     let foundCurrent = false;
 
-    const units = course.units.map((unit, unitIdx) => {
+    const units = resolvedCourse.units.map((unit, unitIdx) => {
       const lessons = unit.lessons.map((lesson, lessonIdx) => {
         const isCompleted = completedLessons.includes(lesson.id);
 
@@ -86,7 +92,7 @@ export const CurriculumService = {
             isUnlocked = completedLessons.includes(prevLessonInUnit.id);
           } else {
             // First lesson of next unit unlocks when last lesson of prev unit is done
-            const prevUnit = course.units[unitIdx - 1];
+            const prevUnit = resolvedCourse.units[unitIdx - 1];
             if (prevUnit && prevUnit.lessons.length > 0) {
               const lastLessonOfPrevUnit = prevUnit.lessons[prevUnit.lessons.length - 1];
               isUnlocked = completedLessons.includes(lastLessonOfPrevUnit.id);
@@ -125,7 +131,7 @@ export const CurriculumService = {
       };
     });
 
-    return { course, units };
+    return { course: resolvedCourse, units };
   },
 
   // 3. Get Specific Lesson and its Exercises
@@ -200,11 +206,14 @@ export const CurriculumService = {
     streak: number;
     hearts: number;
   }> {
-    // 1. Mark completed
-    const completed = await StorageService.getJSON<string[]>(COMPLETED_LESSONS_KEY, []);
+    // 1. Mark completed in course-isolated progress storage
+    const lessonData = getStaticLessonById(lessonId);
+    const courseCode = lessonData?.course.code?.toLowerCase().trim() || 'default';
+    const courseProgressKey = `lingopulse_completed_lessons_${courseCode}`;
+    const completed = await StorageService.getJSON<string[]>(courseProgressKey, []);
     if (!completed.includes(lessonId)) {
       completed.push(lessonId);
-      await StorageService.setJSON(COMPLETED_LESSONS_KEY, completed);
+      await StorageService.setJSON(courseProgressKey, completed);
     }
 
     // 2. Add XP

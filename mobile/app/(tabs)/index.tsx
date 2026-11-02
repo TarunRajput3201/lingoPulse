@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Modal,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Check, Lock, Star, Sparkles, Flame, Target, BookOpen, X, Gift, ChevronRight } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
@@ -68,15 +68,14 @@ export default function HomeScreen() {
         if (courseRes.ok) {
           const courseJson = await courseRes.json();
           const allCourses = courseJson.courses || [];
-          const userTarget = user?.targetLanguage?.toLowerCase();
+          const userTarget = (user?.targetLanguage || 'es').toLowerCase();
           const matchedCourse = allCourses.find((c: any) => {
-            if (!userTarget) return false;
             return (
               c.toLanguage?.toLowerCase() === userTarget ||
               c.code?.toLowerCase().startsWith(userTarget) ||
               c.title?.toLowerCase().includes(userTarget)
             );
-          }) || allCourses[0];
+          });
 
           if (matchedCourse) {
             const pathRes = await fetch(ENDPOINTS.COURSE_PATH(matchedCourse._id), {
@@ -84,7 +83,8 @@ export default function HomeScreen() {
             });
             if (pathRes.ok) {
               const pathJson = await pathRes.json();
-              if (pathJson.units?.length) {
+              // Verify the returned path matches the active target language before setting state
+              if (pathJson.units?.length && pathJson.course?.toLanguage?.toLowerCase() === userTarget) {
                 setCourseData(pathJson.course);
                 setUnits(pathJson.units);
               }
@@ -100,9 +100,17 @@ export default function HomeScreen() {
     }
   };
 
+  // Re-load whenever active language or token changes
   useEffect(() => {
     loadLearningPath();
-  }, [token]);
+  }, [token, user?.targetLanguage]);
+
+  // Re-verify learning path whenever HomeScreen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadLearningPath();
+    }, [user?.targetLanguage, token])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

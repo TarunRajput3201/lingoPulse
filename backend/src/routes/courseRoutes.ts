@@ -6,5 +6,6 @@ const router = Router();
 
 router.get('/', authenticate, getCourses);
 router.get('/:courseId/path', authenticate, getCoursePath);
+router.get('/path/:courseId', authenticate, getCoursePath);
 
 export default router;

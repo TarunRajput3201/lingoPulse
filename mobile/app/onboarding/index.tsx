@@ -8,6 +8,7 @@ import { Button3D } from '../../src/components/Button3D';
 import { MascotPip } from '../../src/components/MascotPip';
 import { useAuth } from '../../src/context/AuthContext';
 import { HapticsService } from '../../src/services/hapticsService';
+import { StorageService } from '../../src/services/storageService';
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -21,9 +22,16 @@ export default function OnboardingScreen() {
   const [submitting, setSubmitting] = useState(false);
 
   const languages = [
+    { code: 'en', name: 'English', flag: '🇬🇧', tagline: 'Global lingua franca of business and tech' },
     { code: 'es', name: 'Spanish', flag: '🇪🇸', tagline: '500M+ native speakers worldwide' },
     { code: 'fr', name: 'French', flag: '🇫🇷', tagline: 'The language of culture & diplomacy' },
-    { code: 'de', name: 'German', flag: '🇩🇪', tagline: 'Europe’s powerhouse language' },
+    { code: 'ja', name: 'Japanese', flag: '🇯🇵', tagline: 'Rich cultural heritage & modern innovation' },
+    { code: 'de', name: 'German', flag: '🇩🇪', tagline: 'Europe’s powerhouse of science & industry' },
+    { code: 'ko', name: 'Korean', flag: '🇰🇷', tagline: 'Dynamic global culture & Hangul elegance' },
+    { code: 'it', name: 'Italian', flag: '🇮🇹', tagline: 'Art, cuisine, music & Mediterranean heritage' },
+    { code: 'zh', name: 'Mandarin Chinese', flag: '🇨🇳', tagline: 'Tonal beauty & 1B+ native speakers' },
+    { code: 'pt', name: 'Portuguese', flag: '🇧🇷', tagline: 'Vibrant rhythms & Lusophone world' },
+    { code: 'hi', name: 'Hindi', flag: '🇮🇳', tagline: 'Devanagari script & 600M+ speakers' },
   ];
 
   const levels = [
@@ -47,6 +55,8 @@ export default function OnboardingScreen() {
       // Save onboarding choices to backend
       setSubmitting(true);
       try {
+        await StorageService.setItem('lingopulse_active_target_lang', targetLanguage);
+        await StorageService.setItem('lingopulse_active_course_code', `en-${targetLanguage}`);
         await completeOnboarding({
           targetLanguage,
           learningLevel,

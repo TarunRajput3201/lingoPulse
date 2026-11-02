@@ -3,7 +3,11 @@
     "argv": [
       "C:\\nvm4w\\nodejs\\node.exe",
       "D:\\Projects\\langLearn\\node_modules\\@playwright\\test\\cli.js",
-      "test"
+      "test",
+      "tests/e2e/auth",
+      "tests/e2e/lessons",
+      "tests/e2e/gamification",
+      "tests/e2e/language-isolation"
     ],
     "configFile": "D:\\Projects\\langLearn\\playwright.config.ts",
     "rootDir": "D:/Projects/langLearn/tests/e2e",
@@ -111,278 +115,6 @@
   },
   "suites": [
     {
-      "title": "accessibility\\a11y.spec.ts",
-      "file": "accessibility/a11y.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Accessibility & Semantic Markup Suite",
-          "file": "accessibility/a11y.spec.ts",
-          "line": 3,
-          "column": 6,
-          "specs": [
-            {
-              "title": "TC-A11Y-01: Verifies semantic landmark elements (<aside>, <nav>, <main>) are properly defined",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 533,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:22.046Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "d68f0cd72f843bb174ec-109efb1dde4e5f79a27f",
-              "file": "accessibility/a11y.spec.ts",
-              "line": 6,
-              "column": 7
-            },
-            {
-              "title": "TC-A11Y-02: Verifies all sidebar navigation items are interactive buttons with accessible names",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 418,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:22.729Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "d68f0cd72f843bb174ec-8ca1bd52869008db6f3b",
-              "file": "accessibility/a11y.spec.ts",
-              "line": 20,
-              "column": 7
-            },
-            {
-              "title": "TC-A11Y-03: Verifies form controls in Exercise Builder are accompanied by visible label descriptors",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 617,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:23.162Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "d68f0cd72f843bb174ec-3263eb3173da146c5aef",
-              "file": "accessibility/a11y.spec.ts",
-              "line": 34,
-              "column": 7
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "admin\\admin-cms.spec.ts",
-      "file": "admin/admin-cms.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Admin CMS Web Application Suite",
-          "file": "admin/admin-cms.spec.ts",
-          "line": 3,
-          "column": 6,
-          "specs": [
-            {
-              "title": "TC-ADM-01: Admin dashboard loads and displays analytics statistics cards",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 417,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:23.798Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "577bf9624dc77fe2627e-8338c73a0a9d19240705",
-              "file": "admin/admin-cms.spec.ts",
-              "line": 6,
-              "column": 7
-            },
-            {
-              "title": "TC-ADM-02: Navigates to Course Curriculum hierarchy view",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 565,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:24.226Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "577bf9624dc77fe2627e-cc399cce169226e2cfd4",
-              "file": "admin/admin-cms.spec.ts",
-              "line": 21,
-              "column": 7
-            },
-            {
-              "title": "TC-ADM-03: Navigates to Exercise Builder with interactive authoring and mobile preview",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 606,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:24.803Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "577bf9624dc77fe2627e-4f39af1cf471f4d51366",
-              "file": "admin/admin-cms.spec.ts",
-              "line": 35,
-              "column": 7
-            },
-            {
-              "title": "TC-ADM-04: Exercise Builder dynamically updates inputs when selecting Matching Pairs",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 782,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:25.426Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "577bf9624dc77fe2627e-1e6a39e4c51cafb8754c",
-              "file": "admin/admin-cms.spec.ts",
-              "line": 56,
-              "column": 7
-            }
-          ]
-        }
-      ]
-    },
-    {
       "title": "auth\\auth-flows.spec.ts",
       "file": "auth/auth-flows.spec.ts",
       "column": 0,
@@ -420,12 +152,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 154,
+                      "duration": 247,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:26.233Z",
+                      "startTime": "2026-11-02T15:48:24.273Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -472,12 +204,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 19,
+                      "duration": 37,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:26.400Z",
+                      "startTime": "2026-11-02T15:48:24.580Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -524,12 +256,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 92,
+                      "duration": 126,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:26.429Z",
+                      "startTime": "2026-11-02T15:48:24.639Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -576,12 +308,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 91,
+                      "duration": 146,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:26.537Z",
+                      "startTime": "2026-11-02T15:48:24.780Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -628,12 +360,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 18,
+                      "duration": 45,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:26.638Z",
+                      "startTime": "2026-11-02T15:48:24.944Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -680,12 +412,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 22,
+                      "duration": 25,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:26.667Z",
+                      "startTime": "2026-11-02T15:48:25.014Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -732,12 +464,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 33,
+                      "duration": 48,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:26.736Z",
+                      "startTime": "2026-11-02T15:48:25.060Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -757,231 +489,6 @@
               "id": "c1580de93bf5d29ae6e9-05aa139de142ca7b13b2",
               "file": "auth/auth-flows.spec.ts",
               "line": 85,
-              "column": 7
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "curriculum-audit.spec.ts",
-      "file": "curriculum-audit.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "LingoPulse Curriculum Quality & Progression Audit",
-          "file": "curriculum-audit.spec.ts",
-          "line": 3,
-          "column": 6,
-          "specs": [
-            {
-              "title": "Curriculum Audit: Courses listing returns published CEFR courses",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\curriculum-audit.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 18,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:26.786Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\curriculum-audit.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "800b83adb8691f0ceda2-ba2d751f05cb9eb8ab3c",
-              "file": "curriculum-audit.spec.ts",
-              "line": 34,
-              "column": 7
-            },
-            {
-              "title": "Spanish Course Hierarchy: Validates CEFR A1 unit & checkpoint structure",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\curriculum-audit.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 30,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:26.973Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\curriculum-audit.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "800b83adb8691f0ceda2-bdbd9136bf5c62405bee",
-              "file": "curriculum-audit.spec.ts",
-              "line": 55,
-              "column": 7
-            },
-            {
-              "title": "French Course Hierarchy: Validates CEFR A1 salutations & café unit",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\curriculum-audit.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 24,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:27.014Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\curriculum-audit.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "800b83adb8691f0ceda2-c2244eb0f50c5906bc83",
-              "file": "curriculum-audit.spec.ts",
-              "line": 86,
-              "column": 7
-            },
-            {
-              "title": "Admin CMS UI: Verifies course curriculum and exercise builder views",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\curriculum-audit.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 758,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:27.048Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\curriculum-audit.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "800b83adb8691f0ceda2-7bf8f830492fe4067306",
-              "file": "curriculum-audit.spec.ts",
-              "line": 101,
               "column": 7
             }
           ]
@@ -1017,12 +524,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 92,
+                      "duration": 156,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:27.827Z",
+                      "startTime": "2026-11-02T15:48:25.134Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -1051,12 +558,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 49,
+                      "duration": 59,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:28.104Z",
+                      "startTime": "2026-11-02T15:48:25.580Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -1085,12 +592,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 78,
+                      "duration": 72,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:28.166Z",
+                      "startTime": "2026-11-02T15:48:25.654Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -1145,12 +652,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 185,
+                      "duration": 269,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:28.261Z",
+                      "startTime": "2026-11-02T15:48:25.749Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -1197,12 +704,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 85,
+                      "duration": 129,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:28.623Z",
+                      "startTime": "2026-11-02T15:48:26.338Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -1249,12 +756,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 23,
+                      "duration": 34,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:28.720Z",
+                      "startTime": "2026-11-02T15:48:26.482Z",
                       "annotations": [
                         {
                           "type": "serial",
@@ -1281,20 +788,20 @@
       ]
     },
     {
-      "title": "language-quality.spec.ts",
-      "file": "language-quality.spec.ts",
+      "title": "language-isolation\\multilingualIntegrity.spec.ts",
+      "file": "language-isolation/multilingualIntegrity.spec.ts",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Linguistic Quality, Accent Tolerance & Anti-Cheat Sanitization",
-          "file": "language-quality.spec.ts",
+          "title": "Priority 1 & 9: Multilingual Data Integrity & French Isolation E2E Suite",
+          "file": "language-isolation/multilingualIntegrity.spec.ts",
           "line": 3,
           "column": 6,
           "specs": [
             {
-              "title": "Accent Tolerance: Accepting omitted diacritics with pedagogical guidance (no heart loss)",
+              "title": "Journey A: Fresh French Selection loads authentic French exercises, never Spanish",
               "ok": true,
               "tags": [],
               "tests": [
@@ -1304,7 +811,7 @@
                     {
                       "type": "serial",
                       "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
+                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
                         "line": 3,
                         "column": 6
                       }
@@ -1318,17 +825,17 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 28,
+                      "duration": 33,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:28.762Z",
+                      "startTime": "2026-11-02T15:48:26.537Z",
                       "annotations": [
                         {
                           "type": "serial",
                           "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
+                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
                             "line": 3,
                             "column": 6
                           }
@@ -1340,13 +847,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "063a4cbc62ae18edee47-6aa1ec2cb7b039a86f48",
-              "file": "language-quality.spec.ts",
-              "line": 38,
+              "id": "ffd9d0deb9df6b538e3e-3db64518bf898e710085",
+              "file": "language-isolation/multilingualIntegrity.spec.ts",
+              "line": 72,
               "column": 7
             },
             {
-              "title": "Punctuation & Case Normalization: Inverted Spanish punctuation handling",
+              "title": "Journey B: Switch from Spanish to French records progress in French isolated course",
               "ok": true,
               "tags": [],
               "tests": [
@@ -1356,7 +863,59 @@
                     {
                       "type": "serial",
                       "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
+                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
+                        "line": 3,
+                        "column": 6
+                      }
+                    }
+                  ],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium",
+                  "projectName": "chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 138,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-11-02T15:48:26.872Z",
+                      "annotations": [
+                        {
+                          "type": "serial",
+                          "location": {
+                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
+                            "line": 3,
+                            "column": 6
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ffd9d0deb9df6b538e3e-2f7a0c6ee0724920b5ad",
+              "file": "language-isolation/multilingualIntegrity.spec.ts",
+              "line": 92,
+              "column": 7
+            },
+            {
+              "title": "Journey C: Direct French Deep-Link preserves French content without fallback",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 45000,
+                  "annotations": [
+                    {
+                      "type": "serial",
+                      "location": {
+                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
                         "line": 3,
                         "column": 6
                       }
@@ -1375,12 +934,12 @@
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:28.976Z",
+                      "startTime": "2026-11-02T15:48:27.023Z",
                       "annotations": [
                         {
                           "type": "serial",
                           "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
+                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
                             "line": 3,
                             "column": 6
                           }
@@ -1392,13 +951,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "063a4cbc62ae18edee47-f07b44c14839c52acad3",
-              "file": "language-quality.spec.ts",
-              "line": 63,
+              "id": "ffd9d0deb9df6b538e3e-5d0f386480043c53aada",
+              "file": "language-isolation/multilingualIntegrity.spec.ts",
+              "line": 132,
               "column": 7
             },
             {
-              "title": "Regional Vocabulary Flexibility: Accepts both \"el boleto\" and \"el billete\"",
+              "title": "Journey D: Rapid Switch Sequence between Spanish, German, French",
               "ok": true,
               "tags": [],
               "tests": [
@@ -1408,7 +967,7 @@
                     {
                       "type": "serial",
                       "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
+                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
                         "line": 3,
                         "column": 6
                       }
@@ -1422,17 +981,17 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 29,
+                      "duration": 75,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:29.017Z",
+                      "startTime": "2026-11-02T15:48:27.068Z",
                       "annotations": [
                         {
                           "type": "serial",
                           "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
+                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
                             "line": 3,
                             "column": 6
                           }
@@ -1444,13 +1003,13 @@
                   "status": "expected"
                 }
               ],
-              "id": "063a4cbc62ae18edee47-0c691fd4175f934abcc0",
-              "file": "language-quality.spec.ts",
-              "line": 86,
+              "id": "ffd9d0deb9df6b538e3e-7cb80455968071414250",
+              "file": "language-isolation/multilingualIntegrity.spec.ts",
+              "line": 143,
               "column": 7
             },
             {
-              "title": "Anti-Cheat Sanitization: Ensures client exercise payload does NOT leak answer keys",
+              "title": "Journey E: Cross-Language Tampering is strictly rejected with HTTP 400",
               "ok": true,
               "tags": [],
               "tests": [
@@ -1460,7 +1019,7 @@
                     {
                       "type": "serial",
                       "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
+                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
                         "line": 3,
                         "column": 6
                       }
@@ -1474,17 +1033,17 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 24,
+                      "duration": 46,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:29.056Z",
+                      "startTime": "2026-11-02T15:48:27.158Z",
                       "annotations": [
                         {
                           "type": "serial",
                           "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
+                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-isolation\\multilingualIntegrity.spec.ts",
                             "line": 3,
                             "column": 6
                           }
@@ -1496,286 +1055,9 @@
                   "status": "expected"
                 }
               ],
-              "id": "063a4cbc62ae18edee47-72fd033ecf839e168983",
-              "file": "language-quality.spec.ts",
-              "line": 108,
-              "column": 7
-            },
-            {
-              "title": "Speech Pronunciation: Validates phonetics above 70% threshold with guidance",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 78,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:29.091Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\language-quality.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "063a4cbc62ae18edee47-8d7aedcb9fa790537d27",
-              "file": "language-quality.spec.ts",
-              "line": 127,
-              "column": 7
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "learner-journeys.spec.ts",
-      "file": "learner-journeys.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "End-to-End Learner Journeys",
-          "file": "learner-journeys.spec.ts",
-          "line": 3,
-          "column": 6,
-          "specs": [
-            {
-              "title": "Journey 1: Beginner Journey - Registration to First Perfect Lesson & Unlocking",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\learner-journeys.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 284,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:29.184Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\learner-journeys.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "7d06efb6a30df352b9de-fa4f53d9ebe8f8c37ff9",
-              "file": "learner-journeys.spec.ts",
-              "line": 21,
-              "column": 7
-            },
-            {
-              "title": "Journey 2: Returning Learner Journey - Preserves Progress & Streak",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\learner-journeys.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 124,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:29.478Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\learner-journeys.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "7d06efb6a30df352b9de-3bee589c5b3964d84ca9",
-              "file": "learner-journeys.spec.ts",
-              "line": 138,
-              "column": 7
-            },
-            {
-              "title": "Journey 3: Mistake Recovery Journey - Error Detection, Heart Loss & Practice Recovery",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\learner-journeys.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 73,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:29.614Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\learner-journeys.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "7d06efb6a30df352b9de-2d7e866cc5b8e4244e8d",
-              "file": "learner-journeys.spec.ts",
-              "line": 170,
-              "column": 7
-            },
-            {
-              "title": "Journey 4: Long-Term Progression Journey - Checkpoint Unlock & Prerequisite Enforcement",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\learner-journeys.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 131,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:29.699Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\learner-journeys.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "7d06efb6a30df352b9de-7107f22ddb1dda6332bb",
-              "file": "learner-journeys.spec.ts",
-              "line": 222,
+              "id": "ffd9d0deb9df6b538e3e-c8eff14601e4560aeaf8",
+              "file": "language-isolation/multilingualIntegrity.spec.ts",
+              "line": 161,
               "column": 7
             }
           ]
@@ -1811,12 +1093,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 15,
+                      "duration": 42,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:29.846Z",
+                      "startTime": "2026-11-02T15:48:27.226Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -1845,12 +1127,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 34,
+                      "duration": 53,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.028Z",
+                      "startTime": "2026-11-02T15:48:27.587Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -1879,12 +1161,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 28,
+                      "duration": 49,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.071Z",
+                      "startTime": "2026-11-02T15:48:27.656Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -1913,12 +1195,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 37,
+                      "duration": 64,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.112Z",
+                      "startTime": "2026-11-02T15:48:27.720Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -1947,12 +1229,12 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 32,
+                      "duration": 27,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.158Z",
+                      "startTime": "2026-11-02T15:48:27.800Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -1968,424 +1250,13 @@
           ]
         }
       ]
-    },
-    {
-      "title": "navigation\\navigation-api.spec.ts",
-      "file": "navigation/navigation-api.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Navigation & Curriculum Tree API Suite",
-          "file": "navigation/navigation-api.spec.ts",
-          "line": 3,
-          "column": 6,
-          "specs": [
-            {
-              "title": "TC-NAV-01: Fetches published course catalog with language metadata",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 15,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.204Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "d4cc017fb96e9ae3c349-7d29efcff4243a1484dc",
-              "file": "navigation/navigation-api.spec.ts",
-              "line": 23,
-              "column": 7
-            },
-            {
-              "title": "TC-NAV-02: Generates learning tree hierarchy with units and lessons",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 22,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.351Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "d4cc017fb96e9ae3c349-1cfcdc88f768d5c0e3b0",
-              "file": "navigation/navigation-api.spec.ts",
-              "line": 42,
-              "column": 7
-            },
-            {
-              "title": "TC-NAV-03: Enforces lesson unlocking order (Lesson 1 unlocked, Lesson 2 locked for fresh user)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 22,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.382Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "d4cc017fb96e9ae3c349-98d9c9d68881d49e3f59",
-              "file": "navigation/navigation-api.spec.ts",
-              "line": 58,
-              "column": 7
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "onboarding\\onboarding.spec.ts",
-      "file": "onboarding/onboarding.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Learner Onboarding & Goal Customization Suite",
-          "file": "onboarding/onboarding.spec.ts",
-          "line": 3,
-          "column": 6,
-          "specs": [
-            {
-              "title": "TC-ONB-01: Verifies new user starts with hasCompletedOnboarding false",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\onboarding\\onboarding.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 14,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.416Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\onboarding\\onboarding.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "688140812eb8b48ff460-e05c08758139b335fe85",
-              "file": "onboarding/onboarding.spec.ts",
-              "line": 22,
-              "column": 7
-            },
-            {
-              "title": "TC-ONB-02: Successfully submits onboarding choices (French, intermediate, 15 mins daily)",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\onboarding\\onboarding.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 18,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.588Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\onboarding\\onboarding.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "688140812eb8b48ff460-e5969949c06fe8f3c192",
-              "file": "onboarding/onboarding.spec.ts",
-              "line": 30,
-              "column": 7
-            },
-            {
-              "title": "TC-ONB-03: Onboarding preferences persist across subsequent profile fetches",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [
-                    {
-                      "type": "serial",
-                      "location": {
-                        "file": "D:\\Projects\\langLearn\\tests\\e2e\\onboarding\\onboarding.spec.ts",
-                        "line": 3,
-                        "column": 6
-                      }
-                    }
-                  ],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 16,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.619Z",
-                      "annotations": [
-                        {
-                          "type": "serial",
-                          "location": {
-                            "file": "D:\\Projects\\langLearn\\tests\\e2e\\onboarding\\onboarding.spec.ts",
-                            "line": 3,
-                            "column": 6
-                          }
-                        }
-                      ],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "688140812eb8b48ff460-717732940193308428aa",
-              "file": "onboarding/onboarding.spec.ts",
-              "line": 48,
-              "column": 7
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "title": "responsive\\viewports.spec.ts",
-      "file": "responsive/viewports.spec.ts",
-      "column": 0,
-      "line": 0,
-      "specs": [],
-      "suites": [
-        {
-          "title": "Responsive Layout & Viewport Adaptability Suite",
-          "file": "responsive/viewports.spec.ts",
-          "line": 3,
-          "column": 6,
-          "specs": [
-            {
-              "title": "TC-RESP-01: Mobile viewport (375x667) renders core dashboard elements without horizontal clipping",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 361,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:30.651Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "6a739e86839f2c569a87-40903da3fe7fae5a6460",
-              "file": "responsive/viewports.spec.ts",
-              "line": 6,
-              "column": 7
-            },
-            {
-              "title": "TC-RESP-02: Tablet viewport (768x1024) renders analytics cards and navigation properly",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 417,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:31.025Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "6a739e86839f2c569a87-82f38c253fe8744d202d",
-              "file": "responsive/viewports.spec.ts",
-              "line": 19,
-              "column": 7
-            },
-            {
-              "title": "TC-RESP-03: Desktop viewport (1280x800) displays full 3-column curriculum layout",
-              "ok": true,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 45000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 0,
-                      "parallelIndex": 0,
-                      "status": "passed",
-                      "duration": 719,
-                      "errors": [],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2026-10-30T17:40:31.454Z",
-                      "annotations": [],
-                      "attachments": []
-                    }
-                  ],
-                  "status": "expected"
-                }
-              ],
-              "id": "6a739e86839f2c569a87-88692d456e34bbb6fb11",
-              "file": "responsive/viewports.spec.ts",
-              "line": 28,
-              "column": 7
-            }
-          ]
-        }
-      ]
     }
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-30T17:40:17.433Z",
-    "duration": 15868.152,
-    "expected": 47,
+    "startTime": "2026-11-02T15:48:23.053Z",
+    "duration": 4929.889,
+    "expected": 23,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0

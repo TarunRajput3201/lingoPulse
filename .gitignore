@@ -5,7 +5,8 @@ node_modules/
 
 # Testing
 coverage/
-test-results/
+test-results/*
+!test-results/BUG_TRACKER.md
 
 # Production & Build outputs
 dist/

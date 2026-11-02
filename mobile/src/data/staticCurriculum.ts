@@ -221,23 +221,12 @@ export const getStaticCourses = (): StaticCourse[] => {
 };
 
 export const getStaticCourseById = (courseId: string): StaticCourse | undefined => {
-  return (
-    STATIC_COURSES.find((c) => c._id === courseId || c.id === courseId || c.code === courseId) ||
-    STATIC_COURSES[0]
-  );
+  if (!courseId) return undefined;
+  return STATIC_COURSES.find((c) => c._id === courseId || c.id === courseId || c.code === courseId);
 };
 
-export const getStaticCourseByLanguage = (targetLang?: string): StaticCourse => {
-  if (!targetLang) return STATIC_COURSES[0];
-  const lang = targetLang.toLowerCase().trim();
-  return (
-    STATIC_COURSES.find(
-      (c) =>
-        c.toLanguage.toLowerCase() === lang ||
-        c.code.toLowerCase().startsWith(lang) ||
-        c.title.toLowerCase().includes(lang)
-    ) || STATIC_COURSES[0]
-  );
+export const getStaticCourseByLanguage = (targetLang?: string): StaticCourse | undefined => {
+  return getCourseByLanguage(targetLang);
 };
 
 export const getStaticLessonById = (

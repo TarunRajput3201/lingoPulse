@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import { Types } from 'mongoose';
 import { Course } from '../models/Course';
 import { Unit } from '../models/Unit';
 import { Lesson } from '../models/Lesson';
@@ -14,7 +15,29 @@ export const getCoursePath = async (req: AuthenticatedRequest, res: Response): P
   const { courseId } = req.params;
   const userId = req.user!._id;
 
-  const course = await Course.findById(courseId);
+  const isObjectId = Types.ObjectId.isValid(courseId);
+  const normalized = courseId.toLowerCase().trim();
+
+  let course = null;
+  if (isObjectId) {
+    course = await Course.findById(courseId);
+  }
+
+  if (!course) {
+    // 1. Exact match by code or canonical toLanguage
+    course = await Course.findOne({
+      $or: [{ code: normalized }, { toLanguage: normalized }],
+    });
+  }
+
+  if (!course && normalized.includes('-')) {
+    // 2. Suffix or reversed code fallback (e.g. en-fr -> fr-en)
+    const reversed = normalized.split('-').reverse().join('-');
+    const subLang = normalized.split('-')[1];
+    course = await Course.findOne({
+      $or: [{ code: reversed }, { toLanguage: subLang }],
+    });
+  }
   if (!course) {
     res.status(404).json({ message: 'Course not found.' });
     return;

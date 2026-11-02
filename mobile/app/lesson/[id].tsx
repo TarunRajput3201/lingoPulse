@@ -19,6 +19,7 @@ import { ENDPOINTS } from '../../src/constants/api';
 import { SoundService } from '../../src/services/soundService';
 import { HapticsService } from '../../src/services/hapticsService';
 import { CurriculumService } from '../../src/services/curriculumService';
+import { StorageService } from '../../src/services/storageService';
 
 // Exercise Components
 import { MultipleChoiceExercise } from '../../src/components/exercises/MultipleChoiceExercise';
@@ -36,6 +37,7 @@ export default function LessonScreen() {
   const insets = useSafeAreaInsets();
   const { user, token, refreshUser, updateUserLocally } = useAuth();
 
+  const [course, setCourse] = useState<any>(null);
   const [lesson, setLesson] = useState<any>(null);
   const [exercises, setExercises] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -74,16 +76,36 @@ export default function LessonScreen() {
     // 1. Instant load from local static curriculum
     CurriculumService.getLesson(id as string).then((localData) => {
       if (localData) {
+        setCourse(localData.course);
         setLesson(localData.lesson);
         setExercises(localData.exercises || []);
         setLoading(false);
         startTimeRef.current = Date.now();
+
+        // Strict Language Guard: Ensure user's target language aligns with the lesson's course
+        if (
+          localData.course?.toLanguage &&
+          user?.targetLanguage &&
+          localData.course.toLanguage !== user.targetLanguage
+        ) {
+          console.log(
+            `[LessonScreen] Synchronizing targetLanguage to course language: ${localData.course.toLanguage}`
+          );
+          updateUserLocally((prev) =>
+            prev ? { ...prev, targetLanguage: localData.course.toLanguage } : null
+          );
+          StorageService.setItem(
+            'lingopulse_active_target_lang',
+            localData.course.toLanguage
+          ).catch(() => {});
+        }
       }
     });
 
     // 2. Optional remote refresh if connected to live server
     if (token && !token.startsWith('local-')) {
-      fetch(ENDPOINTS.LESSON(id as string), {
+      const url = ENDPOINTS.LESSON(id as string);
+      fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.json())
@@ -96,7 +118,7 @@ export default function LessonScreen() {
         })
         .catch(() => {});
     }
-  }, [token, id]);
+  }, [token, id, user?.targetLanguage]);
 
 
   const currentExercise = exercises[currentIndex];
@@ -383,6 +405,21 @@ export default function LessonScreen() {
         </View>
       </View>
 
+      {/* Course & Lesson Indicator Banner */}
+      {course && (
+        <View style={styles.courseBadgeContainer}>
+          <View style={styles.courseBadge}>
+            <Text style={styles.courseBadgeFlag}>{course.flagIcon || '🌐'}</Text>
+            <Text style={styles.courseBadgeTitle}>{course.title}</Text>
+          </View>
+          {lesson?.title ? (
+            <Text style={styles.courseBadgeLesson} numberOfLines={1}>
+              • {lesson.title}
+            </Text>
+          ) : null}
+        </View>
+      )}
+
       {/* Main Exercise Question Area */}
       <ScrollView
         contentContainerStyle={[
@@ -406,7 +443,7 @@ export default function LessonScreen() {
             sourceText={currentExercise.instruction || currentExercise.data?.sourcePrompt}
             userAnswer={typedAnswer}
             onChangeAnswer={setTypedAnswer}
-            targetLanguage={user?.targetLanguage || 'es'}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -671,6 +708,40 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     color: COLORS.accentDark,
+  },
+  courseBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 6,
+    gap: 8,
+  },
+  courseBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceSubtle,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADII.sm,
+    borderWidth: 1,
+    borderColor: COLORS.grayBorder,
+    gap: 4,
+  },
+  courseBadgeFlag: {
+    fontSize: 13,
+  },
+  courseBadgeTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.charcoal,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  courseBadgeLesson: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.grayText,
+    flex: 1,
   },
   exerciseScroll: {
     paddingHorizontal: 20,
