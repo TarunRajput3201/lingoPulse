@@ -236,7 +236,7 @@ export default function HomeScreen() {
           <View style={styles.skillsRow}>
             {/* Vocabulary */}
             <View style={styles.skillItem}>
-              <View style={[styles.skillIconCircle, { backgroundColor: '#FFEDD5' }]}>
+              <View style={[styles.skillIconCircle, { backgroundColor: '#FFEDD5', borderColor: '#FDBA74', borderBottomColor: '#EA580C' }]}>
                 <BookMarked size={22} color="#EA580C" />
               </View>
               <Text style={styles.skillLabel}>Vocabulary</Text>
@@ -244,7 +244,7 @@ export default function HomeScreen() {
 
             {/* Grammar */}
             <View style={styles.skillItem}>
-              <View style={[styles.skillIconCircle, { backgroundColor: '#DCFCE7' }]}>
+              <View style={[styles.skillIconCircle, { backgroundColor: '#DCFCE7', borderColor: '#86EFAC', borderBottomColor: '#16A34A' }]}>
                 <FileText size={22} color="#16A34A" />
               </View>
               <Text style={styles.skillLabel}>Grammar</Text>
@@ -252,7 +252,7 @@ export default function HomeScreen() {
 
             {/* Listening */}
             <View style={styles.skillItem}>
-              <View style={[styles.skillIconCircle, { backgroundColor: '#E0F2FE' }]}>
+              <View style={[styles.skillIconCircle, { backgroundColor: '#E0F2FE', borderColor: '#7DD3FC', borderBottomColor: '#0284C7' }]}>
                 <Headphones size={22} color="#0284C7" />
               </View>
               <Text style={styles.skillLabel}>Listening</Text>
@@ -260,7 +260,7 @@ export default function HomeScreen() {
 
             {/* Speaking */}
             <View style={styles.skillItem}>
-              <View style={[styles.skillIconCircle, { backgroundColor: '#FFE4E6' }]}>
+              <View style={[styles.skillIconCircle, { backgroundColor: '#FFE4E6', borderColor: '#FDA4AF', borderBottomColor: '#E11D48' }]}>
                 <Mic size={22} color="#E11D48" />
               </View>
               <Text style={styles.skillLabel}>Speaking</Text>
@@ -363,6 +363,8 @@ export default function HomeScreen() {
                         !lesson.isUnlocked && !lesson.isCompleted && styles.lessonNodeLocked,
                       ]}
                     >
+                      {/* Top Specular Sheen for 3D depth */}
+                      <View style={styles.stoneSheen} />
                       {lesson.isCompleted ? (
                         <Check size={32} color={COLORS.white} strokeWidth={3.5} />
                       ) : !lesson.isUnlocked ? (
@@ -371,6 +373,9 @@ export default function HomeScreen() {
                         <Star size={34} color={COLORS.white} fill={COLORS.white} />
                       )}
                     </Pressable>
+
+                    {/* Ground contact shadow under each 3D stepping stone island */}
+                    <View style={styles.stoneGroundShadow} />
                   </View>
                 );
               })}
@@ -420,8 +425,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 14,
     padding: 14,
-    borderRadius: 22,
-    ...SHADOWS.card,
+    borderRadius: 24,
+    ...SHADOWS.card3D,
   },
   learnerBannerLeft: {
     flexDirection: 'row',
@@ -435,21 +440,30 @@ const styles = StyleSheet.create({
   streakBadgeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
+    gap: 5,
+    marginTop: 6,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1.5,
+    borderColor: '#FCD34D',
+    borderBottomWidth: 3,
+    borderBottomColor: '#F59E0B',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
   },
   streakBadgeText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: COLORS.orange,
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#D97706',
   },
   levelCard: {
     backgroundColor: COLORS.white,
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 14,
     padding: 16,
-    borderRadius: 22,
-    ...SHADOWS.card,
+    borderRadius: 24,
+    ...SHADOWS.card3D,
   },
   levelCardHeader: {
     flexDirection: 'row',
@@ -457,10 +471,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   levelIconWrapper: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#FEF3C7',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    borderBottomWidth: 3,
+    borderBottomColor: '#F59E0B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -481,15 +499,19 @@ const styles = StyleSheet.create({
     color: COLORS.gold,
   },
   levelBarBackground: {
-    height: 12,
+    height: 14,
     backgroundColor: '#E2E8F0',
     borderRadius: RADII.pill,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
   },
   levelBarFill: {
     height: '100%',
     backgroundColor: COLORS.gold,
     borderRadius: RADII.pill,
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(255, 255, 255, 0.45)',
   },
   skillsSection: {
     marginHorizontal: 16,
@@ -505,22 +527,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     backgroundColor: COLORS.white,
-    borderRadius: 22,
-    paddingVertical: 14,
+    borderRadius: 24,
+    paddingVertical: 16,
     paddingHorizontal: 12,
-    ...SHADOWS.card,
+    ...SHADOWS.card3D,
   },
   skillItem: {
     alignItems: 'center',
     flex: 1,
   },
   skillIconCircle: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
+    borderWidth: 1.5,
+    borderBottomWidth: 3.5,
   },
   skillLabel: {
     fontSize: 11,
@@ -535,16 +559,20 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 8,
     padding: 14,
-    borderRadius: 22,
-    ...SHADOWS.card,
+    borderRadius: 24,
+    ...SHADOWS.card3D,
   },
   nextLessonThumbnail: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
     backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderBottomWidth: 3,
+    borderBottomColor: '#CBD5E1',
   },
   nextLessonInfo: {
     flex: 1,
@@ -574,11 +602,14 @@ const styles = StyleSheet.create({
   },
   nextLessonButton: {
     backgroundColor: '#8B5CF6',
+    borderWidth: 1.5,
+    borderColor: '#A78BFA',
     borderBottomWidth: 4,
-    borderColor: '#6D28D9',
-    paddingHorizontal: 16,
+    borderBottomColor: '#6D28D9',
+    paddingHorizontal: 18,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: 18,
+    ...SHADOWS.float,
   },
   nextLessonButtonText: {
     color: COLORS.white,
@@ -592,9 +623,15 @@ const styles = StyleSheet.create({
   unitBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 18,
-    borderRadius: 24,
-    ...SHADOWS.card,
+    padding: 20,
+    borderRadius: 26,
+    borderWidth: 2,
+    borderBottomWidth: 6,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    elevation: 6,
   },
   sectionBadge: {
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
@@ -623,10 +660,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   guidebookButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    borderBottomWidth: 3,
+    borderBottomColor: 'rgba(0, 0, 0, 0.2)',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
@@ -651,7 +692,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: RADII.pill,
-    ...SHADOWS.card,
+    ...SHADOWS.card3D,
   },
   startBadgeText: {
     fontSize: 11,
@@ -677,10 +718,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderWidth: 3,
     borderColor: COLORS.primaryLight,
-    borderBottomWidth: 6,
+    borderBottomWidth: 7,
     borderBottomColor: COLORS.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 6,
   },
   lessonNodeCompleted: {
     backgroundColor: COLORS.gold,
@@ -688,11 +734,33 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.goldDark,
   },
   lessonNodeCurrent: {
-    transform: [{ scale: 1.05 }],
+    transform: [{ scale: 1.06 }],
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 8,
   },
   lessonNodeLocked: {
     backgroundColor: '#E2E8F0',
     borderColor: '#CBD5E1',
+    borderBottomWidth: 6,
     borderBottomColor: '#94A3B8',
+  },
+  stoneGroundShadow: {
+    width: 64,
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: 'rgba(15, 23, 42, 0.12)',
+    marginTop: 4,
+    alignSelf: 'center',
+  },
+  stoneSheen: {
+    position: 'absolute',
+    top: 5,
+    width: 48,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
   },
 });

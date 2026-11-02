@@ -347,13 +347,15 @@ export default function LessonScreen() {
 
           {/* 3D Pip Robot Celebrating with Star Eyes & Star Medal (Screen 4) */}
           <View style={styles.pipLevelUpStage}>
+            <View style={styles.victoryAuraRing} />
             <CharacterView
               character="pip"
               pose="levelUp"
-              size={180}
+              size={185}
               roundMask={false}
               interactive={true}
             />
+            <View style={styles.pedestalPlatform} />
           </View>
 
           {/* Stats Bar */}
@@ -805,19 +807,23 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingTop: 14,
+    paddingTop: 16,
     backgroundColor: COLORS.white,
     borderTopWidth: 2,
     borderTopColor: '#E2E8F0',
-    ...SHADOWS.float,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    ...SHADOWS.modal,
   },
   footerBarCorrect: {
     backgroundColor: '#DCFCE7',
-    borderTopColor: '#86EFAC',
+    borderTopColor: '#4ADE80',
+    borderTopWidth: 3,
   },
   footerBarIncorrect: {
     backgroundColor: '#FEE2E2',
-    borderTopColor: '#FCA5A5',
+    borderTopColor: '#F87171',
+    borderTopWidth: 3,
   },
   feedbackInfo: {
     marginBottom: 10,
@@ -948,9 +954,30 @@ const styles = StyleSheet.create({
     color: '#FDE047',
   },
   pipLevelUpStage: {
-    marginVertical: 10,
+    marginVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  victoryAuraRing: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(250, 204, 21, 0.12)',
+    borderWidth: 2,
+    borderColor: 'rgba(250, 204, 21, 0.25)',
+  },
+  pedestalPlatform: {
+    width: 150,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#1E1B4B',
+    borderWidth: 2,
+    borderColor: '#4338CA',
+    borderBottomWidth: 5,
+    borderBottomColor: '#0F172A',
+    marginTop: -8,
   },
   levelUpStatsRow: {
     flexDirection: 'row',

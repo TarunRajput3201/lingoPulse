@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
+import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
 
 interface MultipleChoiceExerciseProps {
@@ -77,34 +77,35 @@ const styles = StyleSheet.create({
   optionCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: RADII.card,
+    padding: 18,
+    borderRadius: 20,
     backgroundColor: COLORS.white,
-    borderWidth: 2,
-    borderBottomWidth: 4,
-    borderColor: COLORS.grayBorder,
-    borderBottomColor: COLORS.grayBorderDark,
-    minHeight: 64,
+    minHeight: 66,
+    ...SHADOWS.card3D,
   },
   optionCardSelected: {
-    borderColor: COLORS.secondary,
-    borderBottomColor: COLORS.secondaryDark,
-    backgroundColor: COLORS.secondaryLight,
+    borderColor: COLORS.secondaryDark,
+    borderBottomColor: '#0284C7',
+    borderBottomWidth: 5,
+    backgroundColor: '#F0F9FF',
   },
   indexBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: COLORS.grayBorder,
+    borderBottomWidth: 2.5,
+    borderColor: '#CBD5E1',
+    borderBottomColor: '#94A3B8',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
     backgroundColor: COLORS.white,
   },
   indexBadgeSelected: {
-    borderColor: COLORS.secondary,
-    backgroundColor: COLORS.secondary,
+    borderColor: '#38BDF8',
+    borderBottomColor: '#0284C7',
+    backgroundColor: COLORS.secondaryDark,
   },
   indexText: {
     fontSize: 13,

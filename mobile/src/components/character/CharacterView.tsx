@@ -41,6 +41,27 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
   roundMask = true,
 }) => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  // Continuous subtle 3D breathing animation
+  React.useEffect(() => {
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, {
+          toValue: -5,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    floatLoop.start();
+    return () => floatLoop.stop();
+  }, [floatAnim]);
 
   // Resolve image source safely
   const getImageSource = () => {
@@ -107,7 +128,7 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
         </View>
       ) : null}
 
-      {/* 3D Character Avatar Image with Interactive Press */}
+      {/* 3D Character Avatar Image with Interactive Press & Floating Animation */}
       <Pressable onPress={handlePress} disabled={!interactive && !onPress}>
         <Animated.View
           style={[
@@ -116,7 +137,7 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
               width: size,
               height: size,
               borderRadius: roundMask ? size / 2 : 24,
-              transform: [{ scale: scaleAnim }],
+              transform: [{ scale: scaleAnim }, { translateY: floatAnim }],
             },
             showBorder && styles.characterBorder,
             style,
@@ -136,6 +157,18 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
           />
         </Animated.View>
       </Pressable>
+
+      {/* Soft Contact Shadow beneath Character */}
+      <View
+        style={[
+          styles.contactShadow,
+          {
+            width: size * 0.65,
+            height: Math.max(6, size * 0.08),
+            borderRadius: 999,
+          },
+        ]}
+      />
     </View>
   );
 };
@@ -203,5 +236,10 @@ const styles = StyleSheet.create({
   },
   characterImage: {
     backgroundColor: '#F1F5F9',
+  },
+  contactShadow: {
+    backgroundColor: 'rgba(15, 23, 42, 0.14)',
+    alignSelf: 'center',
+    marginTop: 4,
   },
 });
