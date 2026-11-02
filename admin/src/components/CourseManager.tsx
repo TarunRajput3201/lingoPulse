@@ -149,7 +149,7 @@ export const CourseManager: React.FC = () => {
             </h3>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
             {courses.map((course) => {
               const isSelected = selectedCourse?._id === course._id;
               return (
@@ -212,7 +212,7 @@ export const CourseManager: React.FC = () => {
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
             {units.map((unit) => {
               const isSelected = selectedUnit?._id === unit._id;
               return (
@@ -259,7 +259,7 @@ export const CourseManager: React.FC = () => {
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
             {lessons.map((lesson) => (
               <div
                 key={lesson._id}

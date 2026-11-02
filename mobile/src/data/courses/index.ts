@@ -1,40 +1,18 @@
-import { ENGLISH_COURSE } from './english';
-import { SPANISH_COURSE } from './spanish';
-import { FRENCH_COURSE } from './french';
-import { JAPANESE_COURSE } from './japanese';
-import { GERMAN_COURSE } from './german';
-import { KOREAN_COURSE } from './korean';
-import { ITALIAN_COURSE } from './italian';
-import { MANDARIN_COURSE } from './mandarin';
-import { PORTUGUESE_COURSE } from './portuguese';
-import { HINDI_COURSE } from './hindi';
+import { generateAllCourses, Course as GenCourse } from '../curriculum';
 import type { StaticCourse } from '../staticCurriculum';
 
-export {
-  ENGLISH_COURSE,
-  SPANISH_COURSE,
-  FRENCH_COURSE,
-  JAPANESE_COURSE,
-  GERMAN_COURSE,
-  KOREAN_COURSE,
-  ITALIAN_COURSE,
-  MANDARIN_COURSE,
-  PORTUGUESE_COURSE,
-  HINDI_COURSE,
-};
+export const ALL_COURSES: StaticCourse[] = (generateAllCourses() as unknown) as StaticCourse[];
 
-export const ALL_COURSES: StaticCourse[] = [
-  ENGLISH_COURSE,
-  SPANISH_COURSE,
-  FRENCH_COURSE,
-  JAPANESE_COURSE,
-  GERMAN_COURSE,
-  KOREAN_COURSE,
-  ITALIAN_COURSE,
-  MANDARIN_COURSE,
-  PORTUGUESE_COURSE,
-  HINDI_COURSE,
-];
+export const ENGLISH_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'en-es')!;
+export const SPANISH_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'es-en')!;
+export const FRENCH_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'fr-en')!;
+export const JAPANESE_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'ja-en')!;
+export const GERMAN_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'de-en')!;
+export const KOREAN_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'ko-en')!;
+export const ITALIAN_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'it-en')!;
+export const MANDARIN_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'zh-en')!;
+export const PORTUGUESE_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'pt-en')!;
+export const HINDI_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'hi-en')!;
 
 export const getCourseByCode = (code: string): StaticCourse | undefined => {
   const norm = code.toLowerCase().trim();
@@ -99,13 +77,18 @@ export const getCourseByLanguage = (targetLang?: string): StaticCourse | undefin
     (c) =>
       c.toLanguage.toLowerCase() === lang ||
       c.code.toLowerCase() === lang ||
-      c.code.toLowerCase().startsWith(`${lang}-`) ||
-      c.title.toLowerCase().startsWith(lang)
+      c.code.toLowerCase().startsWith(lang)
   );
+  if (found) return found;
 
-  return found;
+  // 3. Fallback to Spanish
+  return SPANISH_COURSE;
 };
 
 export const getCourseById = (courseId: string): StaticCourse | undefined => {
-  return ALL_COURSES.find((c) => c.id === courseId || c._id === courseId);
+  const norm = courseId.toLowerCase().trim();
+  return (
+    ALL_COURSES.find((c) => c.id === courseId || c._id === courseId || c.code.toLowerCase() === norm) ||
+    getCourseByLanguage(norm)
+  );
 };

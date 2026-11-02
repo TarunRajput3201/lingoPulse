@@ -60,16 +60,30 @@ export const getCoursePath = async (req: AuthenticatedRequest, res: Response): P
   );
 
   // Fetch all published units
-  const units = await Unit.find({ courseId: course._id, status: 'published' }).sort({ unitNumber: 1 });
+  const units = await Unit.find({ courseId: course._id, status: 'published' }).sort({ unitNumber: 1 }).lean();
+  const unitIds = units.map((u) => u._id);
+
+  // Fetch all published lessons for these units in one single query
+  const allLessons = await Lesson.find({ unitId: { $in: unitIds }, status: 'published' }).sort({ lessonNumber: 1 }).lean();
+  const lessonsByUnit = new Map<string, any[]>();
+  for (const lesson of allLessons) {
+    const uid = lesson.unitId.toString();
+    const existing = lessonsByUnit.get(uid);
+    if (existing) {
+      existing.push(lesson);
+    } else {
+      lessonsByUnit.set(uid, [lesson]);
+    }
+  }
 
   let foundCurrentLesson = false;
   let allPreviousCompleted = true;
 
   const structuredUnits = [];
   for (const unit of units) {
-    const lessons = await Lesson.find({ unitId: unit._id, status: 'published' }).sort({ lessonNumber: 1 });
+    const lessons = lessonsByUnit.get(unit._id.toString()) || [];
 
-    const lessonSummaries = lessons.map((lesson) => {
+    const lessonSummaries = lessons.map((lesson: any) => {
       const lessonIdStr = lesson._id.toString();
       const isCompleted = completedLessonIdSet.has(lessonIdStr);
 

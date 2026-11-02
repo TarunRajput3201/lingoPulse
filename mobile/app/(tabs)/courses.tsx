@@ -122,7 +122,7 @@ export default function CoursesScreen() {
                     <View style={styles.titleRow}>
                       <Text style={styles.courseTitle}>{course.title}</Text>
                       <View style={styles.cefrBadge}>
-                        <Text style={styles.cefrText}>CEFR {course.level || 'A1'}</Text>
+                        <Text style={styles.cefrText}>CEFR {course.level || 'A1–C1'}</Text>
                       </View>
                     </View>
 
@@ -131,7 +131,7 @@ export default function CoursesScreen() {
                     <View style={styles.metricsRow}>
                       <BookOpen size={14} color={COLORS.grayText} />
                       <Text style={styles.metricText}>
-                        {course.totalUnits || 2} Units • {course.totalLessons || 4} Lessons
+                        {course.totalUnits || 50} Units • {course.totalLessons || 250} Lessons
                       </Text>
                     </View>
                   </View>

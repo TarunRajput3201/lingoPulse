@@ -153,5 +153,5 @@ describe('Multilingual Isolation & Cross-Language Guard Regression Tests', () =>
       expect(langRes.status).toBe(200);
       expect(langRes.body.course.toLanguage).toBe(lang);
     }
-  });
+  }, 30000);
 });

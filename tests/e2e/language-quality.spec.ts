@@ -70,12 +70,12 @@ test.describe('Linguistic Quality, Accent Tolerance & Anti-Cheat Sanitization', 
     const fillBlankEx = lessonData.exercises.find((ex: any) => ex.type === 'FILL_IN_THE_BLANK');
     expect(fillBlankEx).toBeDefined();
 
-    // Submit lowercase without case sensitivity issues: 'soy'
+    // Submit lowercase without case sensitivity issues: 'gracias'
     const res = await request.post('/api/lessons/submit-answer', {
       headers: { Authorization: `Bearer ${authToken}` },
       data: {
         exerciseId: fillBlankEx.id,
-        userAnswer: 'soy',
+        userAnswer: 'gracias',
       },
     });
 

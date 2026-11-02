@@ -7,7 +7,7 @@ node_modules/
 coverage/
 test-results/*
 !test-results/BUG_TRACKER.md
-tests/reports/test-artifacts/
+tests/reports/
 
 # Production & Build outputs
 dist/

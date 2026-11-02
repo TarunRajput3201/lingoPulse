@@ -42,14 +42,14 @@ test.describe('LingoPulse Curriculum Quality & Progression Audit', () => {
     const spanish = data.courses.find((c: any) => c.code === 'es-en');
     expect(spanish).toBeDefined();
     expect(spanish.title).toBe('Spanish Academy');
-    expect(spanish.totalUnits).toBe(3);
-    expect(spanish.totalLessons).toBe(7);
+    expect(spanish.totalUnits).toBeGreaterThanOrEqual(50);
+    expect(spanish.totalLessons).toBeGreaterThanOrEqual(250);
 
     const french = data.courses.find((c: any) => c.code === 'fr-en');
     expect(french).toBeDefined();
     expect(french.title).toBe('French Academy');
-    expect(french.totalUnits).toBe(3);
-    expect(french.totalLessons).toBe(7);
+    expect(french.totalUnits).toBeGreaterThanOrEqual(50);
+    expect(french.totalLessons).toBeGreaterThanOrEqual(250);
   });
 
   test('Spanish Course Hierarchy: Validates CEFR A1 unit & checkpoint structure', async ({ request }) => {
@@ -59,13 +59,13 @@ test.describe('LingoPulse Curriculum Quality & Progression Audit', () => {
     expect(res.status()).toBe(200);
     const data = await res.json();
 
-    expect(data.units.length).toBe(3);
+    expect(data.units.length).toBeGreaterThanOrEqual(50);
 
     // Unit 1
     const unit1 = data.units[0];
     expect(unit1.title).toContain('Greetings');
-    expect(unit1.lessons.length).toBeGreaterThanOrEqual(2);
-    expect(unit1.lessons[0].title).toBe('Saying Hello');
+    expect(unit1.lessons.length).toBe(5);
+    expect(unit1.lessons[0].title).toContain('First Steps & Greetings');
     expect(unit1.lessons[0].type).toBe('standard');
 
     // Verify initial locking progression: Lesson 1 is unlocked
@@ -79,11 +79,11 @@ test.describe('LingoPulse Curriculum Quality & Progression Audit', () => {
     expect(res.status()).toBe(200);
     const data = await res.json();
 
-    expect(data.units.length).toBe(3);
+    expect(data.units.length).toBeGreaterThanOrEqual(50);
     const unit1 = data.units[0];
     expect(unit1.title).toContain('Greetings');
-    expect(unit1.lessons.length).toBeGreaterThanOrEqual(2);
-    expect(unit1.lessons[0].title).toBe('Saying Hello in French');
+    expect(unit1.lessons.length).toBe(5);
+    expect(unit1.lessons[0].title).toContain('First Steps & Greetings');
   });
 
   test('Admin CMS UI: Verifies course curriculum and exercise builder views', async ({ page }) => {

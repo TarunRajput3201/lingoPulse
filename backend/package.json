@@ -9,7 +9,7 @@
     "start": "node dist/server.js",
     "seed": "tsx src/seed/seedCourses.ts",
     "validate:curriculum": "tsx ../scripts/validateCurriculum.ts",
-    "test": "jest --runInBand --detectOpenHandles"
+    "test": "node --max-old-space-size=4096 ./node_modules/jest/bin/jest.js --runInBand --detectOpenHandles"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",

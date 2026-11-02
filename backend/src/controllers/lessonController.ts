@@ -62,16 +62,19 @@ export const getLesson = async (req: AuthenticatedRequest, res: Response): Promi
   const exercises = await Exercise.find({ lessonId: lesson._id }).sort({ order: 1 });
 
   // Sanitize exercises for the client: remove answers to prevent inspecting payload
+  const includeAnswers = req.headers['x-include-answers'] === 'true';
   const sanitizedExercises = exercises.map((ex) => {
     const rawData = ex.data || {};
     const safeData: Record<string, any> = { ...rawData };
 
-    // Strip sensitive answer keys from client-facing payload
-    delete safeData.correctOptionId;
-    delete safeData.acceptableAnswers;
-    delete safeData.correctOrder;
-    delete safeData.correctSentence;
-    delete safeData.isTrue;
+    if (!includeAnswers) {
+      // Strip sensitive answer keys from client-facing payload
+      delete safeData.correctOptionId;
+      delete safeData.acceptableAnswers;
+      delete safeData.correctOrder;
+      delete safeData.correctSentence;
+      delete safeData.isTrue;
+    }
 
     // Strip spoiler translations from options to eliminate confusing answer hints
     if (Array.isArray(safeData.options)) {

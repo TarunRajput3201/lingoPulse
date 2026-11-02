@@ -145,8 +145,14 @@ export const seedDatabase = async (options: { preserveUsers?: boolean } = {}) =>
       totalLessons: staticCourse.units.reduce((acc: number, u: any) => acc + u.lessons.length, 0),
     });
 
+    const unitDocs: any[] = [];
+    const lessonDocs: any[] = [];
+    const exerciseDocs: any[] = [];
+
     for (const staticUnit of staticCourse.units) {
-      const unit = await Unit.create({
+      const unitId = new mongoose.Types.ObjectId();
+      unitDocs.push({
+        _id: unitId,
         courseId: course._id,
         unitNumber: staticUnit.unitNumber,
         title: staticUnit.title,
@@ -158,8 +164,10 @@ export const seedDatabase = async (options: { preserveUsers?: boolean } = {}) =>
       totalUnitsCount++;
 
       for (const staticLesson of staticUnit.lessons) {
-        const lesson = await Lesson.create({
-          unitId: unit._id,
+        const lessonId = new mongoose.Types.ObjectId();
+        lessonDocs.push({
+          _id: lessonId,
+          unitId,
           lessonNumber: staticLesson.lessonNumber,
           title: staticLesson.title,
           type: staticLesson.type,
@@ -169,30 +177,37 @@ export const seedDatabase = async (options: { preserveUsers?: boolean } = {}) =>
         });
         totalLessonsCount++;
 
-        const exerciseDocs = staticLesson.exercises.map((ex: any) => ({
-          lessonId: lesson._id,
-          type: ex.type,
-          prompt: ex.prompt,
-          instruction: ex.instruction,
-          audioUrl: ex.audioUrl || '',
-          imageUrl: ex.imageUrl || '',
-          order: ex.order,
-          hint: ex.hint || '',
-          explanation: ex.explanation,
-          data: ex.data,
-        }));
-
-        if (exerciseDocs.length > 0) {
-          await Exercise.insertMany(exerciseDocs);
-          totalExercisesCount += exerciseDocs.length;
+        for (const ex of staticLesson.exercises) {
+          exerciseDocs.push({
+            lessonId,
+            type: ex.type,
+            prompt: ex.prompt,
+            instruction: ex.instruction,
+            audioUrl: ex.audioUrl || '',
+            imageUrl: ex.imageUrl || '',
+            order: ex.order,
+            hint: ex.hint || '',
+            explanation: ex.explanation,
+            data: ex.data,
+          });
+          totalExercisesCount++;
         }
+      }
+    }
+
+    if (unitDocs.length > 0) await Unit.insertMany(unitDocs);
+    if (lessonDocs.length > 0) await Lesson.insertMany(lessonDocs);
+    if (exerciseDocs.length > 0) {
+      // Chunk exercise inserts to respect MongoDB 16MB document/packet limits
+      const chunkSize = 2000;
+      for (let i = 0; i < exerciseDocs.length; i += chunkSize) {
+        await Exercise.insertMany(exerciseDocs.slice(i, i + chunkSize), { ordered: false });
       }
     }
 
     console.log(
       ` ✅ Seeded ${staticCourse.flagIcon} ${staticCourse.title} (${staticCourse.code}) — ` +
-        `${staticCourse.units.length} units, ` +
-        `${staticCourse.units.reduce((acc: number, u: any) => acc + u.lessons.length, 0)} lessons.`
+        `${unitDocs.length} units, ${lessonDocs.length} sections, ${exerciseDocs.length} exercises.`
     );
   }
 

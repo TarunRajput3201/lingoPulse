@@ -312,7 +312,9 @@ export default function HomeScreen() {
             >
               <View style={{ flex: 1 }}>
                 <View style={styles.sectionBadge}>
-                  <Text style={styles.sectionBadgeText}>SECTION 1 • UNIT {unit.unitNumber}</Text>
+                  <Text style={styles.sectionBadgeText}>
+                    SECTION {Math.ceil(unit.unitNumber / 10)} ({unit.unitNumber <= 10 ? 'A1' : unit.unitNumber <= 20 ? 'A2' : unit.unitNumber <= 30 ? 'B1' : unit.unitNumber <= 40 ? 'B2' : 'C1'}) • UNIT {unit.unitNumber}
+                  </Text>
                 </View>
                 <Text style={styles.unitBannerTitle}>{unit.title}</Text>
                 <Text style={styles.unitBannerDesc}>{unit.description}</Text>

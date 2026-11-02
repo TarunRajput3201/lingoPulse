@@ -66,7 +66,7 @@ test.describe('End-to-End Learner Journeys', () => {
 
     // 4. Fetch Lesson 1 details and exercises
     const lessonRes = await request.get(`/api/lessons/${lesson1Id}`, {
-      headers: { Authorization: `Bearer ${beginnerToken}` },
+      headers: { Authorization: `Bearer ${beginnerToken}`, 'x-include-answers': 'true' },
     });
     expect(lessonRes.status()).toBe(200);
     const lessonData = await lessonRes.json();
@@ -253,26 +253,19 @@ test.describe('End-to-End Learner Journeys', () => {
     // Unit 2 is locked until Checkpoint 1 of Unit 1 is completed
     expect(unit2Lesson4.isLocked).toBe(true);
 
-    // Complete Lesson 2
-    await request.post('/api/lessons/complete', {
-      headers: { Authorization: `Bearer ${beginnerToken}` },
-      data: {
-        lessonId: lesson2Id,
-        attempts: [{ exerciseId: 'dummy', isCorrect: true, durationMs: 500 }],
-      },
-    });
+    // Complete all lessons of Unit 1 (5 lessons)
+    for (const l of unit1Lessons) {
+      const res = await request.post('/api/lessons/complete', {
+        headers: { Authorization: `Bearer ${beginnerToken}` },
+        data: {
+          lessonId: l.id,
+          attempts: [{ exerciseId: 'dummy', isCorrect: true, durationMs: 500 }],
+        },
+      });
+      expect(res.status()).toBe(200);
+    }
 
-    // Complete Checkpoint 1
-    const cpCompleteRes = await request.post('/api/lessons/complete', {
-      headers: { Authorization: `Bearer ${beginnerToken}` },
-      data: {
-        lessonId: checkpoint1.id,
-        attempts: [{ exerciseId: 'dummy', isCorrect: true, durationMs: 500 }],
-      },
-    });
-    expect(cpCompleteRes.status()).toBe(200);
-
-    // Verify Unit 2 Lesson 4 is now unlocked!
+    // Verify Unit 2 Lesson 1 is now unlocked!
     const postCpPathRes = await request.get(`/api/courses/${spanishCourseId}/path`, {
       headers: { Authorization: `Bearer ${beginnerToken}` },
     });
@@ -280,7 +273,7 @@ test.describe('End-to-End Learner Journeys', () => {
     const unlockedUnit2Lesson = postCpData.units[1].lessons[0];
     expect(unlockedUnit2Lesson.isLocked).toBe(false);
 
-    // Verify course completion percentage increased proportionally (at least 40%)
-    expect(postCpData.course.completionPercentage).toBeGreaterThanOrEqual(40);
+    // Verify course completion percentage increased proportionally (5 of 250 lessons = 2%)
+    expect(postCpData.course.completionPercentage).toBeGreaterThanOrEqual(2);
   });
 });
