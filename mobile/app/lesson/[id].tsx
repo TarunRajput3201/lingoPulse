@@ -10,10 +10,11 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
-import { X, Heart, CheckCircle2, AlertCircle, Sparkles, Flame, RefreshCw, ArrowLeft } from 'lucide-react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
+import { X, Heart, CheckCircle2, AlertCircle, Sparkles, Flame, Trophy, Award } from 'lucide-react-native';
+import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
 import { Button3D } from '../../src/components/Button3D';
-import { MascotPip } from '../../src/components/MascotPip';
+import { CharacterView } from '../../src/components/character/CharacterView';
+import { AdaptiveEngine } from '../../src/services/adaptiveEngine';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { SoundService } from '../../src/services/soundService';
@@ -30,6 +31,7 @@ import { FillInTheBlankExercise } from '../../src/components/exercises/FillInThe
 import { ListeningExercise } from '../../src/components/exercises/ListeningExercise';
 import { TrueFalseExercise } from '../../src/components/exercises/TrueFalseExercise';
 import { SpeakingExercise } from '../../src/components/exercises/SpeakingExercise';
+import { ImageSelectExercise } from '../../src/components/exercises/ImageSelectExercise';
 
 export default function LessonScreen() {
   const { id } = useLocalSearchParams();
@@ -72,6 +74,7 @@ export default function LessonScreen() {
   // Load lesson and exercises
   useEffect(() => {
     if (!id) return;
+    AdaptiveEngine.resetLesson();
 
     // 1. Instant load from local static curriculum
     CurriculumService.getLesson(id as string).then((localData) => {
@@ -82,7 +85,7 @@ export default function LessonScreen() {
         setLoading(false);
         startTimeRef.current = Date.now();
 
-        // Strict Language Guard: Ensure user's target language aligns with the lesson's course
+        // Strict Language Guard
         if (
           localData.course?.toLanguage &&
           user?.targetLanguage &&
@@ -118,18 +121,16 @@ export default function LessonScreen() {
         })
         .catch(() => {});
     }
-  }, [token, id, user?.targetLanguage]);
-
+  }, [id]);
 
   const currentExercise = exercises[currentIndex];
 
-  // Helper to get user's current answer based on exercise type
   const getCurrentUserAnswer = () => {
     if (!currentExercise) return null;
     switch (currentExercise.type) {
       case 'MULTIPLE_CHOICE':
-      case 'IMAGE_SELECT':
       case 'LISTENING_COMPREHENSION':
+      case 'IMAGE_SELECT':
         return mcSelectedId;
       case 'TRANSLATION':
       case 'FILL_IN_THE_BLANK':
@@ -165,12 +166,14 @@ export default function LessonScreen() {
     const durationMs = Date.now() - startTimeRef.current;
 
     try {
-      // 1. Instant local validation via CurriculumService
       const localResult = await CurriculumService.submitAnswer(
         id as string,
         currentExercise.id,
         userAnswer
       );
+
+      // Record in adaptive engine
+      AdaptiveEngine.recordAttempt(localResult.isCorrect, durationMs);
 
       setAttempts((prev) => [
         ...prev,
@@ -182,7 +185,6 @@ export default function LessonScreen() {
         },
       ]);
 
-      // 2. Optional cloud sync if connected
       if (token && !token.startsWith('local-')) {
         fetch(ENDPOINTS.SUBMIT_ANSWER, {
           method: 'POST',
@@ -204,6 +206,8 @@ export default function LessonScreen() {
         setFeedback({
           status: 'correct',
           explanation: localResult.explanation || currentExercise.explanation || 'Nicely done!',
+          pedagogicalTip: (localResult as any).pedagogicalTip,
+          hasAccentWarning: (localResult as any).hasAccentWarning,
         });
       } else {
         SoundService.playErrorThud();
@@ -223,7 +227,6 @@ export default function LessonScreen() {
           explanation: localResult.explanation || currentExercise.explanation || '',
         });
 
-        // Trigger Out of Hearts Modal if hearts dropped to 0
         if (remaining <= 0) {
           setTimeout(() => {
             setShowOutOfHeartsModal(true);
@@ -237,11 +240,9 @@ export default function LessonScreen() {
     }
   };
 
-  // Move to next exercise or finalize lesson
   const handleContinue = async () => {
     HapticsService.lightTap();
 
-    // Reset inputs
     setMcSelectedId(null);
     setTypedAnswer('');
     setSelectedWords([]);
@@ -254,15 +255,13 @@ export default function LessonScreen() {
     if (currentIndex + 1 < exercises.length) {
       setCurrentIndex(currentIndex + 1);
     } else {
-      // Completed all exercises! Call complete endpoint locally first
       setLoading(true);
       try {
-        const xpEarned = lesson?.xpReward || 15;
+        const xpEarned = lesson?.xpReward || 20;
         const correctCount = attempts.filter((a) => a.isCorrect).length;
         const total = exercises.length || 1;
         const accuracy = Math.round((correctCount / total) * 100);
 
-        // Complete locally via CurriculumService
         const localCompletion = await CurriculumService.completeLesson(id as string, xpEarned);
 
         const completionData = {
@@ -287,7 +286,6 @@ export default function LessonScreen() {
             : null
         );
 
-        // Optional cloud sync
         if (token && !token.startsWith('local-')) {
           fetch(ENDPOINTS.COMPLETE_LESSON, {
             method: 'POST',
@@ -311,7 +309,6 @@ export default function LessonScreen() {
     }
   };
 
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -321,70 +318,68 @@ export default function LessonScreen() {
     );
   }
 
-  // Empty State Fallback (BUG-009 Fix)
-  if (!lesson || exercises.length === 0) {
-    return (
-      <SafeAreaView style={styles.emptyContainer}>
-        <MascotPip mood="thinking" size={110} message="No exercises found in this lesson yet." />
-        <Text style={styles.emptyTitle}>Lesson In Progress</Text>
-        <Text style={styles.emptyDesc}>
-          Exercises for this lesson are currently being prepared. Check back shortly or continue with another lesson!
-        </Text>
-        <Button3D
-          title="Return to Path"
-          onPress={() => router.replace('/(tabs)')}
-          style={{ width: '100%', maxWidth: 280, marginTop: 24 }}
-        />
-      </SafeAreaView>
-    );
-  }
-
-  // Celebratory Completion Screen
+  // Celebratory Level Up Screen (Screen 4 in Reference Image)
   if (isCompleted && completionResult) {
     return (
-      <SafeAreaView style={styles.completedContainer}>
-        <ScrollView contentContainerStyle={styles.completedScroll}>
-          <MascotPip mood="celebrating" size={130} message="Lesson Finished! You're on fire!" />
+      <SafeAreaView style={styles.levelUpContainer}>
+        <ScrollView contentContainerStyle={styles.levelUpScroll}>
+          {/* Header */}
+          <Text style={styles.levelUpHeading}>Level Up! ⭐</Text>
 
-          <Text style={styles.completedTitle}>Lesson Complete!</Text>
-          <Text style={styles.completedSubtitle}>You’re making remarkable daily progress</Text>
+          {/* Golden Ribbon Badge */}
+          <View style={styles.goldRibbonBadge}>
+            <Text style={styles.goldRibbonText}>Level 2</Text>
+          </View>
 
-          {/* Reward Badges Grid */}
-          <View style={styles.rewardsGrid}>
-            <View style={styles.rewardCard}>
-              <Sparkles size={28} color={COLORS.gold} />
-              <Text style={styles.rewardValue}>+{completionResult.xpAwarded} XP</Text>
-              <Text style={styles.rewardLabel}>Total XP Earned</Text>
+          {/* Glowing XP Pill */}
+          <View style={styles.levelUpXpPill}>
+            <Sparkles size={22} color={COLORS.gold} />
+            <Text style={styles.levelUpXpText}>+{completionResult.xpEarned || 20} XP</Text>
+          </View>
+
+          {/* 3D Pip Robot Celebrating with Star Eyes & Star Medal (Screen 4) */}
+          <View style={styles.pipLevelUpStage}>
+            <CharacterView
+              character="pip"
+              pose="levelUp"
+              size={180}
+              roundMask={false}
+              interactive={true}
+            />
+          </View>
+
+          {/* Stats Bar */}
+          <View style={styles.levelUpStatsRow}>
+            <View style={styles.statPill}>
+              <Flame size={18} color={COLORS.orange} fill={COLORS.orange} />
+              <Text style={styles.statPillText}>{completionResult.streak || 5} Days</Text>
             </View>
-
-            <View style={styles.rewardCard}>
-              <Flame size={28} color={COLORS.gold} fill={COLORS.gold} />
-              <Text style={styles.rewardValue}>{completionResult.newStreak} Days</Text>
-              <Text style={styles.rewardLabel}>Daily Streak</Text>
-            </View>
-
-            <View style={styles.rewardCard}>
-              <CheckCircle2 size={28} color={COLORS.primary} />
-              <Text style={styles.rewardValue}>{completionResult.accuracyPercentage}%</Text>
-              <Text style={styles.rewardLabel}>Accuracy</Text>
+            <View style={styles.statPill}>
+              <CheckCircle2 size={18} color={COLORS.primary} />
+              <Text style={styles.statPillText}>{completionResult.accuracy || 100}% Accuracy</Text>
             </View>
           </View>
 
-          <Button3D
-            title="Finish & Continue"
+          {/* Large Gold Continue Button */}
+          <Pressable
             onPress={() => router.replace('/(tabs)')}
-            style={{ width: '100%', marginTop: 32 }}
-          />
+            style={styles.levelUpContinueButton}
+            accessibilityRole="button"
+            accessibilityLabel="Continue to home"
+          >
+            <Text style={styles.levelUpContinueText}>Continue →</Text>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     );
   }
 
   const progressPercent = ((currentIndex + 1) / (exercises.length || 1)) * 100;
+  const currentStep = `${currentIndex + 1}/${exercises.length || 1}`;
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Lesson Header: Exit, Progress Bar, Hearts */}
+      {/* Lesson Header: Exit, Segmented Pill (1/10), Hearts */}
       <View style={styles.header}>
         <Pressable
           accessibilityRole="button"
@@ -399,8 +394,12 @@ export default function LessonScreen() {
           <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
         </View>
 
+        <View style={styles.stepCounterPill}>
+          <Text style={styles.stepCounterPillText}>{currentStep}</Text>
+        </View>
+
         <View style={styles.heartsContainer}>
-          <Heart size={22} color={COLORS.accent} fill={COLORS.accent} />
+          <Heart size={20} color={COLORS.accent} fill={COLORS.accent} />
           <Text style={styles.heartsText}>{user?.hearts ?? 5}</Text>
         </View>
       </View>
@@ -427,9 +426,12 @@ export default function LessonScreen() {
           { paddingBottom: insets.bottom + 160 },
         ]}
       >
-        {currentExercise?.type === 'MULTIPLE_CHOICE' && (
-          <MultipleChoiceExercise
+        {/* IMAGE_SELECT Exercise (Screen 3 in Reference Image) */}
+        {(currentExercise?.type === 'IMAGE_SELECT' ||
+          currentExercise?.data?.imageKey) && (
+          <ImageSelectExercise
             prompt={currentExercise.prompt}
+            imageKey={currentExercise.data?.imageKey || 'coffeeCup'}
             options={currentExercise.data?.options || []}
             selectedOptionId={mcSelectedId}
             onSelectOption={setMcSelectedId}
@@ -437,13 +439,24 @@ export default function LessonScreen() {
           />
         )}
 
+        {currentExercise?.type === 'MULTIPLE_CHOICE' &&
+          !currentExercise?.data?.imageKey && (
+            <MultipleChoiceExercise
+              prompt={currentExercise.prompt}
+              options={currentExercise.data?.options || []}
+              selectedOptionId={mcSelectedId}
+              onSelectOption={setMcSelectedId}
+              disabled={feedback.status !== 'none'}
+            />
+          )}
+
         {currentExercise?.type === 'TRANSLATION' && (
           <TranslationExercise
             prompt={currentExercise.prompt}
             sourceText={currentExercise.instruction || currentExercise.data?.sourcePrompt}
             userAnswer={typedAnswer}
             onChangeAnswer={setTypedAnswer}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'fr'}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -505,6 +518,7 @@ export default function LessonScreen() {
           />
         )}
 
+        {/* Speaking Exercise with Maya 3D character (Screen 2 in Reference Image) */}
         {currentExercise?.type === 'SPEAKING_PRONUNCIATION' && (
           <SpeakingExercise
             prompt={currentExercise.prompt}
@@ -512,12 +526,13 @@ export default function LessonScreen() {
             phoneticGuide={currentExercise.data?.phoneticGuide}
             spokenText={spokenCaptured}
             onSpokenRecorded={setSpokenCaptured}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'fr'}
             disabled={feedback.status !== 'none'}
           />
         )}
       </ScrollView>
 
-      {/* Bottom Feedback Drawer / Action Bar with Safe Area Insets (BUG-011 Fix) */}
+      {/* Bottom Feedback Drawer / Action Bar (Screen 3 in Reference Image) */}
       <View
         style={[
           styles.footerBar,
@@ -530,9 +545,12 @@ export default function LessonScreen() {
           <View style={styles.feedbackInfo}>
             <View style={styles.feedbackTitleRow}>
               <CheckCircle2 size={24} color={COLORS.primaryDark} strokeWidth={3} />
-              <Text style={styles.feedbackTitleCorrect}>Nicely done!</Text>
+              <Text style={styles.feedbackTitleCorrect}>Excellent! 🌟</Text>
             </View>
-            <Text style={styles.feedbackExplanation}>{feedback.explanation}</Text>
+            <Text style={styles.feedbackSubCorrect}>You're doing great!</Text>
+            {feedback.explanation ? (
+              <Text style={styles.feedbackExplanation}>{feedback.explanation}</Text>
+            ) : null}
             {feedback.hasAccentWarning && feedback.pedagogicalTip ? (
               <Text style={styles.accentWarningText}>{feedback.pedagogicalTip}</Text>
             ) : null}
@@ -566,11 +584,11 @@ export default function LessonScreen() {
         />
       </View>
 
-      {/* Exit Confirmation Modal */}
+      {/* Exit Modal */}
       <Modal visible={showExitModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <MascotPip mood="thinking" size={90} />
+            <CharacterView character="pip" pose="helper" size={80} roundMask={true} />
             <Text style={styles.modalTitle}>Quit Current Session?</Text>
             <Text style={styles.modalDesc}>
               You will lose your in-progress answers if you quit now.
@@ -594,16 +612,16 @@ export default function LessonScreen() {
         </View>
       </Modal>
 
-      {/* Out of Hearts Modal (BUG-012 Fix) */}
+      {/* Out of Hearts Modal */}
       <Modal visible={showOutOfHeartsModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            <MascotPip mood="sad" size={100} />
+            <CharacterView character="pip" pose="helper" size={90} roundMask={true} />
             <Text style={[styles.modalTitle, { color: COLORS.accentDark }]}>
               You Ran Out of Hearts!
             </Text>
             <Text style={styles.modalDesc}>
-              Don't worry! Review your previous mistakes in the Practice Hub to earn hearts back and continue learning.
+              Review your previous mistakes in the Practice Hub to earn hearts back!
             </Text>
 
             <Button3D
@@ -648,42 +666,20 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.grayText,
   },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-    backgroundColor: COLORS.white,
-  },
-  emptyTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: COLORS.charcoal,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  emptyDesc: {
-    fontSize: 14,
-    color: COLORS.grayText,
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
-    maxWidth: 280,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 10,
   },
   exitButton: {
     padding: 6,
   },
   progressBarBackground: {
     flex: 1,
-    height: 16,
-    backgroundColor: COLORS.grayBorder,
+    height: 12,
+    backgroundColor: '#E2E8F0',
     borderRadius: RADII.pill,
     overflow: 'hidden',
   },
@@ -691,60 +687,62 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: COLORS.primary,
     borderRadius: RADII.pill,
-    position: 'relative',
+  },
+  stepCounterPill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
+  },
+  stepCounterPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.charcoal,
   },
   heartsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: COLORS.accentSubtle,
-    borderRadius: RADII.pill,
-    borderWidth: 1.5,
-    borderColor: COLORS.accentLight,
+    gap: 4,
   },
   heartsText: {
     fontSize: 15,
     fontWeight: '900',
-    color: COLORS.accentDark,
+    color: COLORS.accent,
   },
   courseBadgeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 6,
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
   courseBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.surfaceSubtle,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: RADII.sm,
+    gap: 6,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: RADII.pill,
     borderWidth: 1,
-    borderColor: COLORS.grayBorder,
-    gap: 4,
+    borderColor: '#E2E8F0',
   },
   courseBadgeFlag: {
-    fontSize: 13,
+    fontSize: 14,
   },
   courseBadgeTitle: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '800',
     color: COLORS.charcoal,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
   },
   courseBadgeLesson: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.grayText,
+    marginLeft: 6,
     flex: 1,
   },
   exerciseScroll: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 12,
   },
   footerBar: {
@@ -753,21 +751,22 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 14,
     backgroundColor: COLORS.white,
     borderTopWidth: 2,
-    borderTopColor: COLORS.grayBorder,
+    borderTopColor: '#E2E8F0',
+    ...SHADOWS.float,
   },
   footerBarCorrect: {
-    backgroundColor: COLORS.primaryLight,
-    borderTopColor: '#A7F37A',
+    backgroundColor: '#DCFCE7',
+    borderTopColor: '#86EFAC',
   },
   footerBarIncorrect: {
-    backgroundColor: COLORS.accentLight,
-    borderTopColor: '#FFA5A5',
+    backgroundColor: '#FEE2E2',
+    borderTopColor: '#FCA5A5',
   },
   feedbackInfo: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   feedbackTitleRow: {
     flexDirection: 'row',
@@ -775,56 +774,54 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   feedbackTitleCorrect: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '900',
-    color: '#3F8A00',
-    letterSpacing: 0.5,
+    color: '#15803D',
+  },
+  feedbackSubCorrect: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#166534',
+    marginTop: 2,
   },
   feedbackTitleIncorrect: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '900',
     color: COLORS.accentDark,
-    letterSpacing: 0.5,
   },
   feedbackCorrectAnswer: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: COLORS.accentDark,
     marginTop: 4,
   },
   feedbackExplanation: {
-    fontSize: 14,
+    fontSize: 13,
     color: COLORS.charcoal,
     marginTop: 4,
-    lineHeight: 20,
     fontWeight: '600',
   },
-
   accentWarningText: {
-    fontSize: 13,
-    color: COLORS.goldDark,
+    fontSize: 12,
+    color: '#92400E',
     fontWeight: '700',
     marginTop: 4,
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
   },
   modalCard: {
     backgroundColor: COLORS.white,
-    borderRadius: RADII.xl,
+    borderRadius: 24,
     padding: 24,
     width: '100%',
     maxWidth: 340,
     alignItems: 'center',
-    shadowColor: COLORS.charcoal,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    ...SHADOWS.float,
   },
   modalTitle: {
     fontSize: 20,
@@ -841,58 +838,103 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 20,
   },
-  completedContainer: {
+
+  // Level Up Celebratory Styles (Screen 4 in Reference Image)
+  levelUpContainer: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#312E81', // Glowing Royal Indigo / Deep Blue-Purple
   },
-  completedScroll: {
+  levelUpScroll: {
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '100%',
   },
-  completedTitle: {
-    fontSize: 28,
+  levelUpHeading: {
+    fontSize: 34,
     fontWeight: '900',
-    color: COLORS.charcoal,
+    color: '#FACC15',
     textAlign: 'center',
-    marginTop: 12,
+    marginBottom: 12,
+    letterSpacing: -0.5,
   },
-  completedSubtitle: {
-    fontSize: 15,
-    color: COLORS.grayText,
-    textAlign: 'center',
-    marginTop: 4,
-    marginBottom: 28,
-  },
-  rewardsGrid: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-  },
-  rewardCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: RADII.xl,
-    backgroundColor: '#F8FAFC',
+  goldRibbonBadge: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 28,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 14,
     borderWidth: 2,
+    borderColor: '#FCD34D',
     borderBottomWidth: 4,
-    borderColor: COLORS.grayBorder,
-    borderBottomColor: '#CBD5E1',
-    alignItems: 'center',
+    borderBottomColor: '#D97706',
   },
-  rewardValue: {
+  goldRibbonText: {
     fontSize: 18,
     fontWeight: '900',
-    color: COLORS.charcoal,
-    marginTop: 8,
-  },
-  rewardLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: COLORS.grayText,
+    color: '#FFFFFF',
     textTransform: 'uppercase',
-    marginTop: 2,
-    textAlign: 'center',
+    letterSpacing: 1,
+  },
+  levelUpXpPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(254, 240, 138, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    borderRadius: RADII.pill,
+    borderWidth: 1.5,
+    borderColor: '#FDE047',
+    marginBottom: 20,
+  },
+  levelUpXpText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FDE047',
+  },
+  pipLevelUpStage: {
+    marginVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  levelUpStatsRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 20,
+    marginBottom: 32,
+  },
+  statPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: RADII.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  statPillText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  levelUpContinueButton: {
+    width: '100%',
+    backgroundColor: '#F59E0B',
+    borderBottomWidth: 5,
+    borderColor: '#B45309',
+    borderRadius: 20,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.float,
+  },
+  levelUpContinueText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 });

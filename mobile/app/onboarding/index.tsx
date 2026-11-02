@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Check } from 'lucide-react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
+import { Check, Globe2 } from 'lucide-react-native';
+import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
 import { Button3D } from '../../src/components/Button3D';
-import { MascotPip } from '../../src/components/MascotPip';
+import { CharacterView } from '../../src/components/character/CharacterView';
 import { useAuth } from '../../src/context/AuthContext';
 import { HapticsService } from '../../src/services/hapticsService';
 import { StorageService } from '../../src/services/storageService';
@@ -16,28 +16,28 @@ export default function OnboardingScreen() {
   const { completeOnboarding } = useAuth();
 
   const [step, setStep] = useState(1);
-  const [targetLanguage, setTargetLanguage] = useState('es');
+  const [targetLanguage, setTargetLanguage] = useState('fr'); // Default to French like reference image
   const [learningLevel, setLearningLevel] = useState('beginner');
   const [dailyGoalMinutes, setDailyGoalMinutes] = useState<number>(10);
   const [submitting, setSubmitting] = useState(false);
 
   const languages = [
-    { code: 'en', name: 'English', flag: '🇬🇧', tagline: 'Global lingua franca of business and tech' },
-    { code: 'es', name: 'Spanish', flag: '🇪🇸', tagline: '500M+ native speakers worldwide' },
-    { code: 'fr', name: 'French', flag: '🇫🇷', tagline: 'The language of culture & diplomacy' },
-    { code: 'ja', name: 'Japanese', flag: '🇯🇵', tagline: 'Rich cultural heritage & modern innovation' },
-    { code: 'de', name: 'German', flag: '🇩🇪', tagline: 'Europe’s powerhouse of science & industry' },
-    { code: 'ko', name: 'Korean', flag: '🇰🇷', tagline: 'Dynamic global culture & Hangul elegance' },
-    { code: 'it', name: 'Italian', flag: '🇮🇹', tagline: 'Art, cuisine, music & Mediterranean heritage' },
-    { code: 'zh', name: 'Mandarin Chinese', flag: '🇨🇳', tagline: 'Tonal beauty & 1B+ native speakers' },
-    { code: 'pt', name: 'Portuguese', flag: '🇧🇷', tagline: 'Vibrant rhythms & Lusophone world' },
-    { code: 'hi', name: 'Hindi', flag: '🇮🇳', tagline: 'Devanagari script & 600M+ speakers' },
+    { code: 'fr', name: 'French', flag: '🇫🇷' },
+    { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+    { code: 'de', name: 'German', flag: '🇩🇪' },
+    { code: 'it', name: 'Italian', flag: '🇮🇹' },
+    { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+    { code: 'zh', name: 'Chinese', flag: '🇨🇳' },
+    { code: 'en', name: 'English', flag: '🇬🇧' },
+    { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+    { code: 'pt', name: 'Portuguese', flag: '🇧🇷' },
+    { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
   ];
 
   const levels = [
-    { id: 'beginner', title: 'New to the language', desc: 'Starting from scratch with the basics' },
-    { id: 'elementary', title: 'Know some words', desc: 'Can introduce myself and understand basic phrases' },
-    { id: 'intermediate', title: 'Intermediate learner', desc: 'Can hold casual conversations on familiar topics' },
+    { id: 'beginner', title: 'Absolute Beginner', desc: 'Starting from scratch with basics' },
+    { id: 'elementary', title: 'A2 Elementary', desc: 'Can introduce myself & simple phrases' },
+    { id: 'intermediate', title: 'B1 Intermediate', desc: 'Can hold casual conversations comfortably' },
   ];
 
   const goals = [
@@ -47,12 +47,13 @@ export default function OnboardingScreen() {
     { minutes: 20, label: 'Intense', desc: '20 min / day • Total immersion' },
   ];
 
+  const selectedLang = languages.find((l) => l.code === targetLanguage) || languages[0];
+
   const handleNext = async () => {
     HapticsService.lightTap();
     if (step < 3) {
       setStep(step + 1);
     } else {
-      // Save onboarding choices to backend
       setSubmitting(true);
       try {
         await StorageService.setItem('lingopulse_active_target_lang', targetLanguage);
@@ -74,8 +75,8 @@ export default function OnboardingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Progress Top Bar */}
-      <View style={[styles.header, { paddingTop: Math.max(50, insets.top + 16) }]}>
+      {/* Progress Header */}
+      <View style={[styles.header, { paddingTop: Math.max(50, insets.top + 12) }]}>
         <View style={styles.progressBarBackground}>
           <View
             style={[
@@ -87,13 +88,19 @@ export default function OnboardingScreen() {
         <Text style={styles.stepCounterText}>Step {step} of 3</Text>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}>
         {step === 1 && (
           <View style={styles.stepContainer}>
-            <MascotPip mood="happy" size={90} message="What language do you want to master?" />
-            <Text style={styles.stepTitle}>Pick a Language</Text>
+            {/* Header Icon & Title */}
+            <View style={styles.titleRow}>
+              <View style={styles.globeBadge}>
+                <Globe2 size={24} color={COLORS.secondaryDark} />
+              </View>
+              <Text style={styles.screenHeading}>Choose Your Language</Text>
+            </View>
 
-            <View style={styles.cardsList}>
+            {/* 2-Column Grid of Languages (Screen 1 in Reference Image) */}
+            <View style={styles.languageGrid}>
               {languages.map((lang) => {
                 const isSelected = targetLanguage === lang.code;
                 return (
@@ -106,33 +113,57 @@ export default function OnboardingScreen() {
                       setTargetLanguage(lang.code);
                     }}
                     style={[
-                      styles.choiceCard,
-                      isSelected && styles.choiceCardSelected,
+                      styles.gridCard,
+                      isSelected && styles.gridCardSelected,
                     ]}
                   >
-                    <Text style={styles.cardEmoji}>{lang.flag}</Text>
-                    <View style={styles.cardInfo}>
-                      <Text style={[styles.cardTitle, isSelected && styles.cardTitleSelected]}>
-                        {lang.name}
-                      </Text>
-                      <Text style={styles.cardDesc}>{lang.tagline}</Text>
-                    </View>
+                    <Text style={styles.flagEmoji}>{lang.flag}</Text>
+                    <Text style={[styles.gridCardTitle, isSelected && styles.gridCardTitleSelected]}>
+                      {lang.name}
+                    </Text>
+
                     {isSelected ? (
-                      <View style={styles.checkBadge}>
-                        <Check size={16} color={COLORS.white} strokeWidth={3} />
+                      <View style={styles.selectedCheckBadge}>
+                        <Check size={14} color={COLORS.white} strokeWidth={3} />
                       </View>
                     ) : null}
                   </Pressable>
                 );
               })}
             </View>
+
+            {/* Maya Character Encouragement Card (Screen 1 Bottom) */}
+            <View style={styles.mayaBanner}>
+              <CharacterView
+                character="maya"
+                pose="wink"
+                size={80}
+                roundMask={true}
+                interactive={false}
+              />
+              <View style={styles.mayaSpeechBubble}>
+                <Text style={styles.mayaSpeechTitle}>Great choice!</Text>
+                <Text style={styles.mayaSpeechText}>
+                  Let's start with {selectedLang.name}!
+                </Text>
+              </View>
+            </View>
           </View>
         )}
 
         {step === 2 && (
           <View style={styles.stepContainer}>
-            <MascotPip mood="thinking" size={90} message="How much do you already know?" />
-            <Text style={styles.stepTitle}>Select Your Level</Text>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <CharacterView
+                character="pip"
+                pose="helper"
+                size={90}
+                roundMask={true}
+                interactive={false}
+                message="How much do you already know?"
+              />
+            </View>
+            <Text style={styles.screenHeading}>Select Your Level</Text>
 
             <View style={styles.cardsList}>
               {levels.map((lvl) => {
@@ -171,8 +202,17 @@ export default function OnboardingScreen() {
 
         {step === 3 && (
           <View style={styles.stepContainer}>
-            <MascotPip mood="celebrating" size={90} message="Commit to a daily learning habit!" />
-            <Text style={styles.stepTitle}>Choose a Daily Goal</Text>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <CharacterView
+                character="maya"
+                pose="welcome"
+                size={90}
+                roundMask={true}
+                interactive={false}
+                message="Set a daily goal that fits your lifestyle!"
+              />
+            </View>
+            <Text style={styles.screenHeading}>Choose a Daily Goal</Text>
 
             <View style={styles.cardsList}>
               {goals.map((g) => {
@@ -193,7 +233,7 @@ export default function OnboardingScreen() {
                   >
                     <View style={styles.cardInfo}>
                       <Text style={[styles.cardTitle, isSelected && styles.cardTitleSelected]}>
-                        {g.label}
+                        {g.label} ({g.minutes} min)
                       </Text>
                       <Text style={styles.cardDesc}>{g.desc}</Text>
                     </View>
@@ -210,12 +250,25 @@ export default function OnboardingScreen() {
         )}
       </ScrollView>
 
-      {/* Safe-Area Aware Bottom Footer (BUG-011 Fix) */}
-      <View style={[styles.footer, { paddingBottom: Math.max(16, insets.bottom + 12) }]}>
+      {/* Floating Bottom Sticky Bar */}
+      <View
+        style={[
+          styles.footerBar,
+          { paddingBottom: Math.max(16, insets.bottom + 12) },
+        ]}
+      >
         <Button3D
-          title={step === 3 ? "Let's Go!" : 'Continue'}
+          title={
+            step === 1
+              ? 'Start Learning →'
+              : step === 3
+              ? submitting
+                ? 'Creating Adventure...'
+                : 'Complete & Begin'
+              : 'Next Step →'
+          }
+          variant="primary"
           onPress={handleNext}
-          loading={submitting}
           disabled={submitting}
         />
       </View>
@@ -226,14 +279,17 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#FFFFFF',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
     gap: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
   progressBarBackground: {
     flex: 1,
@@ -248,45 +304,130 @@ const styles = StyleSheet.create({
     borderRadius: RADII.pill,
   },
   stepCounterText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     color: COLORS.grayText,
   },
   content: {
     paddingHorizontal: 20,
+    paddingTop: 16,
   },
   stepContainer: {
-    marginTop: 6,
+    width: '100%',
   },
-  stepTitle: {
-    fontSize: TYPOGRAPHY.sizes.xxl,
+  titleRow: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  globeBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  screenHeading: {
+    fontSize: 22,
     fontWeight: '900',
     color: COLORS.charcoal,
     textAlign: 'center',
+  },
+  languageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
     marginBottom: 20,
+  },
+  gridCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    paddingVertical: 18,
+    alignItems: 'center',
+    position: 'relative',
+    ...SHADOWS.card,
+  },
+  gridCardSelected: {
+    backgroundColor: '#F0F9FF',
+    borderColor: COLORS.secondaryDark,
+    borderBottomWidth: 4,
+  },
+  flagEmoji: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  gridCardTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.charcoal,
+  },
+  gridCardTitleSelected: {
+    color: COLORS.secondaryDark,
+    fontWeight: '900',
+  },
+  selectedCheckBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.secondaryDark,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mayaBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 24,
+    padding: 12,
+    gap: 14,
+    marginTop: 8,
+    ...SHADOWS.card,
+  },
+  mayaSpeechBubble: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  mayaSpeechTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: COLORS.charcoal,
+  },
+  mayaSpeechText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primaryDark,
+    marginTop: 2,
   },
   cardsList: {
     gap: 12,
+    marginTop: 16,
   },
   choiceCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderRadius: RADII.xl,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#FFFFFF',
     borderWidth: 2,
+    borderColor: '#E2E8F0',
     borderBottomWidth: 4,
-    borderColor: COLORS.grayBorder,
-    borderBottomColor: '#CBD5E1',
+    borderRadius: 18,
+    padding: 16,
+    gap: 12,
   },
   choiceCardSelected: {
-    borderColor: COLORS.secondary,
-    borderBottomColor: COLORS.secondaryDark,
-    backgroundColor: COLORS.secondarySubtle,
-  },
-  cardEmoji: {
-    fontSize: 34,
-    marginRight: 16,
+    backgroundColor: '#F0FDF4',
+    borderColor: COLORS.primaryDark,
+    borderBottomWidth: 4,
   },
   cardInfo: {
     flex: 1,
@@ -297,30 +438,31 @@ const styles = StyleSheet.create({
     color: COLORS.charcoal,
   },
   cardTitleSelected: {
-    color: COLORS.secondaryDark,
+    color: COLORS.primaryDark,
   },
   cardDesc: {
     fontSize: 13,
     color: COLORS.grayText,
-    marginTop: 2,
+    marginTop: 4,
   },
   checkBadge: {
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  footer: {
+  footerBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 2,
+    borderTopColor: '#F1F5F9',
     paddingHorizontal: 20,
-    paddingTop: 14,
-    borderTopWidth: 1.5,
-    borderTopColor: COLORS.grayBorder,
-    backgroundColor: COLORS.white,
+    paddingTop: 12,
+    ...SHADOWS.float,
   },
 });

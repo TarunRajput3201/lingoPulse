@@ -7,13 +7,28 @@ import {
   Pressable,
   RefreshControl,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Check, Lock, Star, Sparkles, Flame, Target, BookOpen, X, Gift, ChevronRight } from 'lucide-react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
+import {
+  Check,
+  Lock,
+  Star,
+  Sparkles,
+  Flame,
+  BookOpen,
+  Trophy,
+  BookMarked,
+  FileText,
+  Headphones,
+  Mic,
+  Clock,
+  Play,
+} from 'lucide-react-native';
+import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { Button3D } from '../../src/components/Button3D';
+import { CharacterView } from '../../src/components/character/CharacterView';
+import { CharacterIntroModal } from '../../src/components/character/CharacterIntroModal';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { HapticsService } from '../../src/services/hapticsService';
@@ -83,7 +98,6 @@ export default function HomeScreen() {
             });
             if (pathRes.ok) {
               const pathJson = await pathRes.json();
-              // Verify the returned path matches the active target language before setting state
               if (pathJson.units?.length && pathJson.course?.toLanguage?.toLowerCase() === userTarget) {
                 setCourseData(pathJson.course);
                 setUnits(pathJson.units);
@@ -100,12 +114,10 @@ export default function HomeScreen() {
     }
   };
 
-  // Re-load whenever active language or token changes
   useEffect(() => {
     loadLearningPath();
   }, [token, user?.targetLanguage]);
 
-  // Re-verify learning path whenever HomeScreen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       loadLearningPath();
@@ -131,19 +143,36 @@ export default function HomeScreen() {
     router.push(`/lesson/${lessonId}`);
   };
 
-  const dailyGoalMinutes = user?.preferences?.dailyGoalMinutes || 10;
-  const targetXp = dailyGoalMinutes * 5;
-  const currentDailyXp = Math.min(targetXp, (user?.totalXp || 0) % targetXp || 15);
-  const dailyProgressPercent = Math.min(100, Math.round((currentDailyXp / targetXp) * 100));
+  // Find next actionable lesson
+  const allLessons = units.flatMap((u) => u.lessons || []);
+  const activeLesson =
+    allLessons.find((l) => l.id === currentLessonId) ||
+    allLessons.find((l) => l.isUnlocked && !l.isCompleted) ||
+    allLessons[0];
+  const activeUnit = units.find((u) => u.lessons?.some((l: any) => l.id === activeLesson?.id)) || units[0];
 
   if (loading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading curriculum...</Text>
+        <Text style={styles.loadingText}>Loading your learning adventure...</Text>
       </View>
     );
   }
+
+  const targetLang = user?.targetLanguage || 'fr';
+  const languageName =
+    targetLang === 'fr'
+      ? 'French'
+      : targetLang === 'es'
+      ? 'Spanish'
+      : targetLang === 'de'
+      ? 'German'
+      : targetLang === 'it'
+      ? 'Italian'
+      : targetLang === 'ja'
+      ? 'Japanese'
+      : 'Language';
 
   return (
     <View style={styles.container}>
@@ -153,23 +182,122 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
       >
-        {/* Daily Goal Card */}
-        <View style={styles.dailyGoalCard}>
-          <View style={styles.dailyGoalHeader}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Flame size={18} color={COLORS.orange} fill={COLORS.orange} />
-              <Text style={styles.dailyGoalTitle}>Daily Goal</Text>
+        {/* 1. Top Learner Progress Banner (Screen 5) */}
+        <View style={styles.learnerBanner}>
+          <View style={styles.learnerBannerLeft}>
+            <CharacterView
+              character="maya"
+              pose="wink"
+              size={56}
+              roundMask={true}
+              interactive={true}
+            />
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.learnerTitle}>
+                Amazing Progress, {user?.displayName || 'Learner'}! ✨
+              </Text>
+              <View style={styles.streakBadgeRow}>
+                <Flame size={16} color={COLORS.orange} fill={COLORS.orange} />
+                <Text style={styles.streakBadgeText}>
+                  {user?.currentStreak ?? 5} Day Streak
+                </Text>
+              </View>
             </View>
-            <Text style={styles.dailyGoalCounter}>
-              {currentDailyXp} / {targetXp} XP
-            </Text>
-          </View>
-          <View style={styles.goalBarBackground}>
-            <View style={[styles.goalBarFill, { width: `${Math.max(10, dailyProgressPercent)}%` }]} />
           </View>
         </View>
 
-        {/* Units & Learning Path */}
+        {/* 2. Level Progress Card (Screen 5) */}
+        <View style={styles.levelCard}>
+          <View style={styles.levelCardHeader}>
+            <View style={styles.levelIconWrapper}>
+              <Trophy size={20} color={COLORS.gold} />
+            </View>
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.levelLabel}>Your Level</Text>
+              <Text style={styles.levelValue}>
+                {user?.learningLevel === 'intermediate'
+                  ? 'B1 Intermediate'
+                  : user?.learningLevel === 'elementary'
+                  ? 'A2 Elementary'
+                  : 'A2 Beginner'}
+              </Text>
+            </View>
+            <Text style={styles.levelPercentText}>60%</Text>
+          </View>
+
+          <View style={styles.levelBarBackground}>
+            <View style={[styles.levelBarFill, { width: '60%' }]} />
+          </View>
+        </View>
+
+        {/* 3. Your Skills Row (Screen 5) */}
+        <View style={styles.skillsSection}>
+          <Text style={styles.sectionHeaderTitle}>Your Skills</Text>
+          <View style={styles.skillsRow}>
+            {/* Vocabulary */}
+            <View style={styles.skillItem}>
+              <View style={[styles.skillIconCircle, { backgroundColor: '#FFEDD5' }]}>
+                <BookMarked size={22} color="#EA580C" />
+              </View>
+              <Text style={styles.skillLabel}>Vocabulary</Text>
+            </View>
+
+            {/* Grammar */}
+            <View style={styles.skillItem}>
+              <View style={[styles.skillIconCircle, { backgroundColor: '#DCFCE7' }]}>
+                <FileText size={22} color="#16A34A" />
+              </View>
+              <Text style={styles.skillLabel}>Grammar</Text>
+            </View>
+
+            {/* Listening */}
+            <View style={styles.skillItem}>
+              <View style={[styles.skillIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                <Headphones size={22} color="#0284C7" />
+              </View>
+              <Text style={styles.skillLabel}>Listening</Text>
+            </View>
+
+            {/* Speaking */}
+            <View style={styles.skillItem}>
+              <View style={[styles.skillIconCircle, { backgroundColor: '#FFE4E6' }]}>
+                <Mic size={22} color="#E11D48" />
+              </View>
+              <Text style={styles.skillLabel}>Speaking</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* 4. Next Lesson Banner (Screen 5) */}
+        {activeLesson && (
+          <View style={styles.nextLessonBanner}>
+            <View style={styles.nextLessonThumbnail}>
+              <Text style={{ fontSize: 32 }}>{courseData?.flagIcon || '🗼'}</Text>
+            </View>
+
+            <View style={styles.nextLessonInfo}>
+              <Text style={styles.nextLessonTag}>Next Lesson</Text>
+              <Text style={styles.nextLessonTitle} numberOfLines={1}>
+                {activeLesson.title}
+              </Text>
+              <View style={styles.durationRow}>
+                <Clock size={14} color={COLORS.grayText} />
+                <Text style={styles.durationText}>5 min • +{activeLesson.xpReward || 15} XP</Text>
+              </View>
+            </View>
+
+            <Pressable
+              onPress={() => handleLessonNodePress(activeLesson, activeUnit)}
+              style={styles.nextLessonButton}
+              accessibilityRole="button"
+              accessibilityLabel="Start next lesson"
+            >
+              <Text style={styles.nextLessonButtonText}>Start →</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* 5. Units & Learning Tree Stepping-Stone Path */}
         {units.map((unit, unitIdx) => (
           <View key={unit.id} style={styles.unitContainer}>
             {/* Unit Header Banner */}
@@ -198,7 +326,6 @@ export default function HomeScreen() {
             {/* Stepping-Stone Path */}
             <View style={styles.pathWrapper}>
               {(unit.lessons || []).map((lesson: any, lessonIdx: number) => {
-                // S-Curve rhythmic offsets: [0, 48, 0, -48]
                 const offsets = [0, 46, 0, -46];
                 const offsetX = offsets[lessonIdx % offsets.length];
 
@@ -210,7 +337,6 @@ export default function HomeScreen() {
                       { transform: [{ translateX: offsetX }] },
                     ]}
                   >
-                    {/* Floating Animated "START" Bubble */}
                     {lesson.isCurrent && (
                       <View style={styles.startBadgeWrapper}>
                         <View style={styles.startBadge}>
@@ -222,104 +348,46 @@ export default function HomeScreen() {
 
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Lesson: ${lesson.title}. Status: ${
-                        lesson.isCompleted ? 'Completed' : lesson.isUnlocked ? 'Available' : 'Locked'
+                      accessibilityLabel={`${lesson.title}, ${
+                        lesson.isCompleted
+                          ? 'Completed'
+                          : lesson.isUnlocked
+                          ? 'Available'
+                          : 'Locked'
                       }`}
                       onPress={() => handleLessonNodePress(lesson, unit)}
                       style={[
-                        styles.stoneNode,
-                        lesson.isCompleted && styles.stoneCompleted,
-                        lesson.isCurrent && styles.stoneCurrent,
-                        !lesson.isUnlocked && !lesson.isCompleted && styles.stoneLocked,
+                        styles.lessonNode,
+                        lesson.isCompleted && styles.lessonNodeCompleted,
+                        lesson.isCurrent && styles.lessonNodeCurrent,
+                        !lesson.isUnlocked && !lesson.isCompleted && styles.lessonNodeLocked,
                       ]}
                     >
-                      {/* Inner Ring Highlight */}
-                      <View
-                        style={[
-                          styles.stoneInnerRing,
-                          lesson.isCompleted && styles.ringCompleted,
-                          lesson.isCurrent && styles.ringCurrent,
-                        ]}
-                      >
-                        {lesson.isCompleted ? (
-                          <Check size={32} color={COLORS.white} strokeWidth={3.5} />
-                        ) : lesson.isCurrent ? (
-                          <Star size={32} color={COLORS.white} fill={COLORS.white} />
-                        ) : (
-                          <Lock size={24} color={COLORS.grayLight} />
-                        )}
-                      </View>
+                      {lesson.isCompleted ? (
+                        <Check size={32} color={COLORS.white} strokeWidth={3.5} />
+                      ) : !lesson.isUnlocked ? (
+                        <Lock size={28} color={COLORS.grayBorderDark} />
+                      ) : (
+                        <Star size={34} color={COLORS.white} fill={COLORS.white} />
+                      )}
                     </Pressable>
-
-                    <Text style={styles.nodeLabel}>{lesson.title}</Text>
                   </View>
                 );
               })}
-
-              {/* Bonus Unit Reward Chest */}
-              <View style={styles.nodeWrapper}>
-                <View style={styles.chestNode}>
-                  <Gift size={28} color={COLORS.goldDark} />
-                </View>
-                <Text style={styles.chestLabel}>Unit Milestone</Text>
-              </View>
             </View>
           </View>
         ))}
       </ScrollView>
 
-      {/* Lesson Preview Bottom Sheet Modal */}
-      {selectedLessonModal && (
-        <Modal
-          visible={true}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setSelectedLessonModal(null)}
-        >
-          <View style={styles.modalBackdrop}>
-            <View style={styles.modalSheet}>
-              {/* Sheet Header */}
-              <View style={styles.sheetHeader}>
-                <View style={styles.sheetBadge}>
-                  <Text style={styles.sheetBadgeText}>
-                    UNIT {selectedLessonModal.unitNumber} • LESSON {selectedLessonModal.lessonNumber}
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => setSelectedLessonModal(null)}
-                  style={styles.sheetCloseBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close preview"
-                >
-                  <X size={20} color={COLORS.grayText} />
-                </Pressable>
-              </View>
-
-              <Text style={styles.sheetTitle}>{selectedLessonModal.title}</Text>
-              <Text style={styles.sheetSubtitle}>
-                Master interactive vocabulary, pronunciation, and sentences with Pip the Chameleon.
-              </Text>
-
-              {/* Reward Row */}
-              <View style={styles.sheetRewardBox}>
-                <Sparkles size={20} color={COLORS.goldDark} />
-                <Text style={styles.sheetRewardText}>
-                  Earn <Text style={{ fontWeight: '900', color: COLORS.goldDark }}>+{selectedLessonModal.xpReward || 15} XP</Text> upon completion
-                </Text>
-              </View>
-
-              {/* Start Button */}
-              <Button3D
-                title={`START +${selectedLessonModal.xpReward || 15} XP`}
-                variant="primary"
-                size="lg"
-                onPress={() => handleStartLesson(selectedLessonModal.id)}
-                style={{ marginTop: 20 }}
-              />
-            </View>
-          </View>
-        </Modal>
-      )}
+      {/* Maya 3D Character Pre-Lesson Intro Modal */}
+      <CharacterIntroModal
+        visible={Boolean(selectedLessonModal)}
+        onClose={() => setSelectedLessonModal(null)}
+        onStart={() => selectedLessonModal && handleStartLesson(selectedLessonModal.id)}
+        lesson={selectedLessonModal}
+        targetLanguage={targetLang}
+        languageName={languageName}
+      />
     </View>
   );
 }
@@ -327,11 +395,11 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.grayBackground,
+    backgroundColor: '#F8FAFC',
   },
   centerContainer: {
     flex: 1,
-    backgroundColor: COLORS.grayBackground,
+    backgroundColor: '#F8FAFC',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -342,85 +410,217 @@ const styles = StyleSheet.create({
     color: COLORS.grayText,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 60,
   },
-  dailyGoalCard: {
-    margin: 16,
-    padding: 14,
-    backgroundColor: COLORS.white,
-    borderRadius: RADII.card,
-    borderWidth: 2,
-    borderColor: COLORS.grayBorder,
-    borderBottomWidth: 3,
-    borderBottomColor: COLORS.grayBorderDark,
-  },
-  dailyGoalHeader: {
+  learnerBanner: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.white,
+    marginHorizontal: 16,
+    marginTop: 14,
+    padding: 14,
+    borderRadius: 22,
+    ...SHADOWS.card,
   },
-  dailyGoalTitle: {
-    fontSize: 13,
-    fontWeight: '800',
+  learnerBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  learnerTitle: {
+    fontSize: 15,
+    fontWeight: '900',
     color: COLORS.charcoal,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
   },
-  dailyGoalCounter: {
+  streakBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
+  },
+  streakBadgeText: {
     fontSize: 13,
     fontWeight: '800',
-    color: COLORS.grayText,
+    color: COLORS.orange,
   },
-  goalBarBackground: {
+  levelCard: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 16,
+    borderRadius: 22,
+    ...SHADOWS.card,
+  },
+  levelCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  levelIconWrapper: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  levelLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.grayText,
+    textTransform: 'uppercase',
+  },
+  levelValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: COLORS.charcoal,
+  },
+  levelPercentText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: COLORS.gold,
+  },
+  levelBarBackground: {
     height: 12,
-    backgroundColor: COLORS.grayBorder,
+    backgroundColor: '#E2E8F0',
     borderRadius: RADII.pill,
     overflow: 'hidden',
   },
-  goalBarFill: {
+  levelBarFill: {
     height: '100%',
-    backgroundColor: COLORS.orange,
+    backgroundColor: COLORS.gold,
     borderRadius: RADII.pill,
   },
-  unitContainer: {
-    marginBottom: 24,
-  },
-  unitBanner: {
+  skillsSection: {
     marginHorizontal: 16,
-    marginBottom: 24,
-    padding: 18,
-    borderRadius: RADII.card,
+    marginTop: 16,
+  },
+  sectionHeaderTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: COLORS.charcoal,
+    marginBottom: 10,
+  },
+  skillsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.white,
+    borderRadius: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    ...SHADOWS.card,
+  },
+  skillItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  skillIconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  skillLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.charcoal,
+  },
+  nextLessonBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: COLORS.white,
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 8,
+    padding: 14,
+    borderRadius: 22,
+    ...SHADOWS.card,
+  },
+  nextLessonThumbnail: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextLessonInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  nextLessonTag: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: COLORS.primaryDark,
+    textTransform: 'uppercase',
+  },
+  nextLessonTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: COLORS.charcoal,
+  },
+  durationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  durationText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.grayText,
+  },
+  nextLessonButton: {
+    backgroundColor: '#8B5CF6',
     borderBottomWidth: 4,
+    borderColor: '#6D28D9',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
+  },
+  nextLessonButtonText: {
+    color: COLORS.white,
+    fontWeight: '900',
+    fontSize: 13,
+  },
+  unitContainer: {
+    marginTop: 14,
+    marginHorizontal: 16,
+  },
+  unitBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+    borderRadius: 24,
+    ...SHADOWS.card,
   },
   sectionBadge: {
-    alignSelf: 'flex-start',
     backgroundColor: 'rgba(255, 255, 255, 0.25)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: RADII.pill,
+    alignSelf: 'flex-start',
     marginBottom: 6,
   },
   sectionBadgeText: {
     fontSize: 11,
     fontWeight: '900',
     color: COLORS.white,
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   unitBannerTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '900',
     color: COLORS.white,
-    marginBottom: 4,
+    letterSpacing: -0.3,
   },
   unitBannerDesc: {
     fontSize: 13,
-    fontWeight: '600',
     color: 'rgba(255, 255, 255, 0.9)',
-    lineHeight: 18,
+    marginTop: 3,
+    fontWeight: '600',
   },
   guidebookButton: {
     width: 44,
@@ -433,17 +633,17 @@ const styles = StyleSheet.create({
   },
   pathWrapper: {
     alignItems: 'center',
-    gap: 36,
-    paddingVertical: 12,
+    paddingVertical: 24,
+    gap: 20,
   },
   nodeWrapper: {
     alignItems: 'center',
     position: 'relative',
   },
   startBadgeWrapper: {
-    alignItems: 'center',
     position: 'absolute',
-    top: -42,
+    top: -38,
+    alignItems: 'center',
     zIndex: 10,
   },
   startBadge: {
@@ -451,151 +651,48 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: RADII.pill,
-    borderWidth: 2,
-    borderColor: '#E5A500',
-    borderBottomWidth: 3,
-    borderBottomColor: '#D99200',
-    shadowColor: COLORS.charcoal,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    ...SHADOWS.card,
   },
   startBadgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
-    color: '#D99200',
-    letterSpacing: 1,
+    color: COLORS.primaryDark,
+    letterSpacing: 0.8,
   },
   startBadgeArrow: {
     width: 0,
     height: 0,
-    borderLeftWidth: 5,
-    borderRightWidth: 5,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
     borderTopWidth: 6,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#E5A500',
+    borderTopColor: '#E2E8F0',
     marginTop: -1,
   },
-  stoneNode: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomWidth: 6,
-  },
-  stoneCompleted: {
+  lessonNode: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     backgroundColor: COLORS.primary,
+    borderWidth: 3,
+    borderColor: COLORS.primaryLight,
+    borderBottomWidth: 6,
     borderBottomColor: COLORS.primaryDark,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  stoneCurrent: {
+  lessonNodeCompleted: {
     backgroundColor: COLORS.gold,
+    borderColor: '#FDE68A',
     borderBottomColor: COLORS.goldDark,
   },
-  stoneLocked: {
-    backgroundColor: COLORS.locked,
-    borderBottomColor: COLORS.lockedDark,
+  lessonNodeCurrent: {
+    transform: [{ scale: 1.05 }],
   },
-  stoneInnerRing: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ringCompleted: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  ringCurrent: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  nodeLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: COLORS.charcoal,
-    marginTop: 8,
-    textAlign: 'center',
-    maxWidth: 120,
-  },
-  chestNode: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.goldLight,
-    borderWidth: 2,
-    borderColor: COLORS.gold,
-    borderBottomWidth: 5,
-    borderBottomColor: COLORS.goldDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  chestLabel: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: COLORS.grayText,
-    marginTop: 6,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: COLORS.white,
-    borderTopLeftRadius: RADII.xl,
-    borderTopRightRadius: RADII.xl,
-    padding: 24,
-    paddingBottom: 40,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sheetBadge: {
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: RADII.pill,
-  },
-  sheetBadgeText: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: COLORS.primaryDark,
-    letterSpacing: 0.6,
-  },
-  sheetCloseBtn: {
-    padding: 4,
-  },
-  sheetTitle: {
-    fontSize: 22,
-    fontWeight: '900',
-    color: COLORS.charcoal,
-    marginBottom: 6,
-  },
-  sheetSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.grayText,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  sheetRewardBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    padding: 12,
-    backgroundColor: COLORS.goldSubtle,
-    borderRadius: RADII.card,
-    borderWidth: 1.5,
-    borderColor: COLORS.goldLight,
-  },
-  sheetRewardText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.charcoal,
+  lessonNodeLocked: {
+    backgroundColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
+    borderBottomColor: '#94A3B8',
   },
 });

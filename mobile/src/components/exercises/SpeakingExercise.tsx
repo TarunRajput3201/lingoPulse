@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { Mic, Volume2 } from 'lucide-react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
+import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../constants/theme';
 import { SoundService } from '../../services/soundService';
 import { HapticsService } from '../../services/hapticsService';
+import { CharacterView } from '../character/CharacterView';
+import { AdaptiveEngine } from '../../services/adaptiveEngine';
 
 interface SpeakingExerciseProps {
   prompt: string;
@@ -12,6 +14,7 @@ interface SpeakingExerciseProps {
   referenceAudioUrl?: string;
   spokenText: string;
   onSpokenRecorded: (text: string) => void;
+  targetLanguage?: string;
   disabled?: boolean;
 }
 
@@ -22,6 +25,7 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
   referenceAudioUrl,
   spokenText,
   onSpokenRecorded,
+  targetLanguage = 'fr',
   disabled = false,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -30,52 +34,65 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
     HapticsService.lightTap();
     if (referenceAudioUrl) {
       SoundService.playRemoteAudio(referenceAudioUrl);
+    } else {
+      SoundService.playSuccessChime();
     }
   };
 
   const handleToggleRecord = () => {
+    if (disabled) return;
     HapticsService.mediumTap();
     if (isRecording) {
       setIsRecording(false);
     } else {
       setIsRecording(true);
-      // Realistic speech capture simulation with target phrase callback
       setTimeout(() => {
         setIsRecording(false);
         HapticsService.success();
         onSpokenRecorded(phraseToSpeak);
-      }, 1500);
+      }, 1400);
     }
   };
 
+  const isFrench = targetLanguage === 'fr';
+
   return (
     <View style={styles.container}>
-      <Text style={styles.prompt}>{prompt}</Text>
+      {/* 3D Character Stage: Maya with speech bubble */}
+      <View style={styles.characterStage}>
+        <CharacterView
+          character="maya"
+          pose={isFrench ? 'french' : 'welcome'}
+          size={140}
+          roundMask={true}
+          interactive={true}
+        />
 
-      {/* Target Phrase Box */}
-      <View style={styles.phraseCard}>
-        {referenceAudioUrl ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Listen to pronunciation"
-            onPress={handlePlayReference}
-            style={styles.audioIcon}
-          >
-            <Volume2 size={24} color={COLORS.secondaryDark} />
-          </Pressable>
-        ) : null}
-        <Text style={styles.targetPhrase}>{phraseToSpeak}</Text>
-        {phoneticGuide ? (
-          <Text style={styles.phoneticGuide}>[{phoneticGuide}]</Text>
-        ) : null}
+        {/* Floating Speech Bubble */}
+        <View style={styles.speechCard}>
+          <Text style={styles.sayPrefix}>Say:</Text>
+          <Text style={styles.speechPhrase}>"{phraseToSpeak}"</Text>
+          {phoneticGuide ? (
+            <Text style={styles.phoneticGuide}>[{phoneticGuide}]</Text>
+          ) : null}
+        </View>
       </View>
 
-      {/* Mic Recording Area */}
-      <View style={styles.micContainer}>
+      {/* Interactive Controls Row: Audio listen + Mic record */}
+      <View style={styles.controlsRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Listen to audio"
+          onPress={handlePlayReference}
+          style={styles.listenButton}
+        >
+          <Volume2 size={26} color={COLORS.white} />
+        </Pressable>
+
         <Pressable
           disabled={disabled}
           accessibilityRole="button"
-          accessibilityLabel={isRecording ? 'Stop recording' : 'Start speaking'}
+          accessibilityLabel={isRecording ? 'Listening' : 'Tap to speak'}
           onPress={handleToggleRecord}
           style={[
             styles.micButton,
@@ -83,15 +100,29 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
             spokenText ? styles.micButtonDone : null,
           ]}
         >
-          <Mic size={40} color={COLORS.white} />
+          <Mic size={34} color={COLORS.white} />
         </Pressable>
+      </View>
 
-        <Text style={styles.statusLabel}>
-          {isRecording
-            ? 'Listening... Speak now!'
-            : spokenText
-            ? `Captured: "${spokenText}"`
-            : 'Tap the mic and speak'}
+      <Text style={styles.micInstructionText}>
+        {isRecording
+          ? 'Listening... Speak now! 🎙️'
+          : spokenText
+          ? `✓ Captured: "${spokenText}"`
+          : 'Tap to speak'}
+      </Text>
+
+      {/* Pip Robot Companion Assistance Badge */}
+      <View style={styles.pipAssistBadge}>
+        <CharacterView
+          character="pip"
+          pose="helper"
+          size={36}
+          roundMask={true}
+          interactive={false}
+        />
+        <Text style={styles.pipAssistText}>
+          {AdaptiveEngine.getPipDialogue('start')}
         </Text>
       </View>
     </View>
@@ -100,70 +131,100 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 12,
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 12,
   },
-  prompt: {
-    fontSize: TYPOGRAPHY.sizes.xl,
-    fontWeight: '800',
-    color: COLORS.charcoal,
-    lineHeight: 28,
+  characterStage: {
+    alignItems: 'center',
     marginBottom: 20,
+    width: '100%',
   },
-  phraseCard: {
-    padding: 24,
-    borderRadius: RADII.xl,
-    backgroundColor: COLORS.surfaceAlt,
-    borderWidth: 2,
-    borderColor: COLORS.grayBorder,
+  speechCard: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginBottom: 36,
+    marginTop: 12,
+    ...SHADOWS.card,
   },
-  audioIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: COLORS.secondarySubtle,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
+  sayPrefix: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.grayText,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  targetPhrase: {
+  speechPhrase: {
     fontSize: 24,
     fontWeight: '900',
     color: COLORS.charcoal,
-    textAlign: 'center',
+    marginTop: 2,
   },
   phoneticGuide: {
-    fontSize: 14,
-    color: COLORS.grayText,
-    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.secondaryDark,
+    marginTop: 4,
   },
-  micContainer: {
-    alignItems: 'center',
-    gap: 16,
-  },
-  micButton: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: COLORS.secondary,
-    borderBottomWidth: 4,
-    borderBottomColor: COLORS.secondaryDark,
+  controlsRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 24,
+    marginVertical: 14,
+  },
+  listenButton: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 4,
+    borderColor: COLORS.secondaryDark,
+  },
+  micButton: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#8B5CF6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderBottomWidth: 5,
+    borderColor: '#6D28D9',
   },
   micButtonRecording: {
     backgroundColor: COLORS.accent,
-    borderBottomColor: COLORS.accentDark,
-    transform: [{ scale: 1.08 }],
+    borderColor: COLORS.accentDark,
+    transform: [{ scale: 1.05 }],
   },
   micButtonDone: {
     backgroundColor: COLORS.primary,
-    borderBottomColor: COLORS.primaryDark,
+    borderColor: COLORS.primaryDark,
   },
-  statusLabel: {
+  micInstructionText: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.grayText,
+    marginBottom: 16,
+  },
+  pipAssistBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+    borderRadius: RADII.pill,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginTop: 8,
+  },
+  pipAssistText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0369A1',
   },
 });

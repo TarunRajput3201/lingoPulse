@@ -139,6 +139,13 @@ export const SHADOWS = {
     shadowRadius: 16,
     elevation: 12,
   },
+  float: {
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 8,
+  },
   glow: (color: string) => ({
     shadowColor: color,
     shadowOffset: { width: 0, height: 4 },
