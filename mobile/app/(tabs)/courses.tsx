@@ -96,11 +96,12 @@ export default function CoursesScreen() {
           <View style={styles.coursesList}>
             {courses.map((course) => {
               const isCurrent = user?.targetLanguage?.toLowerCase() === course.toLanguage?.toLowerCase();
-              const isSwitching = switchingId === course._id;
+              const courseKey = course._id || course.id || course.code;
+              const isSwitching = switchingId === courseKey;
 
               return (
                 <Pressable
-                  key={course._id}
+                  key={courseKey}
                   disabled={isSwitching}
                   onPress={() => handleSelectCourse(course)}
                   style={[

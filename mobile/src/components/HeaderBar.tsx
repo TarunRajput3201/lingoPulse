@@ -17,14 +17,24 @@ export const HeaderBar: React.FC = () => {
 
   const getFlagEmoji = () => {
     switch (targetLang) {
+      case 'en':
+        return '🇬🇧';
       case 'fr':
         return '🇫🇷';
-      case 'de':
-        return '🇩🇪';
-      case 'it':
-        return '🇮🇹';
       case 'ja':
         return '🇯🇵';
+      case 'de':
+        return '🇩🇪';
+      case 'ko':
+        return '🇰🇷';
+      case 'it':
+        return '🇮🇹';
+      case 'zh':
+        return '🇨🇳';
+      case 'pt':
+        return '🇧🇷';
+      case 'hi':
+        return '🇮🇳';
       case 'es':
       default:
         return '🇪🇸';
