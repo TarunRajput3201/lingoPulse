@@ -41,15 +41,29 @@ export const SoundService = {
         } catch {}
       }
 
-      // Safe creation with direct catch so unhandled rejection is impossible
+      let hasTimedOut = false;
+
+      // Safe creation with shouldPlay: false so listener can be bound first
       const soundPromise = Audio.Sound.createAsync(
         { uri: url },
-        { shouldPlay: true, volume: 0.8 }
-      ).catch(() => null);
+        { shouldPlay: false, volume: 0.75 }
+      )
+        .then((res) => {
+          if (hasTimedOut && res?.sound) {
+            // Clean up if created after timeout
+            res.sound.unloadAsync().catch(() => {});
+            return null;
+          }
+          return res;
+        })
+        .catch(() => null);
 
       // Safe timeout that resolves rather than rejects
       const timeoutPromise = new Promise<{ sound: null }>((resolve) =>
-        setTimeout(() => resolve({ sound: null }), 1000)
+        setTimeout(() => {
+          hasTimedOut = true;
+          resolve({ sound: null });
+        }, 1200)
       );
 
       const result = await Promise.race([soundPromise, timeoutPromise]);
@@ -63,6 +77,7 @@ export const SoundService = {
             }
           }
         });
+        await result.sound.playAsync().catch(() => {});
       }
     } catch {
       // 100% fail-safe: NEVER throw or crash the UI

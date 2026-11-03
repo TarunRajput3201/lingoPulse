@@ -35,7 +35,10 @@ import { SpeakingExercise } from '../../src/components/exercises/SpeakingExercis
 import { ImageSelectExercise } from '../../src/components/exercises/ImageSelectExercise';
 
 export default function LessonScreen() {
-  const { id } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const id = typeof rawId === 'string' ? rawId : String(rawId || '');
+
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { user, token, refreshUser, updateUserLocally } = useAuth();
@@ -72,6 +75,8 @@ export default function LessonScreen() {
   const [consecutiveCombo, setConsecutiveCombo] = useState(0);
 
   const isMounted = useRef(true);
+  const isCheckingRef = useRef(false);
+  const isContinuingRef = useRef(false);
   const timersRef = useRef<NodeJS.Timeout[]>([]);
   const startTimeRef = useRef<number>(Date.now());
 
@@ -79,6 +84,8 @@ export default function LessonScreen() {
     isMounted.current = true;
     return () => {
       isMounted.current = false;
+      isCheckingRef.current = false;
+      isContinuingRef.current = false;
       timersRef.current.forEach((t) => clearTimeout(t));
       timersRef.current = [];
     };
@@ -199,17 +206,19 @@ export default function LessonScreen() {
 
   // Submit single exercise answer
   const handleCheckAnswer = async () => {
-    if (!currentExercise || feedback.status !== 'none' || submitting) return;
+    if (isCheckingRef.current || !currentExercise || feedback.status !== 'none' || submitting) return;
 
+    isCheckingRef.current = true;
     setSubmitting(true);
     const userAnswer = getCurrentUserAnswer();
     const durationMs = Date.now() - startTimeRef.current;
 
     try {
       const localResult = await CurriculumService.submitAnswer(
-        id as string,
+        id,
         currentExercise.id,
-        userAnswer
+        userAnswer,
+        currentExercise
       );
 
       // Record in adaptive engine
@@ -226,6 +235,8 @@ export default function LessonScreen() {
       ]);
 
       if (token && !token.startsWith('local-')) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
         fetch(ENDPOINTS.SUBMIT_ANSWER, {
           method: 'POST',
           headers: {
@@ -237,7 +248,10 @@ export default function LessonScreen() {
             userAnswer,
             durationMs,
           }),
-        }).catch(() => {});
+          signal: controller.signal,
+        })
+          .catch(() => {})
+          .finally(() => clearTimeout(timeoutId));
       }
 
       if (localResult.isCorrect) {
@@ -254,7 +268,9 @@ export default function LessonScreen() {
         setConsecutiveCombo(0);
         SoundService.playErrorThud().catch(() => {});
         HapticsService.error().catch(() => {});
-        const remaining = localResult.heartsRemaining;
+        const remaining = typeof localResult.heartsRemaining === 'number'
+          ? Math.max(0, localResult.heartsRemaining)
+          : 5;
         updateUserLocally((prev) =>
           prev ? { ...prev, hearts: remaining } : null
         );
@@ -296,75 +312,88 @@ export default function LessonScreen() {
       console.warn('[LessonScreen] Submit error:', e);
     } finally {
       setSubmitting(false);
+      isCheckingRef.current = false;
     }
   };
 
   const handleContinue = async () => {
-    HapticsService.lightTap();
+    if (isContinuingRef.current) return;
+    isContinuingRef.current = true;
 
-    setMcSelectedId(null);
-    setTypedAnswer('');
-    setSelectedWords([]);
-    setTfSelectedVal(null);
-    setSpokenCaptured('');
-    setMatchedPairs(null);
-    setFeedback({ status: 'none' });
-    startTimeRef.current = Date.now();
+    try {
+      HapticsService.lightTap();
 
-    if (currentIndex + 1 < exercises.length) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      setLoading(true);
-      try {
-        const xpEarned = lesson?.xpReward || 20;
-        const correctCount = attempts.filter((a) => a.isCorrect).length;
-        const total = exercises.length || 1;
-        const accuracy = Math.round((correctCount / total) * 100);
+      setMcSelectedId(null);
+      setTypedAnswer('');
+      setSelectedWords([]);
+      setTfSelectedVal(null);
+      setSpokenCaptured('');
+      setMatchedPairs(null);
+      setFeedback({ status: 'none' });
+      startTimeRef.current = Date.now();
 
-        const localCompletion = await CurriculumService.completeLesson(id as string, xpEarned);
+      if (currentIndex + 1 < exercises.length) {
+        setCurrentIndex(currentIndex + 1);
+      } else {
+        setLoading(true);
+        try {
+          const xpEarned = lesson?.xpReward || 20;
+          const correctCount = attempts.filter((a) => a.isCorrect).length;
+          const total = exercises.length || 1;
+          const accuracy = Math.round((correctCount / total) * 100);
 
-        const completionData = {
-          xpEarned,
-          accuracy,
-          totalXp: localCompletion.totalXp,
-          streak: localCompletion.streak,
-          heartsRemaining: localCompletion.hearts,
-        };
-        setCompletionResult(completionData);
-        setIsCompleted(true);
-        SoundService.playFanfare().catch(() => {});
+          const localCompletion = await CurriculumService.completeLesson(id, xpEarned);
 
-        updateUserLocally((prev) =>
-          prev
-            ? {
-                ...prev,
-                totalXp: localCompletion.totalXp,
-                currentStreak: localCompletion.streak,
-                hearts: localCompletion.hearts,
-              }
-            : null
-        );
+          const completionData = {
+            xpEarned,
+            accuracy,
+            totalXp: localCompletion.totalXp,
+            streak: localCompletion.streak,
+            heartsRemaining: localCompletion.hearts,
+          };
+          setCompletionResult(completionData);
+          setIsCompleted(true);
+          SoundService.playFanfare().catch(() => {});
 
-        if (token && !token.startsWith('local-')) {
-          fetch(ENDPOINTS.COMPLETE_LESSON, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              lessonId: lesson.id,
-              attempts,
-              startedAt: new Date(Date.now() - 120000).toISOString(),
-              completedAt: new Date().toISOString(),
-            }),
-          }).catch(() => {});
+          updateUserLocally((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  totalXp: localCompletion.totalXp,
+                  currentStreak: localCompletion.streak,
+                  hearts: localCompletion.hearts,
+                }
+              : null
+          );
+
+          if (token && !token.startsWith('local-')) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000);
+            fetch(ENDPOINTS.COMPLETE_LESSON, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                lessonId: lesson?.id || id,
+                attempts,
+                startedAt: new Date(Date.now() - 120000).toISOString(),
+                completedAt: new Date().toISOString(),
+              }),
+              signal: controller.signal,
+            })
+              .catch(() => {})
+              .finally(() => clearTimeout(timeoutId));
+          }
+        } catch (e) {
+          console.warn('[LessonScreen] Completion notice:', e);
+        } finally {
+          setLoading(false);
         }
-      } catch (e) {
-        console.warn('[LessonScreen] Completion notice:', e);
-      } finally {
-        setLoading(false);
       }
+    } finally {
+      isContinuingRef.current = false;
     }
   };
 

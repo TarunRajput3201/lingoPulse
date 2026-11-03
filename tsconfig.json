@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "react-native": ["scripts/mocks/react-native.ts"],
+      "expo-secure-store": ["scripts/mocks/expo-secure-store.ts"]
+    },
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false
+  }
+}

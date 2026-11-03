@@ -153,26 +153,23 @@ export const CurriculumService = {
   async submitAnswer(
     lessonId: string,
     exerciseId: string,
-    userAnswer: any
+    userAnswer: any,
+    fallbackExercise?: StaticExercise
   ): Promise<{
     isCorrect: boolean;
     explanation?: string;
     heartsRemaining: number;
   }> {
-    const activeLang = (await StorageService.getItem('lingopulse_active_target_lang')) || undefined;
-    const lessonData = getStaticLessonById(lessonId, activeLang);
-    if (!lessonData) {
-      return { isCorrect: true, heartsRemaining: 5 };
-    }
-
-    const exercise = lessonData.exercises.find((e) => e.id === exerciseId);
-    if (!exercise) {
-      return { isCorrect: true, heartsRemaining: 5 };
-    }
-
-    const { isCorrect, explanation } = validateLocalAnswer(exercise, userAnswer);
-
     try {
+      const activeLang = (await StorageService.getItem('lingopulse_active_target_lang')) || undefined;
+      const lessonData = getStaticLessonById(lessonId, activeLang);
+      const exercise = lessonData?.exercises.find((e) => e.id === exerciseId) || fallbackExercise;
+      if (!exercise) {
+        return { isCorrect: true, heartsRemaining: 5 };
+      }
+
+      const { isCorrect, explanation } = validateLocalAnswer(exercise, userAnswer);
+
       let hearts = await StorageService.getJSON<number>(HEARTS_KEY, 5);
 
       if (!isCorrect) {
@@ -198,10 +195,12 @@ export const CurriculumService = {
           userAnswer: typeof userAnswer === 'string' ? userAnswer : JSON.stringify(userAnswer),
           targetAnswer: typeof targetAns === 'string' ? targetAns : JSON.stringify(targetAns),
           explanation: exercise.explanation || '',
-          language: lessonData.course?.toLanguage || 'es',
+          language: lessonData?.course?.toLanguage || 'es',
           date: new Date().toISOString(),
         };
-        await StorageService.setJSON(MISTAKES_KEY, [newMistake, ...mistakes]).catch(() => {});
+        // Cap mistakes list to 50 items
+        const updatedMistakes = [newMistake, ...mistakes].slice(0, 50);
+        await StorageService.setJSON(MISTAKES_KEY, updatedMistakes).catch(() => {});
       }
 
       return {
@@ -211,8 +210,8 @@ export const CurriculumService = {
       };
     } catch {
       return {
-        isCorrect,
-        explanation,
+        isCorrect: true,
+        explanation: 'Completed',
         heartsRemaining: 5,
       };
     }
@@ -296,6 +295,10 @@ export const CurriculumService = {
     }
 
     return { heartsRemaining: hearts };
+  },
+
+  async getHearts(): Promise<number> {
+    return await StorageService.getJSON<number>(HEARTS_KEY, 5);
   },
 
   // 7. Refill Hearts with XP or Free
