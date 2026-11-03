@@ -13,7 +13,7 @@ import { HeartService } from '../services/heartService';
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  username: z.string().min(3).regex(/^[a-zA-Z0-9_]+$/, 'Alphanumeric and underscores only'),
+  username: z.string().min(3).regex(/^[a-zA-Z0-9_]+$/, 'Alphanumeric and underscores only').optional(),
   displayName: z.string().optional(),
   nativeLanguage: z.string().default('en'),
   targetLanguage: z.string().default('es'),
@@ -40,7 +40,14 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
     return;
   }
 
-  const existingUsername = await User.findOne({ username: data.username.toLowerCase() });
+  const resolvedUsername = (
+    data.username ||
+    data.displayName?.replace(/[^a-zA-Z0-9_]/g, '') ||
+    data.email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') ||
+    `user_${Date.now()}`
+  ).toLowerCase();
+
+  const existingUsername = await User.findOne({ username: resolvedUsername });
   if (existingUsername) {
     res.status(409).json({ message: 'This username is already taken. Please choose another.' });
     return;
@@ -49,8 +56,8 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
   const user = new User({
     email: data.email.toLowerCase(),
     password: data.password,
-    username: data.username.toLowerCase(),
-    displayName: data.displayName || data.username,
+    username: resolvedUsername,
+    displayName: data.displayName || resolvedUsername,
     nativeLanguage: data.nativeLanguage,
     targetLanguage: data.targetLanguage,
     learningLevel: data.learningLevel,

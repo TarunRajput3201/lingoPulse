@@ -162,4 +162,8 @@ export const StorageService = {
       delete memoryStorage[k];
     }
   },
+
+  async clear(): Promise<void> {
+    await this.clearAll();
+  },
 };

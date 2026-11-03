@@ -49,6 +49,7 @@ export interface ExerciseData {
   phraseToSpeak?: string;
   phoneticGuide?: string;
   sourcePrompt?: string;
+  targetText?: string;
   wordBank?: string[];
   correctSentence?: string[];
   acceptableSentences?: string[];
@@ -312,7 +313,7 @@ export const normalizeText = (text: any): string => {
 export const validateLocalAnswer = (
   exercise: StaticExercise,
   userAnswer: any
-): { isCorrect: boolean; explanation?: string } => {
+): { isCorrect: boolean; explanation?: string; correctAnswer?: string } => {
   try {
     if (!exercise) return { isCorrect: true };
     const type = exercise.type;
@@ -432,6 +433,19 @@ export const validateLocalAnswer = (
       case 'SPEAKING_PRONUNCIATION': {
         if (!userAnswer || typeof userAnswer !== 'string') {
           return { isCorrect: false, explanation: exercise.explanation };
+        }
+        const acceptable = [...(exercise.data?.acceptableAnswers || [])];
+        if (exercise.data?.targetText) {
+          acceptable.push(exercise.data.targetText);
+        }
+        if (acceptable.length > 0) {
+          const normUser = normalizeText(userAnswer);
+          const isMatch = acceptable.some((ans) => normalizeText(ans) === normUser);
+          return {
+            isCorrect: isMatch,
+            correctAnswer: acceptable[0],
+            explanation: exercise.explanation,
+          };
         }
         return { isCorrect: true, explanation: exercise.explanation };
       }
