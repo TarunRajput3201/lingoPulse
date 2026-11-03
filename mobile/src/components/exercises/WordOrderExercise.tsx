@@ -91,7 +91,8 @@ export const WordOrderExercise: React.FC<WordOrderExerciseProps> = ({
         ) : (
           <View style={styles.tokenRow}>
             {selectedIndices.map((bankIndex, slotIdx) => {
-              const word = wordBank[bankIndex];
+              const rawWord = wordBank[bankIndex];
+              const wordText = typeof rawWord === 'string' ? rawWord : (rawWord as any)?.text ?? String(rawWord ?? '');
               return (
                 <Pressable
                   key={`slot-${bankIndex}-${slotIdx}`}
@@ -99,9 +100,9 @@ export const WordOrderExercise: React.FC<WordOrderExerciseProps> = ({
                   onPress={() => handleRemoveWord(slotIdx)}
                   style={styles.selectedToken}
                   accessibilityRole="button"
-                  accessibilityLabel={`Remove word ${word}`}
+                  accessibilityLabel={`Remove word ${wordText}`}
                 >
-                  <Text style={styles.selectedTokenText}>{word}</Text>
+                  <Text style={styles.selectedTokenText}>{wordText}</Text>
                 </Pressable>
               );
             })}
@@ -114,17 +115,18 @@ export const WordOrderExercise: React.FC<WordOrderExerciseProps> = ({
         <View style={styles.tokenRow}>
           {wordBank.map((word, bankIdx) => {
             const isUsed = selectedIndices.includes(bankIdx);
+            const wordText = typeof word === 'string' ? word : (word as any)?.text ?? String(word ?? '');
             return (
               <Pressable
-                key={`bank-${word}-${bankIdx}`}
+                key={`bank-${wordText}-${bankIdx}`}
                 disabled={disabled || isUsed}
-                onPress={() => handleSelectWord(word, bankIdx)}
+                onPress={() => handleSelectWord(wordText, bankIdx)}
                 style={[
                   styles.bankToken,
                   isUsed && styles.bankTokenUsed,
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={`Word ${word}${isUsed ? ' already selected' : ''}`}
+                accessibilityLabel={`Word ${wordText}${isUsed ? ' already selected' : ''}`}
               >
                 <Text
                   style={[
@@ -132,7 +134,7 @@ export const WordOrderExercise: React.FC<WordOrderExerciseProps> = ({
                     isUsed && styles.bankTokenTextUsed,
                   ]}
                 >
-                  {word}
+                  {wordText}
                 </Text>
               </Pressable>
             );

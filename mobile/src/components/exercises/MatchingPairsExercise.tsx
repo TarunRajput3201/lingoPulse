@@ -131,7 +131,7 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
                     isMatched && styles.cardTextMatched,
                   ]}
                 >
-                  {pair.leftText}
+                  {typeof pair.leftText === 'string' ? pair.leftText : (pair.leftText as any)?.text ?? String(pair.leftText ?? '')}
                 </Text>
                 {isMatched ? (
                   <View style={styles.checkIcon}>
@@ -162,7 +162,7 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
                   isMatched && styles.cardMatched,
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={`${pair.rightText}${isMatched ? ' matched' : ''}`}
+                accessibilityLabel={`${typeof pair.rightText === 'string' ? pair.rightText : (pair.rightText as any)?.text ?? ''}${isMatched ? ' matched' : ''}`}
               >
                 <Text
                   style={[
@@ -172,7 +172,7 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
                     isMatched && styles.cardTextMatched,
                   ]}
                 >
-                  {pair.rightText}
+                  {typeof pair.rightText === 'string' ? pair.rightText : (pair.rightText as any)?.text ?? String(pair.rightText ?? '')}
                 </Text>
                 {isMatched ? (
                   <View style={styles.checkIcon}>

@@ -76,35 +76,46 @@ export default function HomeScreen() {
       setCurrentLessonId(foundCurrent);
       setLoading(false);
 
-      // 2. Optional remote refresh if online and connected
+      // 2. Non-blocking optional remote refresh if online and connected
       if (token && !token.startsWith('local-')) {
-        const courseRes = await fetch(ENDPOINTS.COURSES, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (courseRes.ok) {
-          const courseJson = await courseRes.json();
-          const allCourses = courseJson.courses || [];
-          const userTarget = (user?.targetLanguage || 'es').toLowerCase();
-          const matchedCourse = allCourses.find((c: any) => {
-            return (
-              c.toLanguage?.toLowerCase() === userTarget ||
-              c.code?.toLowerCase().startsWith(userTarget) ||
-              c.title?.toLowerCase().includes(userTarget)
-            );
-          });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
 
-          if (matchedCourse) {
-            const pathRes = await fetch(ENDPOINTS.COURSE_PATH(matchedCourse._id), {
-              headers: { Authorization: `Bearer ${token}` },
+        try {
+          const courseRes = await fetch(ENDPOINTS.COURSES, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal,
+          });
+          if (courseRes.ok) {
+            const courseJson = await courseRes.json();
+            const allCourses = courseJson.courses || [];
+            const userTarget = (user?.targetLanguage || 'es').toLowerCase();
+            const matchedCourse = allCourses.find((c: any) => {
+              return (
+                c.toLanguage?.toLowerCase() === userTarget ||
+                c.code?.toLowerCase().startsWith(userTarget) ||
+                c.title?.toLowerCase().includes(userTarget)
+              );
             });
-            if (pathRes.ok) {
-              const pathJson = await pathRes.json();
-              if (pathJson.units?.length && pathJson.course?.toLanguage?.toLowerCase() === userTarget) {
-                setCourseData(pathJson.course);
-                setUnits(pathJson.units);
+
+            if (matchedCourse) {
+              const pathRes = await fetch(ENDPOINTS.COURSE_PATH(matchedCourse._id), {
+                headers: { Authorization: `Bearer ${token}` },
+                signal: controller.signal,
+              });
+              if (pathRes.ok) {
+                const pathJson = await pathRes.json();
+                if (pathJson.units?.length && pathJson.course?.toLanguage?.toLowerCase() === userTarget) {
+                  setCourseData(pathJson.course);
+                  setUnits(pathJson.units);
+                }
               }
             }
           }
+        } catch {
+          // Cloud sync deferred - local curriculum already active
+        } finally {
+          clearTimeout(timeoutId);
         }
       }
     } catch (e) {

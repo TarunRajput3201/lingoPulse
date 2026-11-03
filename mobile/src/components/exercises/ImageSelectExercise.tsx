@@ -51,13 +51,15 @@ export const ImageSelectExercise: React.FC<ImageSelectExerciseProps> = ({
 
       {/* Tactile Option Cards Grid / List */}
       <View style={styles.optionsList}>
-        {options.map((opt) => {
-          const isSelected = selectedOptionId === opt.id;
+        {options.map((opt, idx) => {
+          const optText = typeof opt === 'string' ? opt : (opt?.text ?? String(opt ?? ''));
+          const optId = typeof opt === 'string' ? opt : (opt?.id ?? optText);
+          const isSelected = selectedOptionId === optId;
           return (
             <Pressable
-              key={opt.id}
+              key={`${optId}-${idx}`}
               disabled={disabled}
-              onPress={() => handleSelect(opt.id)}
+              onPress={() => handleSelect(optId)}
               style={[
                 styles.optionButton,
                 isSelected && styles.optionButtonSelected,
@@ -69,7 +71,7 @@ export const ImageSelectExercise: React.FC<ImageSelectExerciseProps> = ({
                   isSelected && styles.optionTextSelected,
                 ]}
               >
-                {opt.text}
+                {optText}
               </Text>
               {isSelected ? (
                 <View style={styles.checkIconBadge}>

@@ -34,7 +34,7 @@ export const MultipleChoiceExercise: React.FC<MultipleChoiceExerciseProps> = ({
               accessibilityLabel={`Option ${index + 1}: ${option.text}`}
               onPress={() => {
                 HapticsService.lightTap();
-                onSelectOption(option.id);
+                onSelectOption(option?.id ?? (typeof option === 'string' ? option : String(index)));
               }}
               style={[
                 styles.optionCard,
@@ -49,7 +49,7 @@ export const MultipleChoiceExercise: React.FC<MultipleChoiceExerciseProps> = ({
 
               <View style={styles.optionContent}>
                 <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
-                  {option.text}
+                  {typeof option === 'string' ? option : (option?.text ?? String(option ?? ''))}
                 </Text>
               </View>
             </Pressable>

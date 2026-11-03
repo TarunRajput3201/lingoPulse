@@ -22,7 +22,7 @@ export default function RootIndex() {
     }
   }, [isLoading, token, user]);
 
-  // Failsafe: Never allow splash to hang longer than 2.5s under any condition
+  // Failsafe: Never allow splash to hang longer than 400ms under any condition
   useEffect(() => {
     const fallbackTimer = setTimeout(() => {
       if (!token || !user) {
@@ -30,7 +30,7 @@ export default function RootIndex() {
       } else {
         router.replace('/(tabs)');
       }
-    }, 2500);
+    }, 400);
 
     return () => clearTimeout(fallbackTimer);
   }, []);

@@ -55,34 +55,36 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
       {/* Options List */}
       <View style={styles.optionsList}>
         {options.map((opt) => {
-          const isSelected = selectedOptionId === opt.id;
-          return (
-            <Pressable
-              key={opt.id}
-              disabled={disabled}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: isSelected, disabled }}
-              accessibilityLabel={`Answer option: ${opt.text}`}
-              onPress={() => {
-                HapticsService.lightTap();
-                onSelectOption(opt.id);
-              }}
-              style={[
-                styles.optionCard,
-                isSelected && styles.optionCardSelected,
-              ]}
-            >
-              <Text
+          const optText = typeof opt === 'string' ? opt : (opt?.text ?? String(opt ?? ''));
+            const optId = typeof opt === 'string' ? opt : (opt?.id ?? optText);
+            const isSelected = selectedOptionId === optId;
+            return (
+              <Pressable
+                key={optId}
+                disabled={disabled}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: isSelected, disabled }}
+                accessibilityLabel={`Answer option: ${optText}`}
+                onPress={() => {
+                  HapticsService.lightTap();
+                  onSelectOption(optId);
+                }}
                 style={[
-                  styles.optionText,
-                  isSelected && styles.optionTextSelected,
+                  styles.optionCard,
+                  isSelected && styles.optionCardSelected,
                 ]}
               >
-                {opt.text}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <Text
+                  style={[
+                    styles.optionText,
+                    isSelected && styles.optionTextSelected,
+                  ]}
+                >
+                  {optText}
+                </Text>
+              </Pressable>
+            );
+          })}
       </View>
     </View>
   );

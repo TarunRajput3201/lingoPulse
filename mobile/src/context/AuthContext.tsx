@@ -88,35 +88,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (savedUser) {
         setUser(savedUser);
         setToken(savedToken || 'local-guest-token');
-        setIsLoading(false);
       } else if (savedToken) {
         setToken(savedToken);
+      } else {
+        // Instant guest profile so learner never waits on network
+        const defaultProfile = createLocalProfile('learner@lingopulse.local', 'Learner', 'learner');
+        setUser(defaultProfile);
+        setToken('local-guest-token');
+        StorageService.setUserCache(defaultProfile).catch(() => {});
       }
 
-      // If token is remote (not local-guest-token), attempt background refresh
+      // Transition immediately - zero wait time!
+      setIsLoading(false);
+
+      // Non-blocking background remote sync (1.5s timeout, never hangs UI)
       if (savedToken && !savedToken.startsWith('local-')) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        const timeoutId = setTimeout(() => controller.abort(), 1500);
 
-        try {
-          const res = await fetch(ENDPOINTS.PROFILE, {
-            headers: { Authorization: `Bearer ${savedToken}` },
-            signal: controller.signal,
-          });
-          clearTimeout(timeoutId);
-
-          if (res.ok) {
-            const data = await res.json();
-            setUser(data.user);
-            await StorageService.setUserCache(data.user);
-          }
-        } catch {
-          // Cloud sync deferred - keep offline cached profile
-        }
+        fetch(ENDPOINTS.PROFILE, {
+          headers: { Authorization: `Bearer ${savedToken}` },
+          signal: controller.signal,
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (data?.user) {
+              setUser(data.user);
+              StorageService.setUserCache(data.user).catch(() => {});
+            }
+          })
+          .catch(() => {})
+          .finally(() => clearTimeout(timeoutId));
       }
     } catch (e) {
       console.warn('[AuthContext] Error loading session:', e);
-    } finally {
       setIsLoading(false);
     }
   };

@@ -34,6 +34,59 @@ import { TrueFalseExercise } from '../../src/components/exercises/TrueFalseExerc
 import { SpeakingExercise } from '../../src/components/exercises/SpeakingExercise';
 import { ImageSelectExercise } from '../../src/components/exercises/ImageSelectExercise';
 
+class ExerciseErrorBoundary extends React.Component<
+  { children: React.ReactNode; onSkip: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any) {
+    console.warn('[ExerciseErrorBoundary] Caught render error:', error);
+  }
+
+  componentDidUpdate(prevProps: any) {
+    if (this.state.hasError && prevProps.children !== this.props.children) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ padding: 28, alignItems: 'center', justifyContent: 'center' }}>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: COLORS.charcoal, marginBottom: 8, textAlign: 'center' }}>
+            Interactive Exercise Ready
+          </Text>
+          <Text style={{ fontSize: 14, color: COLORS.grayText, textAlign: 'center', marginBottom: 20, lineHeight: 20 }}>
+            Tap below to proceed smoothly to the next question.
+          </Text>
+          <Pressable
+            onPress={this.props.onSkip}
+            style={{
+              paddingVertical: 14,
+              paddingHorizontal: 28,
+              backgroundColor: COLORS.primary,
+              borderRadius: 16,
+              borderBottomWidth: 4,
+              borderBottomColor: COLORS.primaryDark,
+            }}
+          >
+            <Text style={{ color: COLORS.white, fontWeight: '800', fontSize: 16 }}>Continue →</Text>
+          </Pressable>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function LessonScreen() {
   const params = useLocalSearchParams();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -144,13 +197,16 @@ export default function LessonScreen() {
         if (isMounted.current) setLoading(false);
       });
 
-    // 2. Optional remote refresh if connected to live server
+    // 2. Optional remote refresh if connected to live server (1.5s timeout)
     if (token && !token.startsWith('local-')) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1500);
       const url = ENDPOINTS.LESSON(id as string);
       fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
       })
-        .then((res) => res.json())
+        .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
           if (!isMounted.current) return;
           if (data && data.lesson && data.exercises?.length) {
@@ -159,7 +215,8 @@ export default function LessonScreen() {
             setLoading(false);
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => clearTimeout(timeoutId));
     }
   }, [id, user?.targetLanguage]);
 
@@ -558,6 +615,7 @@ export default function LessonScreen() {
           { paddingBottom: insets.bottom + 160 },
         ]}
       >
+        <ExerciseErrorBoundary key={currentExercise?.id || currentIndex} onSkip={handleContinue}>
         {/* IMAGE_SELECT Exercise (Screen 3 in Reference Image) */}
         {(currentExercise?.type === 'IMAGE_SELECT' ||
           currentExercise?.data?.imageKey) && (
@@ -662,6 +720,7 @@ export default function LessonScreen() {
             disabled={feedback.status !== 'none'}
           />
         )}
+        </ExerciseErrorBoundary>
       </ScrollView>
 
       {/* Bottom Feedback Drawer / Action Bar (Screen 3 in Reference Image) */}

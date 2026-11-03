@@ -6,7 +6,7 @@ import { HapticsService } from '../../services/hapticsService';
 interface FillInTheBlankExerciseProps {
   prompt: string;
   sentenceWithBlank: string;
-  options?: string[];
+  options?: (string | { id?: string; text: string; [key: string]: any })[];
   selectedWord: string;
   onSelectWord: (word: string) => void;
   disabled?: boolean;
@@ -46,7 +46,7 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
         <Text style={styles.sentenceText}>
           {parts[0]}
           <Text style={[styles.blankSlot, selectedWord ? styles.blankSlotFilled : null]}>
-            {selectedWord ? ` ${selectedWord} ` : ' _______ '}
+            {selectedWord ? ` ${typeof selectedWord === 'string' ? selectedWord : (selectedWord as any)?.text ?? String(selectedWord)} ` : ' _______ '}
           </Text>
           {parts[1] || ''}
         </Text>
@@ -56,17 +56,19 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
       {options && options.length > 0 ? (
         <View style={styles.optionsGrid}>
           {options.map((opt, idx) => {
-            const isSelected = selectedWord === opt;
+            const optText = typeof opt === 'string' ? opt : (opt?.text ?? String(opt ?? ''));
+            const optId = typeof opt === 'string' ? opt : (opt?.id ?? optText);
+            const isSelected = selectedWord === optText || selectedWord === optId;
             return (
               <Pressable
-                key={`${opt}-${idx}`}
+                key={`${optId}-${idx}`}
                 disabled={disabled}
                 onPress={() => {
                   HapticsService.lightTap();
                   if (isSelected) {
                     onSelectWord(''); // Toggle off
                   } else {
-                    onSelectWord(opt);
+                    onSelectWord(optText);
                   }
                 }}
                 style={[
@@ -74,7 +76,7 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
                   isSelected && styles.optionButtonSelected,
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel={`Word option: ${opt}`}
+                accessibilityLabel={`Word option: ${optText}`}
               >
                 <Text
                   style={[
@@ -82,7 +84,7 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
                     isSelected && styles.optionTextSelected,
                   ]}
                 >
-                  {opt}
+                  {optText}
                 </Text>
               </Pressable>
             );
