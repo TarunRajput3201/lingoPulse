@@ -92,7 +92,7 @@ export const TranslationExercise: React.FC<TranslationExerciseProps> = ({
       <View style={styles.inputWrapper}>
         <TextInput
           editable={!disabled}
-          value={userAnswer}
+          value={userAnswer || ''}
           onChangeText={onChangeAnswer}
           placeholder={placeholder}
           placeholderTextColor="#94A3B8"

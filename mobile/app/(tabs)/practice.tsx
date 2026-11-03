@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Pressable,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Heart, Target, Sparkles, CheckCircle2, RotateCcw, ArrowRight } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
@@ -20,6 +21,7 @@ import { HapticsService } from '../../src/services/hapticsService';
 import { CurriculumService } from '../../src/services/curriculumService';
 
 export default function PracticeScreen() {
+  const router = useRouter();
   const { user, token, updateUserLocally } = useAuth();
   const [mistakes, setMistakes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -252,7 +254,7 @@ export default function PracticeScreen() {
               variant="primary"
               onPress={() => {
                 HapticsService.lightTap();
-                // navigate to learning path
+                router.replace('/(tabs)');
               }}
               style={{ width: '100%', marginTop: 24 }}
             />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
@@ -28,11 +28,23 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
   const [selectedRightId, setSelectedRightId] = useState<string | null>(null);
   const [completedMatches, setCompletedMatches] = useState<{ [id: string]: boolean }>({});
   const [errorPair, setErrorPair] = useState<{ left: string; right: string } | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Shuffle right items once upon mounting
-  const [shuffledRights] = useState(() =>
+  // Shuffle right items and reset matches when pairs change
+  const [shuffledRights, setShuffledRights] = useState<PairItem[]>(() =>
     [...pairs].sort(() => Math.random() - 0.5)
   );
+
+  useEffect(() => {
+    setShuffledRights([...pairs].sort(() => Math.random() - 0.5));
+    setCompletedMatches({});
+    setSelectedLeftId(null);
+    setSelectedRightId(null);
+    setErrorPair(null);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [pairs, prompt]);
 
   const handleSelectLeft = (id: string) => {
     if (completedMatches[id] || disabled) return;
@@ -76,7 +88,8 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
       // Mismatched
       HapticsService.error();
       setErrorPair({ left: leftId, right: rightId });
-      setTimeout(() => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
         setSelectedLeftId(null);
         setSelectedRightId(null);
         setErrorPair(null);

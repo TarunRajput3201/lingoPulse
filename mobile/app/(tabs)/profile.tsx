@@ -13,6 +13,7 @@ import { Flame, Diamond, Award, Settings, LogOut, Trash2, Globe, CheckCircle2 } 
 import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { Button3D } from '../../src/components/Button3D';
+import { CharacterView } from '../../src/components/character/CharacterView';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { HapticsService } from '../../src/services/hapticsService';
@@ -137,11 +138,14 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Profile Hero Header */}
         <View style={styles.profileHeader}>
-          <View style={styles.avatarLarge}>
-            <Text style={styles.avatarInitial}>
-              {(user?.displayName || 'L')[0].toUpperCase()}
-            </Text>
-          </View>
+          <CharacterView
+            character="maya"
+            pose="welcome"
+            size={96}
+            roundMask={false}
+            showStage={true}
+            interactive={true}
+          />
           <Text style={styles.displayName}>{user?.displayName || 'Learner'}</Text>
           <Text style={styles.usernameText}>@{user?.username || 'learner'}</Text>
 

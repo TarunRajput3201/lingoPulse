@@ -1,12 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
+  FlatList,
   Pressable,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
@@ -139,8 +140,9 @@ export default function HomeScreen() {
   };
 
   const handleStartLesson = (lessonId: string) => {
+    const targetId = selectedLessonModal?.staticId || lessonId;
     setSelectedLessonModal(null);
-    router.push(`/lesson/${lessonId}`);
+    router.push(`/lesson/${targetId}`);
   };
 
   // Find next actionable lesson
@@ -174,217 +176,234 @@ export default function HomeScreen() {
       ? 'Japanese'
       : 'Language';
 
+  const renderHeader = () => (
+    <>
+      {/* 1. Top Learner Progress Banner (Screen 5) */}
+      <View style={styles.learnerBanner}>
+        <View style={styles.learnerBannerLeft}>
+          <CharacterView
+            character="maya"
+            pose="wink"
+            size={64}
+            roundMask={false}
+            interactive={true}
+          />
+          <View style={{ marginLeft: 12 }}>
+            <Text style={styles.learnerTitle}>
+              Amazing Progress, {user?.displayName || 'Learner'}! ✨
+            </Text>
+            <View style={styles.streakBadgeRow}>
+              <Flame size={16} color={COLORS.orange} fill={COLORS.orange} />
+              <Text style={styles.streakBadgeText}>
+                {user?.currentStreak ?? 5} Day Streak
+              </Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* 2. Level Progress Card (Screen 5) */}
+      <View style={styles.levelCard}>
+        <View style={styles.levelCardHeader}>
+          <View style={styles.levelIconWrapper}>
+            <Trophy size={20} color={COLORS.gold} />
+          </View>
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <Text style={styles.levelLabel}>Your Level</Text>
+            <Text style={styles.levelValue}>
+              {user?.learningLevel === 'intermediate'
+                ? 'B1 Intermediate'
+                : user?.learningLevel === 'elementary'
+                ? 'A2 Elementary'
+                : 'A2 Beginner'}
+            </Text>
+          </View>
+          <Text style={styles.levelPercentText}>60%</Text>
+        </View>
+
+        <View style={styles.levelBarBackground}>
+          <View style={[styles.levelBarFill, { width: '60%' }]} />
+        </View>
+      </View>
+
+      {/* 3. Your Skills Row (Screen 5) */}
+      <View style={styles.skillsSection}>
+        <Text style={styles.sectionHeaderTitle}>Your Skills</Text>
+        <View style={styles.skillsRow}>
+          {/* Vocabulary */}
+          <View style={styles.skillItem}>
+            <View style={[styles.skillIconCircle, { backgroundColor: '#FFEDD5', borderColor: '#FDBA74', borderBottomColor: '#EA580C' }]}>
+              <BookMarked size={22} color="#EA580C" />
+            </View>
+            <Text style={styles.skillLabel}>Vocabulary</Text>
+          </View>
+
+          {/* Grammar */}
+          <View style={styles.skillItem}>
+            <View style={[styles.skillIconCircle, { backgroundColor: '#DCFCE7', borderColor: '#86EFAC', borderBottomColor: '#16A34A' }]}>
+              <FileText size={22} color="#16A34A" />
+            </View>
+            <Text style={styles.skillLabel}>Grammar</Text>
+          </View>
+
+          {/* Listening */}
+          <View style={styles.skillItem}>
+            <View style={[styles.skillIconCircle, { backgroundColor: '#E0F2FE', borderColor: '#7DD3FC', borderBottomColor: '#0284C7' }]}>
+              <Headphones size={22} color="#0284C7" />
+            </View>
+            <Text style={styles.skillLabel}>Listening</Text>
+          </View>
+
+          {/* Speaking */}
+          <View style={styles.skillItem}>
+            <View style={[styles.skillIconCircle, { backgroundColor: '#FFE4E6', borderColor: '#FDA4AF', borderBottomColor: '#E11D48' }]}>
+              <Mic size={22} color="#E11D48" />
+            </View>
+            <Text style={styles.skillLabel}>Speaking</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* 4. Next Lesson Banner (Screen 5) */}
+      {activeLesson && (
+        <View style={styles.nextLessonBanner}>
+          <View style={styles.nextLessonThumbnail}>
+            <Text style={{ fontSize: 32 }}>{courseData?.flagIcon || '🗼'}</Text>
+          </View>
+
+          <View style={styles.nextLessonInfo}>
+            <Text style={styles.nextLessonTag}>Next Lesson</Text>
+            <Text style={styles.nextLessonTitle} numberOfLines={1}>
+              {activeLesson.title}
+            </Text>
+            <View style={styles.durationRow}>
+              <Clock size={14} color={COLORS.grayText} />
+              <Text style={styles.durationText}>5 min • +{activeLesson.xpReward || 15} XP</Text>
+            </View>
+          </View>
+
+          <Pressable
+            onPress={() => handleLessonNodePress(activeLesson, activeUnit)}
+            style={styles.nextLessonButton}
+            accessibilityRole="button"
+            accessibilityLabel="Start next lesson"
+          >
+            <Text style={styles.nextLessonButtonText}>Start →</Text>
+          </Pressable>
+        </View>
+      )}
+    </>
+  );
+
+  const renderUnitItem = ({ item: unit, index: unitIdx }: { item: any; index: number }) => (
+    <View key={unit.id} style={styles.unitContainer}>
+      {/* Unit Header Banner */}
+      <View
+        style={[
+          styles.unitBanner,
+          {
+            backgroundColor: unit.themeColor || (unitIdx === 0 ? COLORS.primary : COLORS.secondary),
+            borderColor: unitIdx === 0 ? COLORS.primaryDark : COLORS.secondaryDark,
+          },
+        ]}
+      >
+        <View style={{ flex: 1 }}>
+          <View style={styles.sectionBadge}>
+            <Text style={styles.sectionBadgeText}>
+              SECTION {Math.ceil(unit.unitNumber / 10)} ({unit.unitNumber <= 10 ? 'A1' : unit.unitNumber <= 20 ? 'A2' : unit.unitNumber <= 30 ? 'B1' : unit.unitNumber <= 40 ? 'B2' : 'C1'}) • UNIT {unit.unitNumber}
+            </Text>
+          </View>
+          <Text style={styles.unitBannerTitle}>{unit.title}</Text>
+          <Text style={styles.unitBannerDesc}>{unit.description}</Text>
+        </View>
+
+        <View style={styles.guidebookButton}>
+          <BookOpen size={20} color={COLORS.white} />
+        </View>
+      </View>
+
+      {/* Stepping-Stone Path */}
+      <View style={styles.pathWrapper}>
+        {(unit.lessons || []).map((lesson: any, lessonIdx: number) => {
+          const offsets = [0, 46, 0, -46];
+          const offsetX = offsets[lessonIdx % offsets.length];
+
+          return (
+            <View
+              key={lesson.id}
+              style={[
+                styles.nodeWrapper,
+                { transform: [{ translateX: offsetX }] },
+              ]}
+            >
+              {lesson.isCurrent && (
+                <View style={styles.startBadgeWrapper}>
+                  <View style={styles.startBadge}>
+                    <Text style={styles.startBadgeText}>START</Text>
+                  </View>
+                  <View style={styles.startBadgeArrow} />
+                </View>
+              )}
+
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${lesson.title}, ${
+                  lesson.isCompleted
+                    ? 'Completed'
+                    : lesson.isUnlocked
+                    ? 'Available'
+                    : 'Locked'
+                }`}
+                onPress={() => handleLessonNodePress(lesson, unit)}
+                style={[
+                  styles.lessonNode,
+                  lesson.isCompleted && styles.lessonNodeCompleted,
+                  lesson.isCurrent && styles.lessonNodeCurrent,
+                  !lesson.isUnlocked && !lesson.isCompleted && styles.lessonNodeLocked,
+                ]}
+              >
+                {/* Top Specular Sheen for 3D depth */}
+                <View style={styles.stoneSheen} />
+                {lesson.isCompleted ? (
+                  <Check size={32} color={COLORS.white} strokeWidth={3.5} />
+                ) : !lesson.isUnlocked ? (
+                  <Lock size={28} color={COLORS.grayBorderDark} />
+                ) : (
+                  <Star size={34} color={COLORS.white} fill={COLORS.white} />
+                )}
+              </Pressable>
+
+              {/* Ground contact shadow under each 3D stepping stone island */}
+              <View style={styles.stoneGroundShadow} />
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <HeaderBar />
 
-      <ScrollView
+      <FlatList
+        data={units}
+        keyExtractor={(item) => item.id || `unit-${item.unitNumber}`}
+        renderItem={renderUnitItem}
+        ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
-      >
-        {/* 1. Top Learner Progress Banner (Screen 5) */}
-        <View style={styles.learnerBanner}>
-          <View style={styles.learnerBannerLeft}>
-            <CharacterView
-              character="maya"
-              pose="wink"
-              size={56}
-              roundMask={true}
-              interactive={true}
-            />
-            <View style={{ marginLeft: 12 }}>
-              <Text style={styles.learnerTitle}>
-                Amazing Progress, {user?.displayName || 'Learner'}! ✨
-              </Text>
-              <View style={styles.streakBadgeRow}>
-                <Flame size={16} color={COLORS.orange} fill={COLORS.orange} />
-                <Text style={styles.streakBadgeText}>
-                  {user?.currentStreak ?? 5} Day Streak
-                </Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* 2. Level Progress Card (Screen 5) */}
-        <View style={styles.levelCard}>
-          <View style={styles.levelCardHeader}>
-            <View style={styles.levelIconWrapper}>
-              <Trophy size={20} color={COLORS.gold} />
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={styles.levelLabel}>Your Level</Text>
-              <Text style={styles.levelValue}>
-                {user?.learningLevel === 'intermediate'
-                  ? 'B1 Intermediate'
-                  : user?.learningLevel === 'elementary'
-                  ? 'A2 Elementary'
-                  : 'A2 Beginner'}
-              </Text>
-            </View>
-            <Text style={styles.levelPercentText}>60%</Text>
-          </View>
-
-          <View style={styles.levelBarBackground}>
-            <View style={[styles.levelBarFill, { width: '60%' }]} />
-          </View>
-        </View>
-
-        {/* 3. Your Skills Row (Screen 5) */}
-        <View style={styles.skillsSection}>
-          <Text style={styles.sectionHeaderTitle}>Your Skills</Text>
-          <View style={styles.skillsRow}>
-            {/* Vocabulary */}
-            <View style={styles.skillItem}>
-              <View style={[styles.skillIconCircle, { backgroundColor: '#FFEDD5', borderColor: '#FDBA74', borderBottomColor: '#EA580C' }]}>
-                <BookMarked size={22} color="#EA580C" />
-              </View>
-              <Text style={styles.skillLabel}>Vocabulary</Text>
-            </View>
-
-            {/* Grammar */}
-            <View style={styles.skillItem}>
-              <View style={[styles.skillIconCircle, { backgroundColor: '#DCFCE7', borderColor: '#86EFAC', borderBottomColor: '#16A34A' }]}>
-                <FileText size={22} color="#16A34A" />
-              </View>
-              <Text style={styles.skillLabel}>Grammar</Text>
-            </View>
-
-            {/* Listening */}
-            <View style={styles.skillItem}>
-              <View style={[styles.skillIconCircle, { backgroundColor: '#E0F2FE', borderColor: '#7DD3FC', borderBottomColor: '#0284C7' }]}>
-                <Headphones size={22} color="#0284C7" />
-              </View>
-              <Text style={styles.skillLabel}>Listening</Text>
-            </View>
-
-            {/* Speaking */}
-            <View style={styles.skillItem}>
-              <View style={[styles.skillIconCircle, { backgroundColor: '#FFE4E6', borderColor: '#FDA4AF', borderBottomColor: '#E11D48' }]}>
-                <Mic size={22} color="#E11D48" />
-              </View>
-              <Text style={styles.skillLabel}>Speaking</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* 4. Next Lesson Banner (Screen 5) */}
-        {activeLesson && (
-          <View style={styles.nextLessonBanner}>
-            <View style={styles.nextLessonThumbnail}>
-              <Text style={{ fontSize: 32 }}>{courseData?.flagIcon || '🗼'}</Text>
-            </View>
-
-            <View style={styles.nextLessonInfo}>
-              <Text style={styles.nextLessonTag}>Next Lesson</Text>
-              <Text style={styles.nextLessonTitle} numberOfLines={1}>
-                {activeLesson.title}
-              </Text>
-              <View style={styles.durationRow}>
-                <Clock size={14} color={COLORS.grayText} />
-                <Text style={styles.durationText}>5 min • +{activeLesson.xpReward || 15} XP</Text>
-              </View>
-            </View>
-
-            <Pressable
-              onPress={() => handleLessonNodePress(activeLesson, activeUnit)}
-              style={styles.nextLessonButton}
-              accessibilityRole="button"
-              accessibilityLabel="Start next lesson"
-            >
-              <Text style={styles.nextLessonButtonText}>Start →</Text>
-            </Pressable>
-          </View>
-        )}
-
-        {/* 5. Units & Learning Tree Stepping-Stone Path */}
-        {units.map((unit, unitIdx) => (
-          <View key={unit.id} style={styles.unitContainer}>
-            {/* Unit Header Banner */}
-            <View
-              style={[
-                styles.unitBanner,
-                {
-                  backgroundColor: unit.themeColor || (unitIdx === 0 ? COLORS.primary : COLORS.secondary),
-                  borderColor: unitIdx === 0 ? COLORS.primaryDark : COLORS.secondaryDark,
-                },
-              ]}
-            >
-              <View style={{ flex: 1 }}>
-                <View style={styles.sectionBadge}>
-                  <Text style={styles.sectionBadgeText}>
-                    SECTION {Math.ceil(unit.unitNumber / 10)} ({unit.unitNumber <= 10 ? 'A1' : unit.unitNumber <= 20 ? 'A2' : unit.unitNumber <= 30 ? 'B1' : unit.unitNumber <= 40 ? 'B2' : 'C1'}) • UNIT {unit.unitNumber}
-                  </Text>
-                </View>
-                <Text style={styles.unitBannerTitle}>{unit.title}</Text>
-                <Text style={styles.unitBannerDesc}>{unit.description}</Text>
-              </View>
-
-              <View style={styles.guidebookButton}>
-                <BookOpen size={20} color={COLORS.white} />
-              </View>
-            </View>
-
-            {/* Stepping-Stone Path */}
-            <View style={styles.pathWrapper}>
-              {(unit.lessons || []).map((lesson: any, lessonIdx: number) => {
-                const offsets = [0, 46, 0, -46];
-                const offsetX = offsets[lessonIdx % offsets.length];
-
-                return (
-                  <View
-                    key={lesson.id}
-                    style={[
-                      styles.nodeWrapper,
-                      { transform: [{ translateX: offsetX }] },
-                    ]}
-                  >
-                    {lesson.isCurrent && (
-                      <View style={styles.startBadgeWrapper}>
-                        <View style={styles.startBadge}>
-                          <Text style={styles.startBadgeText}>START</Text>
-                        </View>
-                        <View style={styles.startBadgeArrow} />
-                      </View>
-                    )}
-
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`${lesson.title}, ${
-                        lesson.isCompleted
-                          ? 'Completed'
-                          : lesson.isUnlocked
-                          ? 'Available'
-                          : 'Locked'
-                      }`}
-                      onPress={() => handleLessonNodePress(lesson, unit)}
-                      style={[
-                        styles.lessonNode,
-                        lesson.isCompleted && styles.lessonNodeCompleted,
-                        lesson.isCurrent && styles.lessonNodeCurrent,
-                        !lesson.isUnlocked && !lesson.isCompleted && styles.lessonNodeLocked,
-                      ]}
-                    >
-                      {/* Top Specular Sheen for 3D depth */}
-                      <View style={styles.stoneSheen} />
-                      {lesson.isCompleted ? (
-                        <Check size={32} color={COLORS.white} strokeWidth={3.5} />
-                      ) : !lesson.isUnlocked ? (
-                        <Lock size={28} color={COLORS.grayBorderDark} />
-                      ) : (
-                        <Star size={34} color={COLORS.white} fill={COLORS.white} />
-                      )}
-                    </Pressable>
-
-                    {/* Ground contact shadow under each 3D stepping stone island */}
-                    <View style={styles.stoneGroundShadow} />
-                  </View>
-                );
-              })}
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+        initialNumToRender={5}
+        maxToRenderPerBatch={5}
+        windowSize={7}
+        removeClippedSubviews={Platform.OS === 'android'}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.primary}
+          />
+        }
+      />
 
       {/* Maya 3D Character Pre-Lesson Intro Modal */}
       <CharacterIntroModal

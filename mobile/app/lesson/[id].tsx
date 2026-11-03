@@ -69,42 +69,73 @@ export default function LessonScreen() {
   const [showOutOfHeartsModal, setShowOutOfHeartsModal] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completionResult, setCompletionResult] = useState<any>(null);
+  const [consecutiveCombo, setConsecutiveCombo] = useState(0);
 
+  const isMounted = useRef(true);
+  const timersRef = useRef<NodeJS.Timeout[]>([]);
   const startTimeRef = useRef<number>(Date.now());
 
-  // Load lesson and exercises
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+      timersRef.current.forEach((t) => clearTimeout(t));
+      timersRef.current = [];
+    };
+  }, []);
+
+  // Load lesson and exercises with robust fallback
   useEffect(() => {
     if (!id) return;
     AdaptiveEngine.resetLesson();
 
-    // 1. Instant load from local static curriculum
-    CurriculumService.getLesson(id as string).then((localData) => {
-      if (localData) {
-        setCourse(localData.course);
-        setLesson(localData.lesson);
-        setExercises(localData.exercises || []);
-        setLoading(false);
-        startTimeRef.current = Date.now();
+    // 1. Instant load from local static curriculum with language context
+    CurriculumService.getLesson(id as string, user?.targetLanguage)
+      .then((localData) => {
+        if (!isMounted.current) return;
+        if (localData && localData.exercises?.length) {
+          setCourse(localData.course);
+          setLesson(localData.lesson);
+          setExercises(localData.exercises || []);
+          setLoading(false);
+          startTimeRef.current = Date.now();
 
-        // Strict Language Guard
-        if (
-          localData.course?.toLanguage &&
-          user?.targetLanguage &&
-          localData.course.toLanguage !== user.targetLanguage
-        ) {
-          console.log(
-            `[LessonScreen] Synchronizing targetLanguage to course language: ${localData.course.toLanguage}`
-          );
-          updateUserLocally((prev) =>
-            prev ? { ...prev, targetLanguage: localData.course.toLanguage } : null
-          );
-          StorageService.setItem(
-            'lingopulse_active_target_lang',
-            localData.course.toLanguage
-          ).catch(() => {});
+          // Strict Language Guard
+          if (
+            localData.course?.toLanguage &&
+            user?.targetLanguage &&
+            localData.course.toLanguage !== user.targetLanguage
+          ) {
+            updateUserLocally((prev) =>
+              prev ? { ...prev, targetLanguage: localData.course.toLanguage } : null
+            );
+            StorageService.setItem(
+              'lingopulse_active_target_lang',
+              localData.course.toLanguage
+            ).catch(() => {});
+          }
+        } else {
+          // Fallback: Resolve from active target language path
+          CurriculumService.getLearningPath(undefined, user?.targetLanguage)
+            .then((pathData) => {
+              if (!isMounted.current) return;
+              if (pathData && pathData.course?.units?.[0]?.lessons?.[0]) {
+                const fallbackLesson = pathData.course.units[0].lessons[0];
+                setCourse(pathData.course);
+                setLesson(fallbackLesson);
+                setExercises(fallbackLesson.exercises || []);
+              }
+            })
+            .catch(() => {})
+            .finally(() => {
+              if (isMounted.current) setLoading(false);
+            });
         }
-      }
-    });
+      })
+      .catch((err) => {
+        console.warn('[LessonScreen] Local lesson load error:', err);
+        if (isMounted.current) setLoading(false);
+      });
 
     // 2. Optional remote refresh if connected to live server
     if (token && !token.startsWith('local-')) {
@@ -114,6 +145,7 @@ export default function LessonScreen() {
       })
         .then((res) => res.json())
         .then((data) => {
+          if (!isMounted.current) return;
           if (data && data.lesson && data.exercises?.length) {
             setLesson(data.lesson);
             setExercises(data.exercises);
@@ -122,7 +154,7 @@ export default function LessonScreen() {
         })
         .catch(() => {});
     }
-  }, [id]);
+  }, [id, user?.targetLanguage]);
 
   const unitNumber =
     lesson?.unitNumber ||
@@ -209,6 +241,7 @@ export default function LessonScreen() {
       }
 
       if (localResult.isCorrect) {
+        setConsecutiveCombo((prev) => prev + 1);
         SoundService.playSuccessChime();
         HapticsService.success();
         setFeedback({
@@ -218,6 +251,7 @@ export default function LessonScreen() {
           hasAccentWarning: (localResult as any).hasAccentWarning,
         });
       } else {
+        setConsecutiveCombo(0);
         SoundService.playErrorThud();
         HapticsService.error();
         const remaining = localResult.heartsRemaining;
@@ -236,9 +270,12 @@ export default function LessonScreen() {
         });
 
         if (remaining <= 0) {
-          setTimeout(() => {
-            setShowOutOfHeartsModal(true);
+          const timerId = setTimeout(() => {
+            if (isMounted.current) {
+              setShowOutOfHeartsModal(true);
+            }
           }, 800);
+          timersRef.current.push(timerId);
         }
       }
     } catch (e) {
@@ -322,6 +359,34 @@ export default function LessonScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={COLORS.primary} />
         <Text style={styles.loadingText}>Preparing interactive lesson...</Text>
+      </View>
+    );
+  }
+
+  if (exercises.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <AlertCircle size={48} color={COLORS.orange} />
+        <Text style={[styles.loadingText, { marginTop: 14, fontSize: 18, color: COLORS.charcoal }]}>
+          Lesson Ready to Practice
+        </Text>
+        <Text style={{ color: COLORS.grayText, textAlign: 'center', marginTop: 8, marginHorizontal: 32, lineHeight: 22 }}>
+          Your progress is safely saved. Tap below to continue your learning journey.
+        </Text>
+        <Pressable
+          onPress={() => router.replace('/(tabs)')}
+          style={{
+            marginTop: 24,
+            paddingVertical: 14,
+            paddingHorizontal: 28,
+            backgroundColor: COLORS.primary,
+            borderRadius: 16,
+            borderBottomWidth: 4,
+            borderBottomColor: COLORS.primaryDark,
+          }}
+        >
+          <Text style={{ color: COLORS.white, fontWeight: '800', fontSize: 16 }}>Return to Learning Path</Text>
+        </Pressable>
       </View>
     );
   }
@@ -570,6 +635,12 @@ export default function LessonScreen() {
             <View style={styles.feedbackTitleRow}>
               <CheckCircle2 size={24} color={COLORS.primaryDark} strokeWidth={3} />
               <Text style={styles.feedbackTitleCorrect}>Excellent! 🌟</Text>
+              {consecutiveCombo >= 2 && (
+                <View style={styles.comboBadge}>
+                  <Flame size={14} color={COLORS.orange} fill={COLORS.orange} />
+                  <Text style={styles.comboBadgeText}>{consecutiveCombo} in a row!</Text>
+                </View>
+              )}
             </View>
             <Text style={styles.feedbackSubCorrect}>You're doing great!</Text>
             {feedback.explanation ? (
@@ -837,6 +908,23 @@ const styles = StyleSheet.create({
     fontSize: 19,
     fontWeight: '900',
     color: '#15803D',
+  },
+  comboBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    marginLeft: 6,
+  },
+  comboBadgeText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#D97706',
   },
   feedbackSubCorrect: {
     fontSize: 14,

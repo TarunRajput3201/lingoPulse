@@ -1,21 +1,38 @@
 import { Audio } from 'expo-av';
 
 let currentSound: Audio.Sound | null = null;
+let isAudioEnabled = true;
 
 export const SoundService = {
+  setEnabled(enabled: boolean) {
+    isAudioEnabled = enabled;
+  },
+
   async playRemoteAudio(url: string): Promise<void> {
-    if (!url) return;
+    if (!url || !isAudioEnabled) return;
     try {
       if (currentSound) {
-        await currentSound.unloadAsync();
+        try {
+          await currentSound.unloadAsync();
+        } catch (_) {}
+        currentSound = null;
       }
-      const { sound } = await Audio.Sound.createAsync(
+
+      // Race with 1.2s timeout so offline/slow network never hangs UI
+      const soundPromise = Audio.Sound.createAsync(
         { uri: url },
         { shouldPlay: true }
       );
-      currentSound = sound;
-    } catch (e) {
-      console.warn('[SoundService] Could not play remote audio:', e);
+      const timeoutPromise = new Promise<{ sound: null }>((_, reject) =>
+        setTimeout(() => reject(new Error('Audio timeout')), 1200)
+      );
+
+      const result = await Promise.race([soundPromise, timeoutPromise]);
+      if (result && 'sound' in result && result.sound) {
+        currentSound = result.sound;
+      }
+    } catch (_) {
+      // Graceful silent fallback
     }
   },
 

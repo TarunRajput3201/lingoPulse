@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
 import { Mic, Volume2 } from 'lucide-react-native';
 import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../constants/theme';
@@ -29,6 +29,15 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
   disabled = false,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
 
   const handlePlayReference = () => {
     HapticsService.lightTap();
@@ -43,10 +52,11 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
     if (disabled) return;
     HapticsService.mediumTap();
     if (isRecording) {
+      if (timerRef.current) clearTimeout(timerRef.current);
       setIsRecording(false);
     } else {
       setIsRecording(true);
-      setTimeout(() => {
+      timerRef.current = setTimeout(() => {
         setIsRecording(false);
         HapticsService.success();
         onSpokenRecorded(phraseToSpeak);
@@ -64,8 +74,10 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
           character="maya"
           pose={isFrench ? 'french' : 'welcome'}
           size={140}
-          roundMask={true}
+          roundMask={false}
+          showStage={true}
           interactive={true}
+          emotionBadge="heart"
         />
 
         {/* Floating Speech Bubble */}

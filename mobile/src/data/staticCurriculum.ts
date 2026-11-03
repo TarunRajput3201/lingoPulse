@@ -19,6 +19,7 @@ import {
   getCourseByCode,
   getCourseByLanguage,
   getCourseById,
+  COURSE_CATALOG_SUMMARIES,
 } from './courses';
 
 export interface ExerciseOption {
@@ -211,6 +212,7 @@ export {
   MANDARIN_COURSE,
   PORTUGUESE_COURSE,
   HINDI_COURSE,
+  COURSE_CATALOG_SUMMARIES,
 };
 
 // ----------------------------------------------------------------------------
@@ -222,7 +224,7 @@ export const getStaticCourses = (): StaticCourse[] => {
 
 export const getStaticCourseById = (courseId: string): StaticCourse | undefined => {
   if (!courseId) return undefined;
-  return STATIC_COURSES.find((c) => c._id === courseId || c.id === courseId || c.code === courseId);
+  return getCourseById(courseId) || STATIC_COURSES.find((c) => c._id === courseId || c.id === courseId || c.code === courseId);
 };
 
 export const getStaticCourseByLanguage = (targetLang?: string): StaticCourse | undefined => {
@@ -230,21 +232,62 @@ export const getStaticCourseByLanguage = (targetLang?: string): StaticCourse | u
 };
 
 export const getStaticLessonById = (
-  lessonId: string
+  lessonId: string,
+  preferredLanguage?: string
 ): { lesson: StaticLesson; exercises: StaticExercise[]; course: StaticCourse } | null => {
-  for (const course of STATIC_COURSES) {
+  if (!lessonId) return null;
+
+  // 1. If preferred language or candidate exists, search that course first
+  const candidateLangs = [
+    preferredLanguage,
+    'es', 'fr', 'en', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'hi'
+  ].filter(Boolean) as string[];
+
+  // First pass: exact match on lesson.id or _id
+  for (const lang of candidateLangs) {
+    const course = getCourseByLanguage(lang);
+    if (!course) continue;
     for (const unit of course.units) {
       for (const lesson of unit.lessons) {
-        if (lesson.id === lessonId) {
+        if (lesson.id === lessonId || (lesson as any)._id === lessonId || lesson.id.endsWith(lessonId)) {
           return {
             lesson,
-            exercises: lesson.exercises,
+            exercises: lesson.exercises || [],
             course,
           };
         }
       }
     }
   }
+
+  // Second pass: full search across all courses
+  for (const course of STATIC_COURSES) {
+    for (const unit of course.units) {
+      for (const lesson of unit.lessons) {
+        if (lesson.id === lessonId || (lesson as any)._id === lessonId || (lesson as any).staticId === lessonId) {
+          return {
+            lesson,
+            exercises: lesson.exercises || [],
+            course,
+          };
+        }
+      }
+    }
+  }
+
+  // Third pass: if lessonId is a MongoDB 24-char ObjectId or numeric index,
+  // gracefully fallback to the first lesson of the target or default course
+  const fallbackLang = preferredLanguage || 'es';
+  const fallbackCourse = getCourseByLanguage(fallbackLang) || STATIC_COURSES[0];
+  if (fallbackCourse && fallbackCourse.units?.[0]?.lessons?.[0]) {
+    const fallbackLesson = fallbackCourse.units[0].lessons[0];
+    return {
+      lesson: fallbackLesson,
+      exercises: fallbackLesson.exercises || [],
+      course: fallbackCourse,
+    };
+  }
+
   return null;
 };
 

@@ -65,14 +65,16 @@ export const CharacterIntroModal: React.FC<CharacterIntroModalProps> = ({
             <X size={22} color={COLORS.grayText} />
           </Pressable>
 
-          {/* 3D Character Avatar */}
+          {/* 3D Character Avatar Stage */}
           <View style={styles.characterContainer}>
             <CharacterView
               character="maya"
               pose={characterPose}
-              size={130}
+              size={135}
               interactive={true}
-              roundMask={true}
+              roundMask={false}
+              showStage={true}
+              emotionBadge="sparkle"
             />
           </View>
 

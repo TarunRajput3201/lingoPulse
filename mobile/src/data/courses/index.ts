@@ -1,94 +1,119 @@
-import { generateAllCourses, Course as GenCourse } from '../curriculum';
+import { generateCourseByCode, generateAllCourses, Course as GenCourse, FLAGSHIP_LANGUAGES } from '../curriculum';
 import type { StaticCourse } from '../staticCurriculum';
 
-export const ALL_COURSES: StaticCourse[] = (generateAllCourses() as unknown) as StaticCourse[];
+// In-memory cache for lazy, on-demand course instantiation (saves ~32MB at startup)
+const courseCache = new Map<string, StaticCourse>();
 
-export const ENGLISH_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'en-es')!;
-export const SPANISH_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'es-en')!;
-export const FRENCH_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'fr-en')!;
-export const JAPANESE_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'ja-en')!;
-export const GERMAN_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'de-en')!;
-export const KOREAN_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'ko-en')!;
-export const ITALIAN_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'it-en')!;
-export const MANDARIN_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'zh-en')!;
-export const PORTUGUESE_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'pt-en')!;
-export const HINDI_COURSE: StaticCourse = ALL_COURSES.find((c) => c.code === 'hi-en')!;
+export function getOrGenerateCourse(code: string): StaticCourse {
+  const norm = code.toLowerCase().trim();
+  if (courseCache.has(norm)) {
+    return courseCache.get(norm)!;
+  }
+  const generated = (generateCourseByCode(norm) as unknown) as StaticCourse;
+  if (generated) {
+    courseCache.set(norm, generated);
+    courseCache.set(generated.code.toLowerCase(), generated);
+    courseCache.set(generated.toLanguage.toLowerCase(), generated);
+    return generated;
+  }
+  // Fallback to Spanish if specific code not found
+  if (norm !== 'es' && norm !== 'es-en') {
+    return getOrGenerateCourse('es-en');
+  }
+  throw new Error(`Failed to generate course for code: ${code}`);
+}
+
+// Lazy getters for flagship courses
+export const getEnglishCourse = (): StaticCourse => getOrGenerateCourse('en-es');
+export const getSpanishCourse = (): StaticCourse => getOrGenerateCourse('es-en');
+export const getFrenchCourse = (): StaticCourse => getOrGenerateCourse('fr-en');
+export const getJapaneseCourse = (): StaticCourse => getOrGenerateCourse('ja-en');
+export const getGermanCourse = (): StaticCourse => getOrGenerateCourse('de-en');
+export const getKoreanCourse = (): StaticCourse => getOrGenerateCourse('ko-en');
+export const getItalianCourse = (): StaticCourse => getOrGenerateCourse('it-en');
+export const getMandarinCourse = (): StaticCourse => getOrGenerateCourse('zh-en');
+export const getPortugueseCourse = (): StaticCourse => getOrGenerateCourse('pt-en');
+export const getHindiCourse = (): StaticCourse => getOrGenerateCourse('hi-en');
+
+// Direct properties using Proxies so backward compatibility is 100% preserved
+export const ENGLISH_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getEnglishCourse() as any)[prop],
+});
+export const SPANISH_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getSpanishCourse() as any)[prop],
+});
+export const FRENCH_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getFrenchCourse() as any)[prop],
+});
+export const JAPANESE_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getJapaneseCourse() as any)[prop],
+});
+export const GERMAN_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getGermanCourse() as any)[prop],
+});
+export const KOREAN_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getKoreanCourse() as any)[prop],
+});
+export const ITALIAN_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getItalianCourse() as any)[prop],
+});
+export const MANDARIN_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getMandarinCourse() as any)[prop],
+});
+export const PORTUGUESE_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getPortugueseCourse() as any)[prop],
+});
+export const HINDI_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
+  get: (_, prop) => (getHindiCourse() as any)[prop],
+});
+
+// Lightweight metadata catalog for course selection (Zero memory overhead)
+export const COURSE_CATALOG_SUMMARIES = FLAGSHIP_LANGUAGES.map((langDef) => ({
+  _id: `course-${langDef.code}`,
+  id: `course-${langDef.code}`,
+  code: langDef.code,
+  title: langDef.title,
+  description: langDef.description,
+  fromLanguage: langDef.fromLanguage,
+  toLanguage: langDef.toLanguage,
+  flagIcon: langDef.flagIcon,
+  level: langDef.level,
+  status: 'published' as const,
+  order: langDef.order,
+  totalUnits: 50,
+  totalLessons: 250,
+}));
+
+// On-demand cache for ALL_COURSES
+let _allCoursesCache: StaticCourse[] | null = null;
+export function getAllCourses(): StaticCourse[] {
+  if (!_allCoursesCache) {
+    _allCoursesCache = (generateAllCourses() as unknown) as StaticCourse[];
+  }
+  return _allCoursesCache;
+}
+
+export const ALL_COURSES: StaticCourse[] = new Proxy([] as StaticCourse[], {
+  get: (_, prop) => {
+    const list = getAllCourses();
+    const val = (list as any)[prop];
+    return typeof val === 'function' ? val.bind(list) : val;
+  },
+});
 
 export const getCourseByCode = (code: string): StaticCourse | undefined => {
-  const norm = code.toLowerCase().trim();
-  return ALL_COURSES.find((c) => c.code.toLowerCase() === norm);
-};
-
-// Explicit canonical mapping table for all 10 flagship languages
-const LANGUAGE_COURSE_MAP: Record<string, StaticCourse> = {
-  en: ENGLISH_COURSE,
-  english: ENGLISH_COURSE,
-  'en-es': ENGLISH_COURSE,
-
-  es: SPANISH_COURSE,
-  spanish: SPANISH_COURSE,
-  'es-en': SPANISH_COURSE,
-
-  fr: FRENCH_COURSE,
-  french: FRENCH_COURSE,
-  'fr-en': FRENCH_COURSE,
-
-  ja: JAPANESE_COURSE,
-  japanese: JAPANESE_COURSE,
-  'ja-en': JAPANESE_COURSE,
-
-  de: GERMAN_COURSE,
-  german: GERMAN_COURSE,
-  'de-en': GERMAN_COURSE,
-
-  ko: KOREAN_COURSE,
-  korean: KOREAN_COURSE,
-  'ko-en': KOREAN_COURSE,
-
-  it: ITALIAN_COURSE,
-  italian: ITALIAN_COURSE,
-  'it-en': ITALIAN_COURSE,
-
-  zh: MANDARIN_COURSE,
-  mandarin: MANDARIN_COURSE,
-  chinese: MANDARIN_COURSE,
-  'zh-en': MANDARIN_COURSE,
-
-  pt: PORTUGUESE_COURSE,
-  portuguese: PORTUGUESE_COURSE,
-  'pt-en': PORTUGUESE_COURSE,
-
-  hi: HINDI_COURSE,
-  hindi: HINDI_COURSE,
-  'hi-en': HINDI_COURSE,
+  if (!code) return undefined;
+  return getOrGenerateCourse(code);
 };
 
 export const getCourseByLanguage = (targetLang?: string): StaticCourse | undefined => {
   if (!targetLang) return undefined;
   const lang = targetLang.toLowerCase().trim();
-
-  // 1. Direct canonical map lookup
-  if (LANGUAGE_COURSE_MAP[lang]) {
-    return LANGUAGE_COURSE_MAP[lang];
-  }
-
-  // 2. Exact match in catalog
-  const found = ALL_COURSES.find(
-    (c) =>
-      c.toLanguage.toLowerCase() === lang ||
-      c.code.toLowerCase() === lang ||
-      c.code.toLowerCase().startsWith(lang)
-  );
-  if (found) return found;
-
-  // 3. Fallback to Spanish
-  return SPANISH_COURSE;
+  return getOrGenerateCourse(lang);
 };
 
 export const getCourseById = (courseId: string): StaticCourse | undefined => {
+  if (!courseId) return undefined;
   const norm = courseId.toLowerCase().trim();
-  return (
-    ALL_COURSES.find((c) => c.id === courseId || c._id === courseId || c.code.toLowerCase() === norm) ||
-    getCourseByLanguage(norm)
-  );
+  return getOrGenerateCourse(norm);
 };

@@ -6,6 +6,7 @@ import {
   getStaticCourseByLanguage,
   getStaticLessonById,
   validateLocalAnswer,
+  COURSE_CATALOG_SUMMARIES,
   StaticCourse,
   StaticLesson,
   StaticExercise,
@@ -33,9 +34,9 @@ export interface LocalMistake {
 }
 
 export const CurriculumService = {
-  // 1. Get Course Catalog
+  // 1. Get Course Catalog (Lightweight summaries for zero startup bloat)
   async getCourses(): Promise<StaticCourse[]> {
-    return getStaticCourses();
+    return (COURSE_CATALOG_SUMMARIES as unknown) as StaticCourse[];
   },
 
   // 2. Get Learning Path with dynamic progression (unlocked/completed states)
@@ -141,9 +142,11 @@ export const CurriculumService = {
 
   // 3. Get Specific Lesson and its Exercises
   async getLesson(
-    lessonId: string
+    lessonId: string,
+    preferredLanguage?: string
   ): Promise<{ lesson: StaticLesson; exercises: StaticExercise[]; course: StaticCourse } | null> {
-    return getStaticLessonById(lessonId);
+    const activeLang = preferredLanguage || (await StorageService.getItem('lingopulse_active_target_lang')) || undefined;
+    return getStaticLessonById(lessonId, activeLang || undefined);
   },
 
   // 4. Validate Answer locally
@@ -156,7 +159,8 @@ export const CurriculumService = {
     explanation?: string;
     heartsRemaining: number;
   }> {
-    const lessonData = getStaticLessonById(lessonId);
+    const activeLang = (await StorageService.getItem('lingopulse_active_target_lang')) || undefined;
+    const lessonData = getStaticLessonById(lessonId, activeLang);
     if (!lessonData) {
       return { isCorrect: true, heartsRemaining: 5 };
     }
@@ -212,8 +216,9 @@ export const CurriculumService = {
     hearts: number;
   }> {
     // 1. Mark completed in course-isolated progress storage
-    const lessonData = getStaticLessonById(lessonId);
-    const courseCode = lessonData?.course.code?.toLowerCase().trim() || 'default';
+    const activeLang = (await StorageService.getItem('lingopulse_active_target_lang')) || undefined;
+    const lessonData = getStaticLessonById(lessonId, activeLang);
+    const courseCode = lessonData?.course.code?.toLowerCase().trim() || activeLang || 'default';
     const courseProgressKey = `lingopulse_completed_lessons_${courseCode}`;
     const completed = await StorageService.getJSON<string[]>(courseProgressKey, []);
     if (!completed.includes(lessonId)) {

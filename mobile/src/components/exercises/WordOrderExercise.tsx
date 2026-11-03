@@ -27,12 +27,16 @@ export const WordOrderExercise: React.FC<WordOrderExerciseProps> = ({
   // Track selected items by wordBank index to support duplicate words seamlessly (BUG-006 fix)
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
 
-  // Keep selectedIndices in sync if parent resets selectedWords to empty
+  // Keep selectedIndices in sync if parent resets selectedWords or moves to next exercise
   useEffect(() => {
     if (selectedWords.length === 0 && selectedIndices.length > 0) {
       setSelectedIndices([]);
     }
   }, [selectedWords]);
+
+  useEffect(() => {
+    setSelectedIndices([]);
+  }, [wordBank, prompt]);
 
   const handleSelectWord = (word: string, bankIndex: number) => {
     if (disabled || selectedIndices.includes(bankIndex)) return;

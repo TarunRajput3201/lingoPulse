@@ -104,8 +104,13 @@ export const getCoursePath = async (req: AuthenticatedRequest, res: Response): P
         isLocked = true;
       }
 
+      const staticId =
+        (lesson as any).staticId ||
+        `lesson-${course.toLanguage}-${unit.unitNumber * 100 + (lesson.lessonNumber || 1)}`;
+
       return {
         id: lessonIdStr,
+        staticId,
         unitId: unit._id.toString(),
         title: lesson.title,
         lessonNumber: lesson.lessonNumber,

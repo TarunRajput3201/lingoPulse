@@ -137,9 +137,10 @@ export default function OnboardingScreen() {
               <CharacterView
                 character="maya"
                 pose="wink"
-                size={80}
-                roundMask={true}
-                interactive={false}
+                size={84}
+                roundMask={false}
+                showStage={true}
+                interactive={true}
               />
               <View style={styles.mayaSpeechBubble}>
                 <Text style={styles.mayaSpeechTitle}>Great choice!</Text>
@@ -204,11 +205,12 @@ export default function OnboardingScreen() {
           <View style={styles.stepContainer}>
             <View style={{ alignItems: 'center', marginBottom: 16 }}>
               <CharacterView
-                character="maya"
-                pose="welcome"
-                size={90}
-                roundMask={true}
-                interactive={false}
+                character="pip"
+                pose="companion"
+                size={96}
+                roundMask={false}
+                showStage={true}
+                interactive={true}
                 message="Set a daily goal that fits your lifestyle!"
               />
             </View>

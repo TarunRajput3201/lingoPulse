@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-11-02T17:51:17.084Z",
+  "timestamp": "2026-11-03T14:13:36.317Z",
   "totalCourses": 10,
-  "totalUnits": 30,
-  "totalLessons": 70,
-  "totalExercises": 190,
+  "totalUnits": 500,
+  "totalLessons": 2500,
+  "totalExercises": 37500,
   "cefrCompliance": [
     {
       "courseCode": "en-es",
