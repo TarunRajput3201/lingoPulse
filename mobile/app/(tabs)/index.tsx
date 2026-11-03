@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -34,6 +34,7 @@ import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { HapticsService } from '../../src/services/hapticsService';
 import { CurriculumService } from '../../src/services/curriculumService';
+import { LearningPathSkeleton } from '../../src/components/skeletons/LearningPathSkeleton';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -45,6 +46,7 @@ export default function HomeScreen() {
   const [units, setUnits] = useState<any[]>([]);
   const [currentLessonId, setCurrentLessonId] = useState<string | null>(null);
   const [selectedLessonModal, setSelectedLessonModal] = useState<any | null>(null);
+  const lastRemoteSyncRef = useRef<number>(0);
 
   // If learner is not logged in, redirect to login
   useEffect(() => {
@@ -53,9 +55,9 @@ export default function HomeScreen() {
     }
   }, [token, isLoading]);
 
-  const loadLearningPath = async () => {
+  const loadLearningPath = async (forceRemote: boolean = false) => {
     try {
-      // 1. Instant load from local static curriculum
+      // 1. Instant load from local static curriculum (instant < 1ms)
       const localData = await CurriculumService.getLearningPath(undefined, user?.targetLanguage);
       setCourseData(localData.course);
       setUnits(localData.units);
@@ -76,10 +78,12 @@ export default function HomeScreen() {
       setCurrentLessonId(foundCurrent);
       setLoading(false);
 
-      // 2. Non-blocking optional remote refresh if online and connected
-      if (token && !token.startsWith('local-')) {
+      // 2. Non-blocking throttled remote refresh (only once per 60s or on manual refresh)
+      const shouldSyncRemote = forceRemote || (Date.now() - lastRemoteSyncRef.current > 60000);
+      if (token && !token.startsWith('local-') && shouldSyncRemote) {
+        lastRemoteSyncRef.current = Date.now();
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1500);
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
 
         try {
           const courseRes = await fetch(ENDPOINTS.COURSES, {
@@ -138,7 +142,7 @@ export default function HomeScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadLearningPath();
+    loadLearningPath(true);
   };
 
   const handleLessonNodePress = (lesson: any, unit: any) => {
@@ -165,12 +169,7 @@ export default function HomeScreen() {
   const activeUnit = units.find((u) => u.lessons?.some((l: any) => l.id === activeLesson?.id)) || units[0];
 
   if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading your learning adventure...</Text>
-      </View>
-    );
+    return <LearningPathSkeleton />;
   }
 
   const targetLang = user?.targetLanguage || 'fr';

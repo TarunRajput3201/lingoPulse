@@ -69,7 +69,8 @@ export const CurriculumService = {
     const resolvedCourse =
       (courseId ? getStaticCourseById(courseId) : undefined) ||
       (targetLang ? getStaticCourseByLanguage(targetLang) : undefined) ||
-      getStaticCourses()[0];
+      getStaticCourseByLanguage('es') ||
+      getStaticCourseByLanguage('en');
 
     if (!resolvedCourse) {
       throw new Error(`[CurriculumService] Course not found for id: "${courseId}" or targetLang: "${targetLang}"`);

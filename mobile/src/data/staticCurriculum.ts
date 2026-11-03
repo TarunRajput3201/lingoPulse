@@ -230,7 +230,7 @@ export const getStaticCourses = (): StaticCourse[] => {
 
 export const getStaticCourseById = (courseId: string): StaticCourse | undefined => {
   if (!courseId) return undefined;
-  return getCourseById(courseId) || getAllCourses().find((c) => c._id === courseId || c.id === courseId || c.code === courseId);
+  return getCourseById(courseId);
 };
 
 export const getStaticCourseByLanguage = (targetLang?: string): StaticCourse | undefined => {

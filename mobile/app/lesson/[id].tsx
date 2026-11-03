@@ -690,7 +690,9 @@ export default function LessonScreen() {
         {currentExercise?.type === 'LISTENING_COMPREHENSION' && (
           <ListeningExercise
             prompt={currentExercise.prompt}
-            audioUrl={currentExercise.audioUrl || 'https://actions.google.com/sounds/v1/cartoon/pop.ogg'}
+            audioUrl={currentExercise.audioUrl || currentExercise.data?.audioUrl}
+            textToSpeak={currentExercise.data?.transcript || currentExercise.data?.phraseToSpeak || currentExercise.prompt}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             options={currentExercise.data?.options || []}
             selectedOptionId={mcSelectedId}
             onSelectOption={setMcSelectedId}

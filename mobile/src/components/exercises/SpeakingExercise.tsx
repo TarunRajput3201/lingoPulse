@@ -31,6 +31,9 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [audioError, setAudioError] = useState(false);
+
   React.useEffect(() => {
     return () => {
       if (timerRef.current) {
@@ -39,12 +42,33 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
     };
   }, []);
 
-  const handlePlayReference = () => {
+  const handlePlayReference = async () => {
     HapticsService.lightTap();
-    if (referenceAudioUrl) {
-      SoundService.playRemoteAudio(referenceAudioUrl).catch(() => {});
-    } else {
-      SoundService.playSuccessChime().catch(() => {});
+    setIsPlayingAudio(true);
+    setAudioError(false);
+
+    try {
+      const ok = await SoundService.speak(phraseToSpeak, {
+        lang: targetLanguage,
+        rate: 0.88,
+        onStart: () => setIsPlayingAudio(true),
+        onDone: () => setIsPlayingAudio(false),
+        onError: () => {
+          setIsPlayingAudio(false);
+          setAudioError(true);
+        },
+      });
+
+      if (!ok && referenceAudioUrl) {
+        await SoundService.playRemoteAudio(referenceAudioUrl, { timeoutMs: 3500 });
+      }
+
+      setTimeout(() => {
+        setIsPlayingAudio(false);
+      }, Math.max(1200, phraseToSpeak.length * 90));
+    } catch {
+      setIsPlayingAudio(false);
+      setAudioError(true);
     }
   };
 
@@ -94,9 +118,12 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
       <View style={styles.controlsRow}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Listen to audio"
+          accessibilityLabel={isPlayingAudio ? 'Playing reference audio' : 'Listen to native pronunciation'}
           onPress={handlePlayReference}
-          style={styles.listenButton}
+          style={[
+            styles.listenButton,
+            isPlayingAudio && styles.listenButtonPlaying,
+          ]}
         >
           <Volume2 size={26} color={COLORS.white} />
         </Pressable>
@@ -199,6 +226,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
     borderBottomColor: COLORS.secondaryDark,
     ...SHADOWS.float,
+  },
+  listenButtonPlaying: {
+    backgroundColor: '#0284C7',
+    borderColor: '#38BDF8',
+    borderBottomColor: '#0369A1',
+    transform: [{ scale: 1.06 }],
   },
   micButton: {
     width: 76,
