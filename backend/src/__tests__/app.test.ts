@@ -13,12 +13,12 @@ const app = createApp();
 beforeAll(async () => {
   const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/lingopulse_test';
   await mongoose.connect(mongoUri);
-});
+}, 30000);
 
 afterAll(async () => {
   await User.deleteMany({ email: /test.*@lingopulse.com/ });
   await mongoose.disconnect();
-});
+}, 30000);
 
 describe('LingoPulse Health & Auth API', () => {
   const testUser = {

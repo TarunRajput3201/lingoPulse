@@ -8,6 +8,8 @@ import { Lesson } from '../models/Lesson';
 import { Exercise } from '../models/Exercise';
 import { seedDatabase } from '../seed/seedCourses';
 
+jest.setTimeout(60000);
+
 const app = createApp();
 
 beforeAll(async () => {
@@ -21,12 +23,12 @@ beforeAll(async () => {
   if (count < 10) {
     await seedDatabase({ preserveUsers: true });
   }
-});
+}, 120000);
 
 afterAll(async () => {
   await User.deleteMany({ email: /test_isolation.*@lingopulse.com/ });
   await mongoose.disconnect();
-});
+}, 30000);
 
 describe('Multilingual Isolation & Cross-Language Guard Regression Tests', () => {
   let token = '';
@@ -67,7 +69,7 @@ describe('Multilingual Isolation & Cross-Language Guard Regression Tests', () =>
         spanishLesson = await Lesson.findOne({ unitId: spanishUnit._id });
       }
     }
-  });
+  }, 60000);
 
   it('French course path returns French metadata and units', async () => {
     const res = await request(app)

@@ -33,13 +33,22 @@ jobs:
         working-directory: backend
         run: npm ci
 
+      - name: Seed Database
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          MONGO_URI: mongodb://localhost:27017/lingopulse
+        run: npm run seed
+
       - name: Run Curriculum Audit & Static Validation
+        env:
+          MONGO_URI: mongodb://localhost:27017/lingopulse
         run: npm run test:curriculum
 
       - name: Run Backend Integration & Unit Tests
         working-directory: backend
         env:
           NODE_ENV: test
-          MONGO_URI: mongodb://localhost:27017/lingopulse-test
+          MONGO_URI: mongodb://localhost:27017/lingopulse
           JWT_SECRET: test_jwt_secret_key_12345
         run: npm test
