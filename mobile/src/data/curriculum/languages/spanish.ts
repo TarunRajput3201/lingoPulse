@@ -10,6 +10,9 @@ export const SPANISH_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇪🇸',
   level: 'A1–C1',
   order: 2,
+  nativeName: 'Español',
+  isRTL: false,
+  region: 'European',
   culturalTips: {
     1: 'In Spain and Latin America, greetings change by time: ¡Buenos días!, ¡Buenas tardes!, ¡Buenas noches!',
     2: 'Use "tú" with friends and family, and "usted" to show courtesy and respect to elders or strangers.',

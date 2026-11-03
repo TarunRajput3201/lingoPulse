@@ -10,6 +10,9 @@ export const KOREAN_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇰🇷',
   level: 'A1–C1',
   order: 6,
+  nativeName: '한국어',
+  isRTL: false,
+  region: 'Asian',
   culturalTips: {
     1: 'Korean has stratified speech levels: formal polite (-ㅂ니다), informal polite (-아요/어요), and casual banmal.',
     2: 'Bowing while saying "안녕하세요" shows respect in Korean social etiquette.',

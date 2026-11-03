@@ -10,6 +10,9 @@ export const HINDI_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇮🇳',
   level: 'A1–C1',
   order: 10,
+  nativeName: 'हिन्दी',
+  isRTL: false,
+  region: 'Indian',
   culturalTips: {
     1: 'Saying "नमस्ते" (Namaste) with hands folded at chest level (añjali mudrā) expresses spiritual greeting and reverence.',
     2: 'Use "आप" (Aap) for elders and respected acquaintances, "तुम" (Tum) for informal friends, and avoid "तू" (Tu) unless intimate.',

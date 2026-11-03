@@ -6,7 +6,7 @@ import { Unit } from '../models/Unit';
 import { Lesson } from '../models/Lesson';
 import { Exercise } from '../models/Exercise';
 import { Achievement } from '../models/Achievement';
-import coursesData from './coursesData.json';
+import { generateAllCourses } from '../services/curriculum';
 
 export const seedDatabase = async (options: { preserveUsers?: boolean } = {}) => {
   console.log('🌱 Starting LingoPulse Database Seeding...');
@@ -123,9 +123,9 @@ export const seedDatabase = async (options: { preserveUsers?: boolean } = {}) =>
   });
   console.log('✅ Seeded Admin & Demo Learner accounts.');
 
-  // 3. Seed All 10 Flagship Language Courses
-  const allCourses = coursesData as any[];
-  console.log(`📚 Seeding ${allCourses.length} Flagship Courses into Database...`);
+  // 3. Seed All 38 Language Courses
+  const allCourses = generateAllCourses();
+  console.log(`📚 Seeding ${allCourses.length} Courses into Database...`);
 
   let totalUnitsCount = 0;
   let totalLessonsCount = 0;
@@ -141,6 +141,9 @@ export const seedDatabase = async (options: { preserveUsers?: boolean } = {}) =>
       flagIcon: staticCourse.flagIcon,
       status: staticCourse.status || 'published',
       order: staticCourse.order,
+      nativeName: staticCourse.nativeName || '',
+      isRTL: staticCourse.isRTL || false,
+      region: staticCourse.region || 'European',
       totalUnits: staticCourse.units.length,
       totalLessons: staticCourse.units.reduce((acc: number, u: any) => acc + u.lessons.length, 0),
     });

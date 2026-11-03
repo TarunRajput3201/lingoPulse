@@ -45,3 +45,6 @@ Thumbs.db
 # Uploaded Assets
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Large Seed JSON Data (dynamically generated in-memory)
+backend/src/seed/coursesData.json

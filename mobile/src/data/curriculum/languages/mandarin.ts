@@ -10,6 +10,9 @@ export const MANDARIN_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇨🇳',
   level: 'A1–C1',
   order: 8,
+  nativeName: '中文',
+  isRTL: false,
+  region: 'Asian',
   culturalTips: {
     1: 'Mandarin Chinese has four distinctive tones plus a neutral tone; tone accuracy is essential for clear meaning.',
     2: 'Addressing people with their professional title (e.g. 王老师 Wang Laoshi) is a traditional sign of courtesy.',

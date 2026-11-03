@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,9 +6,10 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Check, Globe, Sparkles, BookOpen } from 'lucide-react-native';
+import { Check, Globe, BookOpen, Search, X } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { useAuth } from '../../src/context/AuthContext';
@@ -17,12 +18,24 @@ import { HapticsService } from '../../src/services/hapticsService';
 import { StorageService } from '../../src/services/storageService';
 import { CurriculumService } from '../../src/services/curriculumService';
 
+const REGIONS = [
+  'All',
+  'Popular',
+  'European',
+  'Asian',
+  'Middle Eastern',
+  'Indian',
+  'African',
+] as const;
+
 export default function CoursesScreen() {
   const router = useRouter();
   const { user, token, updateUserLocally } = useAuth();
   const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState<string>('All');
 
   useEffect(() => {
     // 1. Instant load from local static catalog
@@ -81,6 +94,29 @@ export default function CoursesScreen() {
     }
   };
 
+  // Filtered courses based on search & region
+  const filteredCourses = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return courses.filter((c) => {
+      // Region filter
+      if (selectedRegion === 'Popular') {
+        const isPopular = (c.order && c.order <= 10) || ['es', 'fr', 'de', 'ja', 'it', 'ko', 'zh', 'pt', 'hi', 'en'].includes(c.toLanguage?.toLowerCase());
+        if (!isPopular) return false;
+      } else if (selectedRegion !== 'All') {
+        if (c.region?.toLowerCase() !== selectedRegion.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Search query filter
+      if (!q) return true;
+      const titleMatch = c.title?.toLowerCase().includes(q);
+      const nativeMatch = c.nativeName?.toLowerCase().includes(q);
+      const codeMatch = c.code?.toLowerCase().includes(q) || c.toLanguage?.toLowerCase().includes(q);
+      const descMatch = c.description?.toLowerCase().includes(q);
+      return titleMatch || nativeMatch || codeMatch || descMatch;
+    });
+  }, [courses, searchQuery, selectedRegion]);
 
   return (
     <View style={styles.container}>
@@ -92,14 +128,64 @@ export default function CoursesScreen() {
           <Text style={styles.headerTitle}>Language Courses</Text>
         </View>
         <Text style={styles.headerSubtitle}>
-          Choose your active language course. Your learning progress and streaks are preserved independently across all languages.
+          Explore 38 comprehensive language courses. Your learning progress and streaks are preserved independently across all languages.
         </Text>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Search size={18} color={COLORS.grayText} style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search language, script, or country..."
+            placeholderTextColor={COLORS.grayText}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            autoCorrect={false}
+          />
+          {searchQuery ? (
+            <Pressable onPress={() => setSearchQuery('')} hitSlop={8} style={styles.clearSearchBtn}>
+              <X size={16} color={COLORS.grayText} />
+            </Pressable>
+          ) : null}
+        </View>
+
+        {/* Region Filter Chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.regionFilterRow}
+        >
+          {REGIONS.map((region) => {
+            const isSelected = selectedRegion === region;
+            return (
+              <Pressable
+                key={region}
+                onPress={() => {
+                  HapticsService.lightTap();
+                  setSelectedRegion(region);
+                }}
+                style={[styles.regionChip, isSelected && styles.regionChipSelected]}
+              >
+                <Text
+                  style={[styles.regionChipText, isSelected && styles.regionChipTextSelected]}
+                >
+                  {region} {region === 'All' ? `(${courses.length})` : ''}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
         {loading ? (
           <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: 24 }} />
+        ) : filteredCourses.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyTitle}>No courses found</Text>
+            <Text style={styles.emptySubtitle}>Try searching with different terms or select "All".</Text>
+          </View>
         ) : (
           <View style={styles.coursesList}>
-            {courses.map((course) => {
+            {filteredCourses.map((course) => {
               const isCurrent = user?.targetLanguage?.toLowerCase() === course.toLanguage?.toLowerCase();
               const courseKey = course._id || course.id || course.code;
               const isSwitching = switchingId === courseKey;
@@ -121,6 +207,16 @@ export default function CoursesScreen() {
                   <View style={styles.courseDetails}>
                     <View style={styles.titleRow}>
                       <Text style={styles.courseTitle}>{course.title}</Text>
+                      {course.nativeName ? (
+                        <Text style={styles.nativeScriptBadge}>
+                          {course.nativeName}
+                        </Text>
+                      ) : null}
+                      {course.isRTL ? (
+                        <View style={styles.rtlBadge}>
+                          <Text style={styles.rtlText}>RTL</Text>
+                        </View>
+                      ) : null}
                       <View style={styles.cefrBadge}>
                         <Text style={styles.cefrText}>CEFR {course.level || 'A1–C1'}</Text>
                       </View>
@@ -177,8 +273,72 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.grayText,
     marginTop: 6,
-    marginBottom: 20,
+    marginBottom: 16,
     lineHeight: 20,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: RADII.lg,
+    borderWidth: 2,
+    borderColor: COLORS.grayBorder,
+    paddingHorizontal: 12,
+    marginBottom: 14,
+    height: 46,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.charcoal,
+  },
+  clearSearchBtn: {
+    padding: 4,
+  },
+  regionFilterRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 18,
+    paddingVertical: 2,
+  },
+  regionChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.white,
+    borderWidth: 1.5,
+    borderColor: COLORS.grayBorder,
+  },
+  regionChipSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primaryDark,
+  },
+  regionChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.grayText,
+  },
+  regionChipTextSelected: {
+    color: COLORS.white,
+    fontWeight: '800',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.charcoal,
+    marginBottom: 6,
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: COLORS.grayText,
   },
   coursesList: {
     gap: 14,
@@ -186,7 +346,7 @@ const styles = StyleSheet.create({
   courseCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 18,
+    padding: 16,
     borderRadius: RADII.xl,
     backgroundColor: COLORS.white,
     borderWidth: 2,
@@ -200,8 +360,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondarySubtle,
   },
   flagEmoji: {
-    fontSize: 38,
-    marginRight: 16,
+    fontSize: 36,
+    marginRight: 14,
   },
   courseDetails: {
     flex: 1,
@@ -209,12 +369,33 @@ const styles = StyleSheet.create({
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    flexWrap: 'wrap',
+    gap: 6,
   },
   courseTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: COLORS.charcoal,
+  },
+  nativeScriptBadge: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.secondary,
+    backgroundColor: COLORS.secondarySubtle,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: RADII.xs,
+  },
+  rtlBadge: {
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: RADII.xs,
+    backgroundColor: '#FDE047',
+  },
+  rtlText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#854D0E',
   },
   cefrBadge: {
     paddingHorizontal: 6,
@@ -230,7 +411,7 @@ const styles = StyleSheet.create({
   courseDesc: {
     fontSize: 12,
     color: COLORS.grayText,
-    marginTop: 3,
+    marginTop: 4,
     lineHeight: 16,
   },
   metricsRow: {

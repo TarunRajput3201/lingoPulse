@@ -267,13 +267,18 @@ async function runApplicationWideVerification() {
 
   recordTest(
     'Curriculum Architecture',
-    'Flagship Course Count',
-    'Mobile course registry contains exactly 10 flagship world languages',
-    allCourses.length === 10,
-    `Loaded: ${allCourses.map((c) => c.title).join(', ')}`
+    'Comprehensive Multilingual Catalog Count',
+    'Mobile course registry contains all 38 supported world languages',
+    allCourses.length === 38,
+    `Loaded ${allCourses.length} languages: ${allCourses.map((c) => c.title).join(', ')}`
   );
 
-  const expectedLangs = ['fr', 'es', 'de', 'ja', 'ko', 'it', 'zh', 'pt', 'hi', 'en'];
+  const expectedLangs = [
+    'en', 'es', 'fr', 'ja', 'de', 'ko', 'it', 'zh', 'pt', 'hi',
+    'ar', 'ru', 'nl', 'tr', 'sv', 'no', 'da', 'pl', 'el', 'he',
+    'th', 'vi', 'id', 'ms', 'tl', 'bn', 'ur', 'pa', 'ta', 'te',
+    'mr', 'gu', 'uk', 'fa', 'sw', 'ro', 'cs', 'hu',
+  ];
   for (const lang of expectedLangs) {
     const course = getCourseByLanguage(lang);
     const unitCount = course?.units.length || 0;

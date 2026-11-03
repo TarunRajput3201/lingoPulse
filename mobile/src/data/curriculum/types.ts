@@ -94,6 +94,9 @@ export interface Course {
   order: number;
   totalUnits: number;
   totalLessons: number;
+  nativeName?: string;
+  isRTL?: boolean;
+  region?: string;
   units: Unit[];
 }
 
@@ -128,6 +131,9 @@ export interface LanguageDefinition {
   flagIcon: string;
   level: string;
   order: number;
+  nativeName?: string;
+  isRTL?: boolean;
+  region?: 'European' | 'Asian' | 'Middle Eastern' | 'Indian' | 'African' | 'Americas';
   units: Record<number, VocabularyItem[]>;
   culturalTips?: Record<number, string>;
 }

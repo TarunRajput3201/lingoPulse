@@ -37,7 +37,7 @@ async function runAllTests() {
   console.log('\n--- Test Suite 1: Hermes Proxy Safety ---');
   const allCourses = getAllCourses();
   assert(Array.isArray(allCourses), 'getAllCourses returns an array');
-  assert(allCourses.length === 10, `Found 10 courses, got ${allCourses.length}`);
+  assert(allCourses.length === 38, `Found 38 courses, got ${allCourses.length}`);
 
   for (const course of allCourses) {
     const isProxy = util.types.isProxy(course);
@@ -45,8 +45,22 @@ async function runAllTests() {
     assert(!util.types.isProxy(course.units), `Units for ${course.id} must NOT be a Proxy`);
   }
 
-  // 2. Verify Lesson Retrieval Across All 10 Courses & 50 Units
-  console.log('\n--- Test Suite 2: Lesson Retrieval & Traversal ---');
+  // 1b. Verify 38 Languages Metadata: Native Names, Regions, and RTL Flags
+  console.log('\n--- Test Suite 1b: 38 Languages Metadata & RTL Verification ---');
+  const rtlLangCodes = ['ar', 'he', 'ur', 'fa'];
+  for (const course of allCourses) {
+    assert(Boolean(course.nativeName), `Course ${course.code} has nativeName: "${course.nativeName}"`);
+    assert(Boolean(course.region), `Course ${course.code} has region: "${course.region}"`);
+    const langCode = course.toLanguage.toLowerCase();
+    if (rtlLangCodes.includes(langCode)) {
+      assert(course.isRTL === true, `Course ${course.code} (${course.toLanguage}) correctly flagged as RTL`);
+    } else {
+      assert(course.isRTL === false || course.isRTL === undefined, `Course ${course.code} (${course.toLanguage}) correctly non-RTL`);
+    }
+  }
+
+  // 2. Verify Lesson Retrieval Across All 38 Courses & 50 Units
+  console.log('\n--- Test Suite 2: Lesson Retrieval & Traversal (38 Languages x 50 Units) ---');
   for (const course of allCourses) {
     // Test unit 1 lesson 1 (Easy)
     const firstLessonId = course.units[0]?.lessons[0]?.id;

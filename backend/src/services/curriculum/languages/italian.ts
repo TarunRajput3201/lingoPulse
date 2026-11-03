@@ -10,6 +10,9 @@ export const ITALIAN_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇮🇹',
   level: 'A1–C1',
   order: 7,
+  nativeName: 'Italiano',
+  isRTL: false,
+  region: 'European',
   culturalTips: {
     1: 'In Italy, "Ciao" is used informally among friends, while "Buongiorno" and "Buonasera" are polite for public places.',
     2: 'Italian coffee culture is sacred: cappuccino is typically enjoyed only in the morning!',

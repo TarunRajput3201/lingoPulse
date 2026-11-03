@@ -10,6 +10,9 @@ export const ENGLISH_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇬🇧',
   level: 'A1–C1',
   order: 1,
+  nativeName: 'English',
+  isRTL: false,
+  region: 'European',
   culturalTips: {
     1: '"Hello" and "Hi" are universal greetings, while "Good morning" is standard in professional contexts.',
     2: 'Saying "Please" and "Thank you" in English-speaking cultures is expected in almost every transaction.',

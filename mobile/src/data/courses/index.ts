@@ -60,6 +60,9 @@ export const COURSE_CATALOG_SUMMARIES = FLAGSHIP_LANGUAGES.map((langDef) => ({
   level: langDef.level,
   status: 'published' as const,
   order: langDef.order,
+  nativeName: langDef.nativeName,
+  isRTL: langDef.isRTL || false,
+  region: langDef.region || 'European',
   totalUnits: 50,
   totalLessons: 250,
 }));

@@ -119,6 +119,9 @@ export interface StaticCourse {
   order: number;
   totalUnits: number;
   totalLessons: number;
+  nativeName?: string;
+  isRTL?: boolean;
+  region?: string;
   units: StaticUnit[];
 }
 
@@ -241,10 +244,15 @@ export const getStaticLessonById = (
   if (!lessonId) return null;
 
   // 1. If preferred language or candidate exists, search that course first
-  const candidateLangs = [
+  const extractedLang = lessonId.startsWith('lesson-') ? lessonId.split('-')[1] : undefined;
+  const candidateLangs = Array.from(new Set([
     preferredLanguage,
-    'es', 'fr', 'en', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'hi'
-  ].filter(Boolean) as string[];
+    extractedLang,
+    'es', 'fr', 'en', 'de', 'it', 'pt', 'ja', 'ko', 'zh', 'hi',
+    'ar', 'ru', 'nl', 'tr', 'sv', 'no', 'da', 'pl', 'el', 'he',
+    'th', 'vi', 'id', 'ms', 'tl', 'bn', 'ur', 'pa', 'ta', 'te',
+    'mr', 'gu', 'uk', 'fa', 'sw', 'ro', 'cs', 'hu',
+  ].filter(Boolean) as string[]));
 
   // First pass: exact match on lesson.id or _id
   for (const lang of candidateLangs) {
@@ -253,21 +261,6 @@ export const getStaticLessonById = (
     for (const unit of course.units) {
       for (const lesson of unit.lessons) {
         if (lesson.id === lessonId || (lesson as any)._id === lessonId || lesson.id.endsWith(lessonId)) {
-          return {
-            lesson,
-            exercises: lesson.exercises || [],
-            course,
-          };
-        }
-      }
-    }
-  }
-
-  // Second pass: full search across all courses
-  for (const course of getAllCourses()) {
-    for (const unit of course.units) {
-      for (const lesson of unit.lessons) {
-        if (lesson.id === lessonId || (lesson as any)._id === lessonId || (lesson as any).staticId === lessonId) {
           return {
             lesson,
             exercises: lesson.exercises || [],

@@ -10,6 +10,9 @@ export const JAPANESE_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇯🇵',
   level: 'A1–C1',
   order: 4,
+  nativeName: '日本語',
+  isRTL: false,
+  region: 'Asian',
   culturalTips: {
     1: 'Bowing (ojigi) is a fundamental part of greetings and expressing respect in Japanese culture.',
     2: 'Honorifics like "-san", "-kun", and "-sensei" convey polite social nuance and distance.',

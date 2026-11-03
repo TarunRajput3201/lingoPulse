@@ -10,6 +10,9 @@ export const FRENCH_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇫🇷',
   level: 'A1–C1',
   order: 3,
+  nativeName: 'Français',
+  isRTL: false,
+  region: 'European',
   culturalTips: {
     1: 'In France, always greet shopkeepers and hosts with "Bonjour" before asking for anything.',
     2: 'Use "vous" for formal polite speech, and "tu" with close friends and family members.',

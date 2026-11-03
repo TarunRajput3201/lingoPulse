@@ -89,6 +89,9 @@ export class CurriculumGenerator {
       order: langDef.order,
       totalUnits: units.length,
       totalLessons: units.reduce((acc, u) => acc + u.lessons.length, 0),
+      nativeName: langDef.nativeName,
+      isRTL: langDef.isRTL,
+      region: langDef.region,
       units,
     };
   }

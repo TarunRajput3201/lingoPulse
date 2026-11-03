@@ -11,6 +11,9 @@ export interface ICourse extends Document {
   order: number;
   totalUnits: number;
   totalLessons: number;
+  nativeName?: string;
+  isRTL?: boolean;
+  region?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +67,18 @@ const CourseSchema = new Schema<ICourse>(
     totalLessons: {
       type: Number,
       default: 0,
+    },
+    nativeName: {
+      type: String,
+      default: '',
+    },
+    isRTL: {
+      type: Boolean,
+      default: false,
+    },
+    region: {
+      type: String,
+      default: 'European',
     },
   },
   {

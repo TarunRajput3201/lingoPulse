@@ -10,6 +10,9 @@ export const PORTUGUESE_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇵🇹',
   level: 'A1–C1',
   order: 9,
+  nativeName: 'Português',
+  isRTL: false,
+  region: 'European',
   culturalTips: {
     1: 'Men say "obrigado" while women say "obrigada" to express gratitude.',
     2: 'In Brazilian Portuguese, "você" is standard, while in European Portuguese, "tu" is widely used among friends.',

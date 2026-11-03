@@ -10,6 +10,9 @@ export const GERMAN_LANGUAGE: LanguageDefinition = {
   flagIcon: '🇩🇪',
   level: 'A1–C1',
   order: 5,
+  nativeName: 'Deutsch',
+  isRTL: false,
+  region: 'European',
   culturalTips: {
     1: 'In German, all nouns are capitalized (e.g. der Tisch, die Sonne, das Buch).',
     2: 'Use "Sie" for polite formal address, and "du" for friends and family.',
