@@ -1,22 +1,29 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   Pressable,
   Animated,
   ViewStyle,
   StyleProp,
 } from 'react-native';
-import { Sparkles, Flame, Star, Lightbulb, Heart } from 'lucide-react-native';
-import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../constants/theme';
+import { Sparkles, Flame, Star, Lightbulb, Heart, Volume2 } from 'lucide-react-native';
+import { COLORS, SHADOWS } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
-import { CHARACTER_IMAGES, CharacterId } from './CharacterAssets';
+import { SoundService } from '../../services/soundService';
+import {
+  CharacterId,
+  CharacterMood,
+  CHARACTER_PROFILES,
+  getCharacterQuote,
+} from './Character3DRegistry';
+import { Realtime3DCharacter } from './Realtime3DCharacter';
 
-interface CharacterViewProps {
+export interface CharacterViewProps {
   character?: CharacterId;
   pose?: string;
+  mood?: CharacterMood;
   size?: number;
   message?: string;
   messagePosition?: 'top' | 'right' | 'left' | 'bottom';
@@ -27,14 +34,17 @@ interface CharacterViewProps {
   showBorder?: boolean;
   roundMask?: boolean;
   showStage?: boolean;
+  themeMode?: 'daylight' | 'evening' | 'celebration';
   emotionBadge?: 'star' | 'flame' | 'sparkle' | 'heart' | 'lightbulb';
+  autoSpeakMessage?: boolean;
 }
 
 export const CharacterView: React.FC<CharacterViewProps> = ({
   character = 'maya',
-  pose = 'welcome',
-  size = 120,
-  message,
+  pose,
+  mood: initialMood,
+  size = 130,
+  message: initialMessage,
   messagePosition = 'top',
   interactive = true,
   onPress,
@@ -43,142 +53,141 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
   showBorder = false,
   roundMask = true,
   showStage = false,
+  themeMode = 'daylight',
   emotionBadge,
+  autoSpeakMessage = false,
 }) => {
+  const [currentMood, setCurrentMood] = useState<CharacterMood>(initialMood || 'idle');
+  const [activeMessage, setActiveMessage] = useState<string | undefined>(initialMessage);
+  const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
+
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const floatAnim = useRef(new Animated.Value(0)).current;
-  const auraPulse = useRef(new Animated.Value(0.85)).current;
 
-  // Continuous subtle 3D breathing & floating animation
+  // Sync external message and mood updates
+  useEffect(() => {
+    setActiveMessage(initialMessage);
+  }, [initialMessage]);
+
+  useEffect(() => {
+    if (initialMood) {
+      setCurrentMood(initialMood);
+    }
+  }, [initialMood]);
+
+  // Map legacy poses to moods if pose is provided
+  useEffect(() => {
+    if (pose === 'levelUp' || pose === 'celebrate') {
+      setCurrentMood('celebrate');
+    } else if (pose === 'helper' || pose === 'wink') {
+      setCurrentMood('encouraging');
+    }
+  }, [pose]);
+
+  // Subtle 3D floating animation
   useEffect(() => {
     const floatLoop = Animated.loop(
       Animated.sequence([
-        Animated.parallel([
-          Animated.timing(floatAnim, {
-            toValue: -6,
-            duration: 1600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(auraPulse, {
-            toValue: 1.05,
-            duration: 1600,
-            useNativeDriver: true,
-          }),
-        ]),
-        Animated.parallel([
-          Animated.timing(floatAnim, {
-            toValue: 0,
-            duration: 1600,
-            useNativeDriver: true,
-          }),
-          Animated.timing(auraPulse, {
-            toValue: 0.85,
-            duration: 1600,
-            useNativeDriver: true,
-          }),
-        ]),
+        Animated.timing(floatAnim, {
+          toValue: -5,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(floatAnim, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: true,
+        }),
       ])
     );
     floatLoop.start();
     return () => floatLoop.stop();
-  }, [floatAnim, auraPulse]);
+  }, [floatAnim]);
 
-  // Character Theme Colors & Metas
-  const characterMeta = {
-    maya: {
-      name: 'Maya',
-      role: 'Guide',
-      haloColor: 'rgba(88, 204, 2, 0.22)',
-      pedestalColor: '#DCFCE7',
-      pedestalBorder: '#86EFAC',
-      pedestalBottom: '#16A34A',
-    },
-    pip: {
-      name: 'Pip',
-      role: 'Companion',
-      haloColor: 'rgba(14, 165, 233, 0.22)',
-      pedestalColor: '#E0F2FE',
-      pedestalBorder: '#7DD3FC',
-      pedestalBottom: '#0284C7',
-    },
-    leo: {
-      name: 'Leo',
-      role: 'Mentor',
-      haloColor: 'rgba(245, 158, 11, 0.22)',
-      pedestalColor: '#FEF3C7',
-      pedestalBorder: '#FCD34D',
-      pedestalBottom: '#D97706',
-    },
-  }[character] || {
-    name: 'Maya',
-    role: 'Guide',
-    haloColor: 'rgba(88, 204, 2, 0.22)',
-    pedestalColor: '#DCFCE7',
-    pedestalBorder: '#86EFAC',
-    pedestalBottom: '#16A34A',
-  };
+  // Subscribe to speech events for visual voice indicators
+  useEffect(() => {
+    const unsubscribe = SoundService.addSpeakingListener((speaking) => {
+      setIsSpeaking(speaking);
+      if (speaking) {
+        setCurrentMood('speaking');
+      } else {
+        setCurrentMood(initialMood || 'idle');
+      }
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [initialMood]);
 
-  // Resolve image source safely
-  const getImageSource = () => {
-    if (character === 'maya') {
-      if (pose === 'french') return CHARACTER_IMAGES.maya.french;
-      if (pose === 'wink') return CHARACTER_IMAGES.maya.wink;
-      return CHARACTER_IMAGES.maya.welcome;
+  // Auto-speak message if requested
+  useEffect(() => {
+    if (autoSpeakMessage && activeMessage) {
+      SoundService.speak(activeMessage).catch(() => {});
     }
-    if (character === 'pip') {
-      if (pose === 'levelUp' || pose === 'celebrate') return CHARACTER_IMAGES.pip.levelUp;
-      if (pose === 'helper') return CHARACTER_IMAGES.pip.helper;
-      return CHARACTER_IMAGES.pip.companion;
-    }
-    if (character === 'leo') {
-      return CHARACTER_IMAGES.leo.mentor;
-    }
-    return CHARACTER_IMAGES.maya.welcome;
-  };
+  }, [autoSpeakMessage, activeMessage]);
+
+  const profile = CHARACTER_PROFILES[character] || CHARACTER_PROFILES.maya;
 
   const handlePress = () => {
     if (!interactive) return;
     HapticsService.lightTap();
 
+    // Lively interactive bounce
     Animated.sequence([
       Animated.timing(scaleAnim, {
-        toValue: 0.90,
+        toValue: 0.92,
         duration: 90,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 3.5,
-        tension: 90,
+        tension: 100,
         useNativeDriver: true,
       }),
     ]).start();
+
+    // Trigger spontaneous cheerful quote if no message is pinned
+    if (!initialMessage) {
+      const quote = getCharacterQuote(character, currentMood);
+      setActiveMessage(quote);
+      SoundService.speak(quote).catch(() => {});
+    }
 
     if (onPress) {
       onPress();
     }
   };
 
-  const imageSource = getImageSource();
-  const borderRadius = roundMask ? size / 2 : 28;
+  const speakCurrentMessage = () => {
+    if (activeMessage) {
+      HapticsService.lightTap();
+      SoundService.speak(activeMessage).catch(() => {});
+    }
+  };
 
   return (
     <View style={[styles.outerContainer, containerStyle]}>
-      {/* Speech Bubble (when message is provided) */}
-      {message ? (
+      {/* Interactive 3D Speech Bubble */}
+      {activeMessage ? (
         <View
           style={[
             styles.speechBubbleWrapper,
             messagePosition === 'bottom' && styles.speechBubbleBottom,
           ]}
         >
-          <View style={styles.speechBubble}>
+          <Pressable onPress={speakCurrentMessage} style={styles.speechBubble}>
             <View style={styles.nameTagRow}>
-              <Text style={styles.nameTagText}>{characterMeta.name}</Text>
-              <Text style={styles.roleTagText}>• {characterMeta.role}</Text>
+              <Text style={[styles.nameTagText, { color: profile.darkAccent }]}>
+                {profile.name}
+              </Text>
+              <Text style={styles.roleTagText}>• {profile.role}</Text>
+              <View style={styles.audioHintPill}>
+                <Volume2 size={13} color={isSpeaking ? profile.accentColor : COLORS.grayText} />
+              </View>
             </View>
-            <Text style={styles.speechText}>{message}</Text>
-          </View>
+            <Text style={styles.speechText}>{activeMessage}</Text>
+          </Pressable>
           <View
             style={[
               styles.bubbleTail,
@@ -188,98 +197,37 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
         </View>
       ) : null}
 
-      {/* 3D Character Stage & Interactive Avatar */}
-      <Pressable onPress={handlePress} disabled={!interactive && !onPress}>
-        <View style={styles.stageContainer}>
-          {/* Ambient Lighting Aura Glow */}
-          <Animated.View
-            style={[
-              styles.auraRing,
-              {
-                width: size * 1.25,
-                height: size * 1.25,
-                borderRadius: (size * 1.25) / 2,
-                backgroundColor: characterMeta.haloColor,
-                transform: [{ scale: auraPulse }],
-              },
-            ]}
-          />
+      {/* 3D Character Viewport & Interactive Stage */}
+      <Animated.View
+        style={[
+          styles.stageContainer,
+          {
+            transform: [{ scale: scaleAnim }, { translateY: floatAnim }],
+          },
+          style,
+        ]}
+      >
+        <Realtime3DCharacter
+          character={character}
+          mood={currentMood}
+          size={size}
+          interactive={interactive}
+          onPress={handlePress}
+          themeMode={themeMode}
+          showStage={showStage}
+        />
 
-          {/* Floating Character Body */}
-          <Animated.View
-            style={[
-              styles.imageWrapper,
-              {
-                width: size,
-                height: size,
-                borderRadius,
-                transform: [{ scale: scaleAnim }, { translateY: floatAnim }],
-              },
-              showBorder && styles.characterBorder,
-              style,
-            ]}
-          >
-            <Image
-              source={imageSource}
-              style={[
-                styles.characterImage,
-                {
-                  width: size,
-                  height: size,
-                  borderRadius,
-                },
-              ]}
-              resizeMode="cover"
-            />
-
-            {/* Specular Rim Light Bevel */}
-            <View style={[styles.rimLight, { borderRadius }]} pointerEvents="none" />
-          </Animated.View>
-
-          {/* Floating Emotion Badge (Optional) */}
-          {emotionBadge && (
-            <Animated.View
-              style={[
-                styles.emotionBadgeContainer,
-                { transform: [{ translateY: floatAnim }] },
-              ]}
-            >
-              {emotionBadge === 'star' && <Star size={16} color="#FFFFFF" fill="#FACC15" />}
-              {emotionBadge === 'flame' && <Flame size={16} color="#EA580C" fill="#EA580C" />}
-              {emotionBadge === 'sparkle' && <Sparkles size={16} color="#38BDF8" fill="#38BDF8" />}
-              {emotionBadge === 'heart' && <Heart size={16} color="#E11D48" fill="#E11D48" />}
-              {emotionBadge === 'lightbulb' && <Lightbulb size={16} color="#F59E0B" fill="#F59E0B" />}
-            </Animated.View>
-          )}
-
-          {/* 3D Island Pedestal Platform (when showStage is true or size > 100) */}
-          {showStage && (
-            <View
-              style={[
-                styles.stagePlatform,
-                {
-                  width: size * 1.15,
-                  backgroundColor: characterMeta.pedestalColor,
-                  borderColor: characterMeta.pedestalBorder,
-                  borderBottomColor: characterMeta.pedestalBottom,
-                },
-              ]}
-            />
-          )}
-
-          {/* Soft Ground Contact Shadow */}
-          <View
-            style={[
-              styles.contactShadow,
-              {
-                width: size * 0.72,
-                height: Math.max(7, size * 0.1),
-                borderRadius: 999,
-              },
-            ]}
-          />
-        </View>
-      </Pressable>
+        {/* Floating Emotion Badge (Optional) */}
+        {emotionBadge && (
+          <View style={styles.emotionBadgeContainer}>
+            {emotionBadge === 'star' && <Star size={16} color="#FFFFFF" fill="#FACC15" />}
+            {emotionBadge === 'flame' && <Flame size={16} color="#EA580C" fill="#EA580C" />}
+            {emotionBadge === 'sparkle' && <Sparkles size={16} color="#38BDF8" fill="#38BDF8" />}
+            {emotionBadge === 'heart' && <Heart size={16} color="#E11D48" fill="#E11D48" />}
+            {emotionBadge === 'lightbulb' && <Lightbulb size={16} color="#F59E0B" fill="#F59E0B" />}
+          </View>
+        )}
+      </Animated.View>
     </View>
   );
 };
@@ -294,20 +242,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     position: 'relative',
   },
-  auraRing: {
-    position: 'absolute',
-    top: -10,
-    zIndex: 1,
-  },
   speechBubbleWrapper: {
     alignItems: 'center',
-    marginBottom: 10,
-    maxWidth: 290,
-    zIndex: 20,
+    marginBottom: 8,
+    maxWidth: 320,
+    zIndex: 30,
   },
   speechBubbleBottom: {
     marginBottom: 0,
-    marginTop: 10,
+    marginTop: 8,
   },
   speechBubble: {
     ...SHADOWS.card3D,
@@ -323,13 +266,12 @@ const styles = StyleSheet.create({
   nameTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
     marginBottom: 4,
   },
   nameTagText: {
     fontSize: 12,
     fontWeight: '900',
-    color: COLORS.primaryDark,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -337,6 +279,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: COLORS.grayText,
+  },
+  audioHintPill: {
+    marginLeft: 'auto',
+    padding: 3,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
   },
   speechText: {
     fontSize: 14,
@@ -365,30 +313,10 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderTopWidth: 2,
   },
-  imageWrapper: {
-    backgroundColor: '#F8FAFC',
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-    ...SHADOWS.float,
-  },
-  characterBorder: {
-    borderWidth: 3.5,
-    borderColor: '#FFFFFF',
-  },
-  characterImage: {
-    backgroundColor: '#F1F5F9',
-  },
-  rimLight: {
-    ...StyleSheet.absoluteFillObject,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.45)',
-  },
   emotionBadgeContainer: {
     position: 'absolute',
-    top: 4,
-    right: 2,
+    top: 6,
+    right: 4,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -401,19 +329,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 25,
     ...SHADOWS.float,
-  },
-  stagePlatform: {
-    height: 18,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderBottomWidth: 5,
-    marginTop: -8,
-    zIndex: 5,
-  },
-  contactShadow: {
-    backgroundColor: 'rgba(15, 23, 42, 0.16)',
-    alignSelf: 'center',
-    marginTop: 6,
-    zIndex: 2,
   },
 });

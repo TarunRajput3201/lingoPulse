@@ -140,8 +140,8 @@ export default function ProfileScreen() {
         <View style={styles.profileHeader}>
           <CharacterView
             character="maya"
-            pose="welcome"
-            size={96}
+            mood="idle"
+            size={110}
             roundMask={false}
             showStage={true}
             interactive={true}

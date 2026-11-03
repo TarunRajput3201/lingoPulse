@@ -193,8 +193,8 @@ export default function HomeScreen() {
         <View style={styles.learnerBannerLeft}>
           <CharacterView
             character="maya"
-            pose="wink"
-            size={64}
+            mood="idle"
+            size={72}
             roundMask={false}
             interactive={true}
           />

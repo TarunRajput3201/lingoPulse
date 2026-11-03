@@ -167,6 +167,16 @@ export interface SpeakOptions {
   onError?: (err: any) => void;
 }
 
+const speakingSubscribers = new Set<(isSpeaking: boolean) => void>();
+
+function notifySpeaking(speaking: boolean) {
+  for (const sub of speakingSubscribers) {
+    try {
+      sub(speaking);
+    } catch {}
+  }
+}
+
 export const SoundService = {
   setEnabled(enabled: boolean) {
     isAudioEnabled = enabled;
@@ -174,6 +184,17 @@ export const SoundService = {
 
   isEnabled(): boolean {
     return isAudioEnabled;
+  },
+
+  /**
+   * Subscribe to speech state changes for lip-sync and visual cues.
+   * Returns an unsubscribe function.
+   */
+  addSpeakingListener(listener: (isSpeaking: boolean) => void): () => void {
+    speakingSubscribers.add(listener);
+    return () => {
+      speakingSubscribers.delete(listener);
+    };
   },
 
   /**
@@ -189,6 +210,21 @@ export const SoundService = {
 
     await ensureAudioMode();
 
+    const handleStart = () => {
+      notifySpeaking(true);
+      if (options.onStart) options.onStart();
+    };
+
+    const handleDone = () => {
+      notifySpeaking(false);
+      if (options.onDone) options.onDone();
+    };
+
+    const handleError = (e: any) => {
+      notifySpeaking(false);
+      if (options.onError) options.onError(e);
+    };
+
     // 1. Browser Web Speech API path
     if (isWeb && typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
@@ -200,9 +236,9 @@ export const SoundService = {
         utterance.rate = rate;
         utterance.pitch = pitch;
 
-        if (options.onStart) utterance.onstart = () => options.onStart!();
-        if (options.onDone) utterance.onend = () => options.onDone!();
-        if (options.onError) utterance.onerror = (e) => options.onError!(e);
+        utterance.onstart = handleStart;
+        utterance.onend = handleDone;
+        utterance.onerror = handleError;
 
         window.speechSynthesis.speak(utterance);
         return true;
@@ -224,15 +260,15 @@ export const SoundService = {
           language: bcp47,
           rate: Math.max(0.4, Math.min(1.5, rate)),
           pitch,
-          onStart: options.onStart,
-          onDone: options.onDone,
-          onError: options.onError,
+          onStart: handleStart,
+          onDone: handleDone,
+          onError: handleError,
         });
         return true;
       }
     } catch (err: any) {
       console.warn('[SoundService] Speech.speak failed:', err?.message);
-      if (options.onError) options.onError(err);
+      handleError(err);
       return false;
     }
 
@@ -243,6 +279,7 @@ export const SoundService = {
    * Stop any active TTS pronunciation speech
    */
   async stopSpeaking(): Promise<void> {
+    notifySpeaking(false);
     if (isWeb && typeof window !== 'undefined' && 'speechSynthesis' in window) {
       try {
         window.speechSynthesis.cancel();

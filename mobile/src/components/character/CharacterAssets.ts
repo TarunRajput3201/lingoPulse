@@ -28,7 +28,10 @@ export const CHARACTER_IMAGES = {
   },
 };
 
-export type CharacterId = 'maya' | 'pip' | 'leo';
+export { CharacterId } from './Character3DRegistry';
 export type MayaPose = 'welcome' | 'french' | 'wink';
 export type PipPose = 'companion' | 'levelUp' | 'helper' | 'celebrate';
 export type LeoPose = 'mentor' | 'advanced';
+export type ElenaPose = 'conversation' | 'dialogue';
+export type KaelPose = 'challenge' | 'speed';
+

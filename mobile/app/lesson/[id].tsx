@@ -22,6 +22,10 @@ import { HapticsService } from '../../src/services/hapticsService';
 import { CurriculumService } from '../../src/services/curriculumService';
 import { StorageService } from '../../src/services/storageService';
 import { ProgressiveLearningEngine } from '../../src/services/progressiveLearningEngine';
+import {
+  getCharacterForQuestion,
+  getCharacterQuote,
+} from '../../src/components/character/Character3DRegistry';
 
 // Exercise Components
 import { MultipleChoiceExercise } from '../../src/components/exercises/MultipleChoiceExercise';
@@ -551,6 +555,11 @@ export default function LessonScreen() {
 
   const progressPercent = ((currentIndex + 1) / (exercises.length || 1)) * 100;
   const currentStep = `${currentIndex + 1}/${exercises.length || 1}`;
+  const activeCharacter = getCharacterForQuestion(
+    currentIndex,
+    exercises.length,
+    currentExercise?.type
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -615,6 +624,38 @@ export default function LessonScreen() {
           { paddingBottom: insets.bottom + 160 },
         ]}
       >
+        {/* Active 3D Character Mentor Stage with Role & Dynamic Reaction */}
+        <View style={styles.characterQuestionHeader}>
+          <CharacterView
+            character={activeCharacter}
+            mood={
+              feedback.status === 'correct'
+                ? 'celebrate'
+                : feedback.status === 'incorrect'
+                ? 'wrong'
+                : 'idle'
+            }
+            size={110}
+            showStage={true}
+            interactive={true}
+            message={
+              feedback.status === 'correct'
+                ? getCharacterQuote(activeCharacter, 'correct')
+                : feedback.status === 'incorrect'
+                ? getCharacterQuote(activeCharacter, 'wrong')
+                : undefined
+            }
+            messagePosition="top"
+            emotionBadge={
+              feedback.status === 'correct'
+                ? 'star'
+                : feedback.status === 'incorrect'
+                ? 'lightbulb'
+                : undefined
+            }
+          />
+        </View>
+
         <ExerciseErrorBoundary key={currentExercise?.id || currentIndex} onSkip={handleContinue}>
         {/* IMAGE_SELECT Exercise (Screen 3 in Reference Image) */}
         {(currentExercise?.type === 'IMAGE_SELECT' ||
@@ -975,6 +1016,12 @@ const styles = StyleSheet.create({
   exerciseScroll: {
     paddingHorizontal: 16,
     paddingTop: 12,
+  },
+  characterQuestionHeader: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    marginTop: 4,
   },
   footerBar: {
     position: 'absolute',

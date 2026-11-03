@@ -101,9 +101,41 @@ export async function runCurriculumAudit(): Promise<CurriculumAuditReport> {
   const lessons = await Lesson.find({ status: 'published' }).sort({ order: 1 });
   const exercises = await Exercise.find({});
 
+  // Fast O(1) Map Indexes
+  const unitsByCourse = new Map<string, any[]>();
+  const unitsById = new Map<string, any>();
+  for (const u of units) {
+    unitsById.set(u._id.toString(), u);
+    const cid = u.courseId?.toString();
+    if (cid) {
+      if (!unitsByCourse.has(cid)) unitsByCourse.set(cid, []);
+      unitsByCourse.get(cid)!.push(u);
+    }
+  }
+
+  const coursesById = new Map<string, any>(courses.map((c) => [c._id.toString(), c]));
+
+  const lessonsByUnit = new Map<string, any[]>();
+  for (const l of lessons) {
+    const uid = l.unitId?.toString();
+    if (uid) {
+      if (!lessonsByUnit.has(uid)) lessonsByUnit.set(uid, []);
+      lessonsByUnit.get(uid)!.push(l);
+    }
+  }
+
+  const exercisesByLesson = new Map<string, any[]>();
+  for (const ex of exercises) {
+    const lid = ex.lessonId?.toString();
+    if (lid) {
+      if (!exercisesByLesson.has(lid)) exercisesByLesson.set(lid, []);
+      exercisesByLesson.get(lid)!.push(ex);
+    }
+  }
+
   // 1. Audit Course Metadata & Structure
   for (const course of courses) {
-    const courseUnits = units.filter((u) => u.courseId?.toString() === course._id.toString());
+    const courseUnits = unitsByCourse.get(course._id.toString()) || [];
     if (courseUnits.length === 0) {
       issues.push({
         severity: 'CRITICAL',
@@ -114,26 +146,28 @@ export async function runCurriculumAudit(): Promise<CurriculumAuditReport> {
       });
     }
 
-    const courseLessons = lessons.filter((l) =>
-      courseUnits.some((u) => u._id.toString() === l.unitId?.toString())
-    );
+    let courseLessonsCount = 0;
+    for (const u of courseUnits) {
+      const uLessons = lessonsByUnit.get(u._id.toString()) || [];
+      courseLessonsCount += uLessons.length;
+    }
 
-    if (courseLessons.length !== course.totalLessons) {
+    if (courseLessonsCount !== course.totalLessons) {
       issues.push({
         severity: 'MEDIUM',
         courseCode: course.code,
         category: 'METADATA',
-        description: `Course ${course.code} declared totalLessons=${course.totalLessons} but found ${courseLessons.length} lessons.`,
-        suggestedFix: `Update course.totalLessons to match actual count (${courseLessons.length}).`,
+        description: `Course ${course.code} declared totalLessons=${course.totalLessons} but found ${courseLessonsCount} lessons.`,
+        suggestedFix: `Update course.totalLessons to match actual count (${courseLessonsCount}).`,
       });
     }
   }
 
   // 2. Audit Lessons & Exercises
   for (const lesson of lessons) {
-    const lessonExercises = exercises.filter((ex) => ex.lessonId?.toString() === lesson._id.toString());
-    const unit = units.find((u) => u._id.toString() === lesson.unitId?.toString());
-    const course = courses.find((c) => c._id.toString() === unit?.courseId?.toString());
+    const lessonExercises = exercisesByLesson.get(lesson._id.toString()) || [];
+    const unit = unitsById.get(lesson.unitId?.toString());
+    const course = unit ? coursesById.get(unit.courseId?.toString()) : null;
     const courseCode = course?.code || 'unknown';
 
     if (lessonExercises.length === 0) {
