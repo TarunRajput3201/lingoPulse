@@ -42,9 +42,9 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
   const handlePlayReference = () => {
     HapticsService.lightTap();
     if (referenceAudioUrl) {
-      SoundService.playRemoteAudio(referenceAudioUrl);
+      SoundService.playRemoteAudio(referenceAudioUrl).catch(() => {});
     } else {
-      SoundService.playSuccessChime();
+      SoundService.playSuccessChime().catch(() => {});
     }
   };
 

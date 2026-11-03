@@ -89,8 +89,8 @@ export default function PracticeScreen() {
           prev ? { ...prev, hearts: Math.min(5, (prev.hearts || 0) + 1) } : null
         );
 
-        SoundService.playSuccessChime();
-        HapticsService.success();
+        SoundService.playSuccessChime().catch(() => {});
+        HapticsService.success().catch(() => {});
         setStatusMessage('Practice complete! Recovered +1 Heart.');
         setMistakes([]);
 

@@ -45,6 +45,9 @@ jobs:
           MONGO_URI: mongodb://localhost:27017/lingopulse
         run: npm run test:curriculum
 
+      - name: Run Mobile Learning Journey & Hermes Crash Safety Suite
+        run: npm run test:journey
+
       - name: Run Backend Integration & Unit Tests
         working-directory: backend
         env:

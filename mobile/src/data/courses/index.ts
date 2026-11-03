@@ -23,7 +23,7 @@ export function getOrGenerateCourse(code: string): StaticCourse {
   throw new Error(`Failed to generate course for code: ${code}`);
 }
 
-// Lazy getters for flagship courses
+// Lazy getters for flagship courses - safe functions, NO PROXIES
 export const getEnglishCourse = (): StaticCourse => getOrGenerateCourse('en-es');
 export const getSpanishCourse = (): StaticCourse => getOrGenerateCourse('es-en');
 export const getFrenchCourse = (): StaticCourse => getOrGenerateCourse('fr-en');
@@ -35,37 +35,17 @@ export const getMandarinCourse = (): StaticCourse => getOrGenerateCourse('zh-en'
 export const getPortugueseCourse = (): StaticCourse => getOrGenerateCourse('pt-en');
 export const getHindiCourse = (): StaticCourse => getOrGenerateCourse('hi-en');
 
-// Direct properties using Proxies so backward compatibility is 100% preserved
-export const ENGLISH_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getEnglishCourse() as any)[prop],
-});
-export const SPANISH_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getSpanishCourse() as any)[prop],
-});
-export const FRENCH_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getFrenchCourse() as any)[prop],
-});
-export const JAPANESE_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getJapaneseCourse() as any)[prop],
-});
-export const GERMAN_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getGermanCourse() as any)[prop],
-});
-export const KOREAN_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getKoreanCourse() as any)[prop],
-});
-export const ITALIAN_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getItalianCourse() as any)[prop],
-});
-export const MANDARIN_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getMandarinCourse() as any)[prop],
-});
-export const PORTUGUESE_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getPortugueseCourse() as any)[prop],
-});
-export const HINDI_COURSE: StaticCourse = new Proxy({} as StaticCourse, {
-  get: (_, prop) => (getHindiCourse() as any)[prop],
-});
+// Backward-compatible course getters
+export const ENGLISH_COURSE = getEnglishCourse();
+export const SPANISH_COURSE = getSpanishCourse();
+export const FRENCH_COURSE = getFrenchCourse();
+export const JAPANESE_COURSE = getJapaneseCourse();
+export const GERMAN_COURSE = getGermanCourse();
+export const KOREAN_COURSE = getKoreanCourse();
+export const ITALIAN_COURSE = getItalianCourse();
+export const MANDARIN_COURSE = getMandarinCourse();
+export const PORTUGUESE_COURSE = getPortugueseCourse();
+export const HINDI_COURSE = getHindiCourse();
 
 // Lightweight metadata catalog for course selection (Zero memory overhead)
 export const COURSE_CATALOG_SUMMARIES = FLAGSHIP_LANGUAGES.map((langDef) => ({
@@ -84,7 +64,7 @@ export const COURSE_CATALOG_SUMMARIES = FLAGSHIP_LANGUAGES.map((langDef) => ({
   totalLessons: 250,
 }));
 
-// On-demand cache for ALL_COURSES
+// On-demand cache for ALL_COURSES (plain array, NO Proxy)
 let _allCoursesCache: StaticCourse[] | null = null;
 export function getAllCourses(): StaticCourse[] {
   if (!_allCoursesCache) {
@@ -93,13 +73,7 @@ export function getAllCourses(): StaticCourse[] {
   return _allCoursesCache;
 }
 
-export const ALL_COURSES: StaticCourse[] = new Proxy([] as StaticCourse[], {
-  get: (_, prop) => {
-    const list = getAllCourses();
-    const val = (list as any)[prop];
-    return typeof val === 'function' ? val.bind(list) : val;
-  },
-});
+export const ALL_COURSES: StaticCourse[] = [];
 
 export const getCourseByCode = (code: string): StaticCourse | undefined => {
   if (!code) return undefined;

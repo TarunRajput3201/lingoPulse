@@ -24,7 +24,7 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
 }) => {
   const handlePlayAudio = (isSlow: boolean = false) => {
     HapticsService.lightTap();
-    SoundService.playRemoteAudio(audioUrl);
+    SoundService.playRemoteAudio(audioUrl).catch(() => {});
   };
 
   return (

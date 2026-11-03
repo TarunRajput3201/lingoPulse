@@ -172,37 +172,50 @@ export const CurriculumService = {
 
     const { isCorrect, explanation } = validateLocalAnswer(exercise, userAnswer);
 
-    let hearts = await StorageService.getJSON<number>(HEARTS_KEY, 5);
+    try {
+      let hearts = await StorageService.getJSON<number>(HEARTS_KEY, 5);
 
-    if (!isCorrect) {
-      hearts = Math.max(0, hearts - 1);
-      await StorageService.setJSON(HEARTS_KEY, hearts);
+      if (!isCorrect) {
+        hearts = Math.max(0, hearts - 1);
+        await StorageService.setJSON(HEARTS_KEY, hearts).catch(() => {});
 
-      // Save mistake for practice drill
-      const mistakes = await StorageService.getJSON<LocalMistake[]>(MISTAKES_KEY, []);
-      const newMistake: LocalMistake = {
-        id: `mistake-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-        exerciseId,
-        prompt: exercise.prompt,
-        instruction: exercise.instruction,
-        userAnswer: typeof userAnswer === 'string' ? userAnswer : JSON.stringify(userAnswer),
-        targetAnswer:
-          exercise.data.acceptableAnswers?.[0] ||
-          exercise.data.fullSentence ||
+        // Save mistake for practice drill
+        const mistakes = await StorageService.getJSON<LocalMistake[]>(MISTAKES_KEY, []);
+        const targetAns =
+          exercise.data?.acceptableAnswers?.[0] ||
+          exercise.data?.fullSentence ||
+          (Array.isArray(exercise.data?.options) && exercise.data?.correctOptionId
+            ? exercise.data.options.find((o: any) => o && o.id === exercise.data.correctOptionId)?.text
+            : undefined) ||
           exercise.explanation ||
-          'Correct form',
-        explanation: exercise.explanation,
-        language: lessonData.course.toLanguage,
-        date: new Date().toISOString(),
-      };
-      await StorageService.setJSON(MISTAKES_KEY, [newMistake, ...mistakes]);
-    }
+          'Correct form';
 
-    return {
-      isCorrect,
-      explanation,
-      heartsRemaining: hearts,
-    };
+        const newMistake: LocalMistake = {
+          id: `mistake-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+          exerciseId,
+          prompt: exercise.prompt || '',
+          instruction: exercise.instruction || '',
+          userAnswer: typeof userAnswer === 'string' ? userAnswer : JSON.stringify(userAnswer),
+          targetAnswer: typeof targetAns === 'string' ? targetAns : JSON.stringify(targetAns),
+          explanation: exercise.explanation || '',
+          language: lessonData.course?.toLanguage || 'es',
+          date: new Date().toISOString(),
+        };
+        await StorageService.setJSON(MISTAKES_KEY, [newMistake, ...mistakes]).catch(() => {});
+      }
+
+      return {
+        isCorrect,
+        explanation,
+        heartsRemaining: hearts,
+      };
+    } catch {
+      return {
+        isCorrect,
+        explanation,
+        heartsRemaining: 5,
+      };
+    }
   },
 
   // 5. Complete Lesson

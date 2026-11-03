@@ -242,31 +242,45 @@ export default function LessonScreen() {
 
       if (localResult.isCorrect) {
         setConsecutiveCombo((prev) => prev + 1);
-        SoundService.playSuccessChime();
-        HapticsService.success();
+        SoundService.playSuccessChime().catch(() => {});
+        HapticsService.success().catch(() => {});
         setFeedback({
           status: 'correct',
-          explanation: localResult.explanation || currentExercise.explanation || 'Nicely done!',
-          pedagogicalTip: (localResult as any).pedagogicalTip,
-          hasAccentWarning: (localResult as any).hasAccentWarning,
+          explanation: String(localResult.explanation || currentExercise.explanation || 'Nicely done!'),
+          pedagogicalTip: (localResult as any).pedagogicalTip ? String((localResult as any).pedagogicalTip) : undefined,
+          hasAccentWarning: Boolean((localResult as any).hasAccentWarning),
         });
       } else {
         setConsecutiveCombo(0);
-        SoundService.playErrorThud();
-        HapticsService.error();
+        SoundService.playErrorThud().catch(() => {});
+        HapticsService.error().catch(() => {});
         const remaining = localResult.heartsRemaining;
         updateUserLocally((prev) =>
           prev ? { ...prev, hearts: remaining } : null
         );
 
+        let targetSolution =
+          currentExercise.data?.acceptableAnswers?.[0] ||
+          currentExercise.data?.fullSentence ||
+          '';
+
+        if (!targetSolution && Array.isArray(currentExercise.data?.options) && currentExercise.data?.correctOptionId) {
+          const correctOpt = currentExercise.data.options.find(
+            (o: any) => o && o.id === currentExercise.data.correctOptionId
+          );
+          if (correctOpt) {
+            targetSolution = typeof correctOpt === 'string' ? correctOpt : correctOpt.text;
+          }
+        }
+
+        if (!targetSolution) {
+          targetSolution = currentExercise.explanation || 'Correct form';
+        }
+
         setFeedback({
           status: 'incorrect',
-          correctAnswer:
-            currentExercise.data?.acceptableAnswers?.[0] ||
-            currentExercise.data?.fullSentence ||
-            currentExercise.explanation ||
-            '',
-          explanation: localResult.explanation || currentExercise.explanation || '',
+          correctAnswer: typeof targetSolution === 'string' ? targetSolution : JSON.stringify(targetSolution),
+          explanation: String(localResult.explanation || currentExercise.explanation || ''),
         });
 
         if (remaining <= 0) {
@@ -318,7 +332,7 @@ export default function LessonScreen() {
         };
         setCompletionResult(completionData);
         setIsCompleted(true);
-        SoundService.playFanfare();
+        SoundService.playFanfare().catch(() => {});
 
         updateUserLocally((prev) =>
           prev

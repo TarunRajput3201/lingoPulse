@@ -6,6 +6,7 @@
 
 import {
   ALL_COURSES,
+  getAllCourses,
   ENGLISH_COURSE,
   SPANISH_COURSE,
   FRENCH_COURSE,
@@ -60,6 +61,7 @@ export interface StaticExercise {
   lessonId: string;
   type:
     | 'MULTIPLE_CHOICE'
+    | 'IMAGE_SELECT'
     | 'TRANSLATION'
     | 'WORD_ORDER'
     | 'FILL_IN_THE_BLANK'
@@ -219,12 +221,12 @@ export {
 // 3. Curriculum Helper Functions
 // ----------------------------------------------------------------------------
 export const getStaticCourses = (): StaticCourse[] => {
-  return STATIC_COURSES;
+  return getAllCourses();
 };
 
 export const getStaticCourseById = (courseId: string): StaticCourse | undefined => {
   if (!courseId) return undefined;
-  return getCourseById(courseId) || STATIC_COURSES.find((c) => c._id === courseId || c.id === courseId || c.code === courseId);
+  return getCourseById(courseId) || getAllCourses().find((c) => c._id === courseId || c.id === courseId || c.code === courseId);
 };
 
 export const getStaticCourseByLanguage = (targetLang?: string): StaticCourse | undefined => {
@@ -261,7 +263,7 @@ export const getStaticLessonById = (
   }
 
   // Second pass: full search across all courses
-  for (const course of STATIC_COURSES) {
+  for (const course of getAllCourses()) {
     for (const unit of course.units) {
       for (const lesson of unit.lessons) {
         if (lesson.id === lessonId || (lesson as any)._id === lessonId || (lesson as any).staticId === lessonId) {
@@ -278,7 +280,7 @@ export const getStaticLessonById = (
   // Third pass: if lessonId is a MongoDB 24-char ObjectId or numeric index,
   // gracefully fallback to the first lesson of the target or default course
   const fallbackLang = preferredLanguage || 'es';
-  const fallbackCourse = getCourseByLanguage(fallbackLang) || STATIC_COURSES[0];
+  const fallbackCourse = getCourseByLanguage(fallbackLang) || getAllCourses()[0];
   if (fallbackCourse && fallbackCourse.units?.[0]?.lessons?.[0]) {
     const fallbackLesson = fallbackCourse.units[0].lessons[0];
     return {
@@ -292,8 +294,13 @@ export const getStaticLessonById = (
 };
 
 // Normalization for answers (accents, punctuation, case, whitespace)
-export const normalizeText = (text: string): string => {
-  return (text || '')
+export const normalizeText = (text: any): string => {
+  if (typeof text !== 'string') {
+    if (text === null || text === undefined) return '';
+    if (typeof text === 'number' || typeof text === 'boolean') return String(text);
+    return '';
+  }
+  return text
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -306,13 +313,114 @@ export const validateLocalAnswer = (
   exercise: StaticExercise,
   userAnswer: any
 ): { isCorrect: boolean; explanation?: string } => {
-  const { type, data } = exercise;
+  try {
+    if (!exercise) return { isCorrect: true };
+    const type = exercise.type;
+    const data = exercise.data || {};
 
-  switch (type) {
-    case 'MULTIPLE_CHOICE': {
-      if (typeof userAnswer === 'string') {
+    switch (type) {
+      case 'IMAGE_SELECT':
+      case 'MULTIPLE_CHOICE': {
+        if (typeof userAnswer === 'string') {
+          const matchesId = userAnswer === data.correctOptionId;
+          const correctOpt = Array.isArray(data.options)
+            ? data.options.find((o: any) => o && o.id === data.correctOptionId)
+            : undefined;
+          const matchesText =
+            correctOpt && normalizeText(correctOpt.text) === normalizeText(userAnswer);
+          return {
+            isCorrect: Boolean(matchesId || matchesText),
+            explanation: exercise.explanation,
+          };
+        }
+        return { isCorrect: false, explanation: exercise.explanation };
+      }
+
+      case 'TRANSLATION':
+      case 'FILL_IN_THE_BLANK': {
+        const userNorm = normalizeText(userAnswer);
+        const acceptable = Array.isArray(data.acceptableAnswers)
+          ? data.acceptableAnswers
+          : typeof data.acceptableAnswers === 'string'
+          ? [data.acceptableAnswers]
+          : [];
+        const isCorrect = acceptable.some((ans: string) => normalizeText(ans) === userNorm);
+        return { isCorrect, explanation: exercise.explanation };
+      }
+
+      case 'WORD_ORDER': {
+        const targetSentence =
+          data.fullSentence ||
+          (Array.isArray(data.correctOrder) ? data.correctOrder.join(' ') : '') ||
+          '';
+        const userSentence = Array.isArray(userAnswer)
+          ? userAnswer.join(' ')
+          : String(userAnswer || '');
+        const isCorrect = normalizeText(userSentence) === normalizeText(targetSentence);
+        return { isCorrect, explanation: exercise.explanation };
+      }
+
+      case 'SENTENCE_CONSTRUCTION': {
+        const target =
+          (Array.isArray(data.correctSentence) ? data.correctSentence.join(' ') : '') ||
+          String(data.fullSentence || '');
+        const userSentence = Array.isArray(userAnswer)
+          ? userAnswer.join(' ')
+          : String(userAnswer || '');
+        const isCorrect = normalizeText(userSentence) === normalizeText(target);
+        return { isCorrect, explanation: exercise.explanation };
+      }
+
+      case 'TRUE_FALSE': {
+        const boolAnswer =
+          typeof userAnswer === 'boolean'
+            ? userAnswer
+            : String(userAnswer).toLowerCase() === 'true';
+        return {
+          isCorrect: boolAnswer === Boolean(data.isTrue),
+          explanation: exercise.explanation,
+        };
+      }
+
+      case 'MATCHING_PAIRS': {
+        const pairs: Array<{ id: string; leftText: string; rightText: string }> = data.pairs || [];
+        if (!pairs.length) {
+          return { isCorrect: true, explanation: exercise.explanation };
+        }
+        if (!userAnswer) {
+          return { isCorrect: false, explanation: exercise.explanation };
+        }
+        let correctCount = 0;
+        if (Array.isArray(userAnswer)) {
+          pairs.forEach((pair) => {
+            const found = userAnswer.find(
+              (u: any) =>
+                u &&
+                (u.leftId === pair.id || normalizeText(u.leftId) === normalizeText(pair.leftText)) &&
+                (u.rightId === pair.id || normalizeText(u.rightId) === normalizeText(pair.rightText))
+            );
+            if (found) correctCount++;
+          });
+        } else if (typeof userAnswer === 'object' && userAnswer !== null) {
+          pairs.forEach((pair) => {
+            const userRight = userAnswer[pair.id] ?? userAnswer[pair.leftText];
+            if (userRight !== undefined) {
+              const matchedById = String(userRight).trim() === String(pair.id).trim();
+              const matchedByText =
+                normalizeText(String(userRight)) === normalizeText(pair.rightText);
+              if (matchedById || matchedByText) correctCount++;
+            }
+          });
+        }
+        const isCorrect = correctCount === pairs.length;
+        return { isCorrect, explanation: exercise.explanation };
+      }
+
+      case 'LISTENING_COMPREHENSION': {
         const matchesId = userAnswer === data.correctOptionId;
-        const correctOpt = data.options?.find((o: any) => o.id === data.correctOptionId);
+        const correctOpt = Array.isArray(data.options)
+          ? data.options.find((o: any) => o && o.id === data.correctOptionId)
+          : undefined;
         const matchesText =
           correctOpt && normalizeText(correctOpt.text) === normalizeText(userAnswer);
         return {
@@ -320,67 +428,19 @@ export const validateLocalAnswer = (
           explanation: exercise.explanation,
         };
       }
-      return { isCorrect: false, explanation: exercise.explanation };
-    }
 
-    case 'TRANSLATION':
-    case 'FILL_IN_THE_BLANK': {
-      const userNorm = normalizeText(String(userAnswer || ''));
-      const acceptable = data.acceptableAnswers || [];
-      const isCorrect = acceptable.some((ans) => normalizeText(ans) === userNorm);
-      return { isCorrect, explanation: exercise.explanation };
-    }
+      case 'SPEAKING_PRONUNCIATION': {
+        if (!userAnswer || typeof userAnswer !== 'string') {
+          return { isCorrect: false, explanation: exercise.explanation };
+        }
+        return { isCorrect: true, explanation: exercise.explanation };
+      }
 
-    case 'WORD_ORDER': {
-      const targetSentence = data.fullSentence || (data.correctOrder || []).join(' ');
-      const userSentence = Array.isArray(userAnswer)
-        ? userAnswer.join(' ')
-        : String(userAnswer || '');
-      const isCorrect = normalizeText(userSentence) === normalizeText(targetSentence);
-      return { isCorrect, explanation: exercise.explanation };
+      default:
+        return { isCorrect: true, explanation: exercise.explanation };
     }
-
-    case 'SENTENCE_CONSTRUCTION': {
-      const target = (data.correctSentence || []).join(' ');
-      const userSentence = Array.isArray(userAnswer)
-        ? userAnswer.join(' ')
-        : String(userAnswer || '');
-      const isCorrect = normalizeText(userSentence) === normalizeText(target);
-      return { isCorrect, explanation: exercise.explanation };
-    }
-
-    case 'TRUE_FALSE': {
-      const boolAnswer =
-        typeof userAnswer === 'boolean'
-          ? userAnswer
-          : String(userAnswer).toLowerCase() === 'true';
-      return {
-        isCorrect: boolAnswer === Boolean(data.isTrue),
-        explanation: exercise.explanation,
-      };
-    }
-
-    case 'MATCHING_PAIRS': {
-      return { isCorrect: true, explanation: exercise.explanation };
-    }
-
-    case 'LISTENING_COMPREHENSION': {
-      const matchesId = userAnswer === data.correctOptionId;
-      const correctOpt = data.options?.find((o: any) => o.id === data.correctOptionId);
-      const matchesText =
-        correctOpt && normalizeText(correctOpt.text) === normalizeText(userAnswer);
-      return {
-        isCorrect: Boolean(matchesId || matchesText),
-        explanation: exercise.explanation,
-      };
-    }
-
-    case 'SPEAKING_PRONUNCIATION': {
-      return { isCorrect: true, explanation: exercise.explanation };
-    }
-
-    default:
-      return { isCorrect: true, explanation: exercise.explanation };
+  } catch {
+    return { isCorrect: false, explanation: exercise?.explanation };
   }
 };
 
