@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
@@ -9,31 +9,28 @@ export default function RootIndex() {
   const router = useRouter();
   const { user, token, isLoading } = useAuth();
 
+  const hasNavigatedRef = useRef(false);
+
   useEffect(() => {
+    if (isLoading || hasNavigatedRef.current) return;
 
-    if (isLoading) return;
-
-    if (!token || !user) {
-      router.replace('/(auth)/login');
-    } else if (!user.hasCompletedOnboarding) {
-      router.replace('/onboarding/index');
-    } else {
-      router.replace('/(tabs)');
-    }
-  }, [isLoading, token, user]);
-
-  // Failsafe: Never allow splash to hang longer than 250ms under any condition
-  useEffect(() => {
-    const fallbackTimer = setTimeout(() => {
-      if (!token || !user) {
-        router.replace('/(auth)/login');
-      } else {
-        router.replace('/(tabs)');
+    hasNavigatedRef.current = true;
+    const timer = setTimeout(() => {
+      try {
+        if (!token || !user) {
+          router.replace('/(auth)/login');
+        } else if (!user.hasCompletedOnboarding) {
+          router.replace('/onboarding/index');
+        } else {
+          router.replace('/(tabs)');
+        }
+      } catch (e) {
+        console.warn('[RootIndex] Navigation error:', e);
       }
-    }, 250);
+    }, 50);
 
-    return () => clearTimeout(fallbackTimer);
-  }, []);
+    return () => clearTimeout(timer);
+  }, [isLoading, token, user, router]);
 
 
   return (
