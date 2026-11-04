@@ -282,3 +282,20 @@ export const completeLesson = async (req: AuthenticatedRequest, res: Response): 
     unlockedAchievements,
   });
 };
+
+export const validateAnswerOnly = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const { userAnswer, correctAnswer, acceptableAnswers } = req.body;
+  const acceptable = acceptableAnswers || (correctAnswer ? [correctAnswer] : []);
+  const result = ExerciseValidator.compareWithAccentTolerance(
+    typeof userAnswer === 'string' ? userAnswer : String(userAnswer || ''),
+    acceptable
+  );
+  res.json(result);
+};
+
+export const loseHeart = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const user = req.user!;
+  const heartsRemaining = HeartService.deductHeart(user);
+  await user.save();
+  res.json({ heartsRemaining });
+};

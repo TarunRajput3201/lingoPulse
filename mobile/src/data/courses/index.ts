@@ -126,3 +126,22 @@ export const getCourseById = (courseId: string): StaticCourse | undefined => {
   const norm = courseId.toLowerCase().trim().replace(/^course-/, '');
   return getOrGenerateCourse(norm);
 };
+
+export interface SupportedLanguageMeta {
+  code: string;
+  name: string;
+  nativeName: string;
+  flag: string;
+  isRTL?: boolean;
+}
+
+export const SUPPORTED_LANGUAGES: SupportedLanguageMeta[] = FLAGSHIP_LANGUAGES.map((l) => ({
+  code: l.toLanguage,
+  name: l.title.replace(/ Academy$/, ''),
+  nativeName: l.nativeName || l.title,
+  flag: l.flagIcon,
+  isRTL: !!l.isRTL,
+}));
+
+export const getCourseData = (code: string): StaticCourse | undefined => getOrGenerateCourse(code);
+export const getCourseSummaryList = () => COURSE_CATALOG_SUMMARIES;
