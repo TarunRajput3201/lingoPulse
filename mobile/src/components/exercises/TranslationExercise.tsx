@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, TextInput, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { Volume2 } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
+import { SoundService } from '../../services/soundService';
 
 interface TranslationExerciseProps {
   prompt: string;
@@ -125,7 +127,20 @@ export const TranslationExercise: React.FC<TranslationExerciseProps> = ({
 
       {shouldShowSourceBox ? (
         <View style={styles.sourceBox}>
-          <Text style={styles.sourceLabel}>Phrase:</Text>
+          <View style={styles.sourceHeaderRow}>
+            <Text style={styles.sourceLabel}>Phrase:</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Listen to phrase pronunciation"
+              onPress={() => {
+                HapticsService.lightTap();
+                SoundService.speak(sourceText!, { lang: targetLanguage });
+              }}
+              style={styles.speakerButton}
+            >
+              <Volume2 size={20} color={COLORS.secondaryDark} />
+            </Pressable>
+          </View>
           <Text style={styles.sourceText}>{sourceText}</Text>
         </View>
       ) : null}
@@ -192,6 +207,17 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 2,
     borderColor: COLORS.grayBorder,
+  },
+  sourceHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  speakerButton: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#E0F2FE',
   },
   sourceLabel: {
     fontSize: 11,

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Volume2 } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
+import { SoundService } from '../../services/soundService';
 
 interface WordOrderExerciseProps {
   prompt: string;
@@ -11,6 +13,7 @@ interface WordOrderExerciseProps {
   onSelectWord?: (word: string, index: number) => void;
   onRemoveWord?: (word: string, index: number) => void;
   onChangeWords?: (words: string[]) => void;
+  targetLanguage?: string;
   disabled?: boolean;
 }
 
@@ -22,6 +25,7 @@ export const WordOrderExercise: React.FC<WordOrderExerciseProps> = ({
   onSelectWord,
   onRemoveWord,
   onChangeWords,
+  targetLanguage = 'es',
   disabled = false,
 }) => {
   // Track selected items by wordBank index to support duplicate words seamlessly (BUG-006 fix)
@@ -41,6 +45,7 @@ export const WordOrderExercise: React.FC<WordOrderExerciseProps> = ({
   const handleSelectWord = (word: string, bankIndex: number) => {
     if (disabled || selectedIndices.includes(bankIndex)) return;
     HapticsService.lightTap();
+    SoundService.speak(word, { lang: targetLanguage });
 
     const nextIndices = [...selectedIndices, bankIndex];
     setSelectedIndices(nextIndices);
@@ -75,11 +80,39 @@ export const WordOrderExercise: React.FC<WordOrderExerciseProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.prompt}>{prompt}</Text>
+      <View style={styles.promptHeader}>
+        <Text style={styles.prompt}>{prompt}</Text>
+        {!sourcePrompt ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Read prompt aloud"
+            onPress={() => {
+              HapticsService.lightTap();
+              SoundService.speak(prompt, { lang: targetLanguage });
+            }}
+            style={styles.speakerIconBtn}
+          >
+            <Volume2 size={22} color={COLORS.secondaryDark} />
+          </Pressable>
+        ) : null}
+      </View>
 
       {sourcePrompt ? (
         <View style={styles.sourceBox}>
-          <Text style={styles.sourceLabel}>Translate:</Text>
+          <View style={styles.sourceHeaderRow}>
+            <Text style={styles.sourceLabel}>Translate:</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Listen to source phrase"
+              onPress={() => {
+                HapticsService.lightTap();
+                SoundService.speak(sourcePrompt, { lang: targetLanguage });
+              }}
+              style={styles.speakerButton}
+            >
+              <Volume2 size={20} color={COLORS.secondaryDark} />
+            </Pressable>
+          </View>
           <Text style={styles.sourceText}>{sourcePrompt}</Text>
         </View>
       ) : null}
@@ -149,12 +182,26 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
   },
+  promptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    gap: 12,
+  },
   prompt: {
+    flex: 1,
     fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: '800',
     color: COLORS.charcoal,
     lineHeight: 28,
-    marginBottom: 16,
+  },
+  speakerIconBtn: {
+    padding: 8,
+    borderRadius: RADII.md,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sourceBox: {
     backgroundColor: COLORS.surfaceAlt,
@@ -164,13 +211,23 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.grayBorder,
   },
+  sourceHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  speakerButton: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#E0F2FE',
+  },
   sourceLabel: {
     fontSize: 11,
     fontWeight: '800',
     color: COLORS.grayText,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
-    marginBottom: 4,
   },
   sourceText: {
     fontSize: TYPOGRAPHY.sizes.lg,

@@ -1,14 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Check, X } from 'lucide-react-native';
+import { Check, X, Volume2 } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
+import { SoundService } from '../../services/soundService';
 
 interface TrueFalseExerciseProps {
   prompt: string;
   statement: string;
   selectedValue: boolean | null;
   onSelectValue: (val: boolean) => void;
+  targetLanguage?: string;
   disabled?: boolean;
 }
 
@@ -17,11 +19,25 @@ export const TrueFalseExercise: React.FC<TrueFalseExerciseProps> = ({
   statement,
   selectedValue,
   onSelectValue,
+  targetLanguage = 'es',
   disabled = false,
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.prompt}>{prompt}</Text>
+      <View style={styles.promptHeader}>
+        <Text style={styles.prompt}>{prompt}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Read statement aloud"
+          onPress={() => {
+            HapticsService.lightTap();
+            SoundService.speak(statement || prompt, { lang: targetLanguage });
+          }}
+          style={styles.speakerIconBtn}
+        >
+          <Volume2 size={22} color={COLORS.secondaryDark} />
+        </Pressable>
+      </View>
 
       <View style={styles.statementCard}>
         <Text style={styles.statementText}>{statement}</Text>
@@ -90,12 +106,26 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
   },
+  promptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+    gap: 12,
+  },
   prompt: {
+    flex: 1,
     fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: '800',
     color: COLORS.charcoal,
     lineHeight: 28,
-    marginBottom: 20,
+  },
+  speakerIconBtn: {
+    padding: 8,
+    borderRadius: RADII.md,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   statementCard: {
     padding: 24,

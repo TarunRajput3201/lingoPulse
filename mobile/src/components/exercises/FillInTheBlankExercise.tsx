@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput } from 'react-native';
+import { Volume2 } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
+import { SoundService } from '../../services/soundService';
 
 interface FillInTheBlankExerciseProps {
   prompt: string;
@@ -9,6 +11,7 @@ interface FillInTheBlankExerciseProps {
   options?: (string | { id?: string; text: string; [key: string]: any })[];
   selectedWord: string;
   onSelectWord: (word: string) => void;
+  targetLanguage?: string;
   disabled?: boolean;
 }
 
@@ -18,6 +21,7 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
   options = [],
   selectedWord,
   onSelectWord,
+  targetLanguage = 'es',
   disabled = false,
 }) => {
   // Support standard blanks: ___, ____, [blank], <blank>, or missing value markers
@@ -28,7 +32,24 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.prompt}>{prompt}</Text>
+      <View style={styles.promptHeader}>
+        <Text style={styles.prompt}>{prompt}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Read sentence aloud"
+          onPress={() => {
+            HapticsService.lightTap();
+            const textToSpeak =
+              selectedWord
+                ? `${parts[0]} ${typeof selectedWord === 'string' ? selectedWord : (selectedWord as any)?.text ?? String(selectedWord)} ${parts[1] || ''}`
+                : sentenceWithBlank.replace(/_{2,}|\[blank\]|<blank>/g, '...') || prompt;
+            SoundService.speak(textToSpeak, { lang: targetLanguage });
+          }}
+          style={styles.speakerIconBtn}
+        >
+          <Volume2 size={22} color={COLORS.secondaryDark} />
+        </Pressable>
+      </View>
 
       {/* Sentence with Blank Card - Tap to clear if filled */}
       <Pressable
@@ -69,6 +90,7 @@ export const FillInTheBlankExercise: React.FC<FillInTheBlankExerciseProps> = ({
                     onSelectWord(''); // Toggle off
                   } else {
                     onSelectWord(optText);
+                    SoundService.speak(optText, { lang: targetLanguage });
                   }
                 }}
                 style={[
@@ -111,12 +133,26 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
   },
+  promptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+    gap: 12,
+  },
   prompt: {
+    flex: 1,
     fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: '800',
     color: COLORS.charcoal,
     lineHeight: 28,
-    marginBottom: 20,
+  },
+  speakerIconBtn: {
+    padding: 8,
+    borderRadius: RADII.md,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   sentenceCard: {
     padding: 24,

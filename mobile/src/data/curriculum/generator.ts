@@ -246,17 +246,18 @@ export class CurriculumGenerator {
     // Q6: LISTENING_COMPREHENSION
     const v6 = getV(4);
     const q6Distractors = getFamiliarDistractors(v6.target);
+    const q6AudioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(v6.target)}&tl=${lang === 'fa' ? 'ur' : lang}&client=tw-ob`;
     exercises.push({
       id: `ex-${lang}-u${unitNumber}-s${sectionNumber}-6`,
       lessonId,
       type: 'LISTENING_COMPREHENSION',
       prompt: 'Listen carefully and select the spoken expression:',
       instruction: 'Identify the exact spoken phrase',
-      audioUrl: `https://actions.google.com/sounds/v1/speech/${lang}_u${unitNumber}.mp3`,
+      audioUrl: q6AudioUrl,
       order: 6,
       explanation: `The speaker said: "${v6.target}" (${v6.english}).`,
       data: {
-        audioUrl: `https://actions.google.com/sounds/v1/speech/${lang}_u${unitNumber}.mp3`,
+        audioUrl: q6AudioUrl,
         transcript: v6.target,
         correctOptionId: 'opt-6-correct',
         options: [
@@ -289,17 +290,20 @@ export class CurriculumGenerator {
 
     // Q8: SPEAKING_PRONUNCIATION
     const v8 = getV(6);
+    const q8AudioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(v8.target)}&tl=${lang === 'fa' ? 'ur' : lang}&client=tw-ob`;
     exercises.push({
       id: `ex-${lang}-u${unitNumber}-s${sectionNumber}-8`,
       lessonId,
       type: 'SPEAKING_PRONUNCIATION',
       prompt: `Pronounce the following phrase out loud:`,
       instruction: 'Speak clearly into your microphone',
+      audioUrl: q8AudioUrl,
       order: 8,
       explanation: `Pronunciation guide: [${v8.phonetic || v8.target}]`,
       data: {
         phraseToSpeak: v8.target,
         phoneticGuide: v8.phonetic || v8.target,
+        audioUrl: q8AudioUrl,
       },
     });
 

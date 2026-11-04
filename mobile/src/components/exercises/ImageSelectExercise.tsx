@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
-import { Check } from 'lucide-react-native';
+import { Check, Volume2 } from 'lucide-react-native';
 import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
+import { SoundService } from '../../services/soundService';
 import { CHARACTER_IMAGES } from '../character/CharacterAssets';
 
 interface Option {
@@ -17,6 +18,7 @@ interface ImageSelectExerciseProps {
   options: Option[];
   selectedOptionId: string | null;
   onSelectOption: (id: string) => void;
+  targetLanguage?: string;
   disabled?: boolean;
 }
 
@@ -26,11 +28,15 @@ export const ImageSelectExercise: React.FC<ImageSelectExerciseProps> = ({
   options,
   selectedOptionId,
   onSelectOption,
+  targetLanguage = 'es',
   disabled = false,
 }) => {
-  const handleSelect = (id: string) => {
+  const handleSelect = (id: string, text?: string) => {
     if (disabled) return;
     HapticsService.lightTap();
+    if (text) {
+      SoundService.speak(text, { lang: targetLanguage });
+    }
     onSelectOption(id);
   };
 
@@ -42,7 +48,20 @@ export const ImageSelectExercise: React.FC<ImageSelectExerciseProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.promptText}>{prompt || 'Choose the correct translation:'}</Text>
+      <View style={styles.promptHeader}>
+        <Text style={styles.promptText}>{prompt || 'Choose the correct translation:'}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Read prompt aloud"
+          onPress={() => {
+            HapticsService.lightTap();
+            SoundService.speak(prompt || 'Choose the correct translation', { lang: targetLanguage });
+          }}
+          style={styles.speakerIconBtn}
+        >
+          <Volume2 size={22} color={COLORS.secondaryDark} />
+        </Pressable>
+      </View>
 
       {/* 3D Visual Render Card */}
       <View style={styles.imageCard}>
@@ -59,7 +78,7 @@ export const ImageSelectExercise: React.FC<ImageSelectExerciseProps> = ({
             <Pressable
               key={`${optId}-${idx}`}
               disabled={disabled}
-              onPress={() => handleSelect(optId)}
+              onPress={() => handleSelect(optId, optText)}
               style={[
                 styles.optionButton,
                 isSelected && styles.optionButtonSelected,
@@ -92,12 +111,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
   },
+  promptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    gap: 10,
+    width: '100%',
+  },
   promptText: {
     fontSize: 20,
     fontWeight: '900',
     color: COLORS.charcoal,
     textAlign: 'center',
-    marginBottom: 16,
+  },
+  speakerIconBtn: {
+    padding: 8,
+    borderRadius: RADII.md,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   imageCard: {
     width: 210,

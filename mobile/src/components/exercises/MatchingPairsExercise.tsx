@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Check } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
+import { SoundService } from '../../services/soundService';
 
 interface PairItem {
   id: string;
@@ -15,6 +16,7 @@ interface MatchingPairsExerciseProps {
   pairs: PairItem[];
   matchedPairIds?: string[];
   onCompleteAllPairs: (matches: { [leftId: string]: string }) => void;
+  targetLanguage?: string;
   disabled?: boolean;
 }
 
@@ -22,6 +24,7 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
   prompt,
   pairs = [],
   onCompleteAllPairs,
+  targetLanguage = 'es',
   disabled = false,
 }) => {
   const [selectedLeftId, setSelectedLeftId] = useState<string | null>(null);
@@ -49,6 +52,10 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
   const handleSelectLeft = (id: string) => {
     if (completedMatches[id] || disabled) return;
     HapticsService.lightTap();
+    const item = pairs.find((p) => p.id === id);
+    if (item?.leftText) {
+      SoundService.speak(item.leftText, { lang: targetLanguage });
+    }
     setSelectedLeftId(id);
 
     if (selectedRightId) {
@@ -59,6 +66,10 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
   const handleSelectRight = (id: string) => {
     if (completedMatches[id] || disabled) return;
     HapticsService.lightTap();
+    const item = pairs.find((p) => p.id === id);
+    if (item?.rightText) {
+      SoundService.speak(item.rightText, { lang: 'en' });
+    }
     setSelectedRightId(id);
 
     if (selectedLeftId) {
@@ -70,6 +81,7 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
     if (leftId === rightId) {
       // Correct Match!
       HapticsService.success();
+      SoundService.playCorrect();
       const updated = { ...completedMatches, [leftId]: true };
       setCompletedMatches(updated);
       setSelectedLeftId(null);
@@ -87,6 +99,7 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
     } else {
       // Mismatched
       HapticsService.error();
+      SoundService.playIncorrect();
       setErrorPair({ left: leftId, right: rightId });
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {

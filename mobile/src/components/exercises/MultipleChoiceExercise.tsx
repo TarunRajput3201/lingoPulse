@@ -1,13 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { Volume2 } from 'lucide-react-native';
 import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../constants/theme';
 import { HapticsService } from '../../services/hapticsService';
+import { SoundService } from '../../services/soundService';
 
 interface MultipleChoiceExerciseProps {
   prompt: string;
   options: Array<{ id: string; text: string; translation?: string }>;
   selectedOptionId: string | null;
   onSelectOption: (optionId: string) => void;
+  targetLanguage?: string;
   disabled?: boolean;
 }
 
@@ -16,25 +19,42 @@ export const MultipleChoiceExercise: React.FC<MultipleChoiceExerciseProps> = ({
   options = [],
   selectedOptionId,
   onSelectOption,
+  targetLanguage = 'es',
   disabled = false,
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.prompt}>{prompt}</Text>
+      <View style={styles.promptHeader}>
+        <Text style={styles.prompt}>{prompt}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Read prompt aloud"
+          onPress={() => {
+            HapticsService.lightTap();
+            SoundService.speak(prompt, { lang: targetLanguage });
+          }}
+          style={styles.speakerIconBtn}
+        >
+          <Volume2 size={22} color={COLORS.secondaryDark} />
+        </Pressable>
+      </View>
 
       <View style={styles.optionsList}>
         {options.map((option, index) => {
           const isSelected = selectedOptionId === option.id;
+          const optText = typeof option === 'string' ? option : (option?.text ?? String(option ?? ''));
+          const optId = typeof option === 'string' ? option : (option?.id ?? optText);
           return (
             <Pressable
-              key={option.id || index}
+              key={optId || index}
               disabled={disabled}
               accessibilityRole="radio"
               accessibilityState={{ selected: isSelected, disabled }}
-              accessibilityLabel={`Option ${index + 1}: ${option.text}`}
+              accessibilityLabel={`Option ${index + 1}: ${optText}`}
               onPress={() => {
                 HapticsService.lightTap();
-                onSelectOption(option?.id ?? (typeof option === 'string' ? option : String(index)));
+                SoundService.speak(optText, { lang: targetLanguage });
+                onSelectOption(optId);
               }}
               style={[
                 styles.optionCard,
@@ -64,12 +84,26 @@ const styles = StyleSheet.create({
   container: {
     paddingVertical: 12,
   },
+  promptHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 12,
+  },
   prompt: {
+    flex: 1,
     fontSize: TYPOGRAPHY.sizes.xl,
     fontWeight: '800',
     color: COLORS.charcoal,
     lineHeight: 28,
-    marginBottom: 20,
+  },
+  speakerIconBtn: {
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: '#E0F2FE',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   optionsList: {
     gap: 12,

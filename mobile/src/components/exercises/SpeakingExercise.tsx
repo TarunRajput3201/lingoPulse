@@ -47,25 +47,34 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
     setIsPlayingAudio(true);
     setAudioError(false);
 
+    const effectiveAudioUrl =
+      referenceAudioUrl || SoundService.getTTSAudioUrl(phraseToSpeak, targetLanguage);
+
     try {
       const ok = await SoundService.speak(phraseToSpeak, {
         lang: targetLanguage,
         rate: 0.88,
         onStart: () => setIsPlayingAudio(true),
         onDone: () => setIsPlayingAudio(false),
-        onError: () => {
-          setIsPlayingAudio(false);
-          setAudioError(true);
+        onError: async () => {
+          if (effectiveAudioUrl) {
+            const played = await SoundService.playRemoteAudio(effectiveAudioUrl, { timeoutMs: 5000 });
+            setIsPlayingAudio(false);
+            if (!played) setAudioError(true);
+          } else {
+            setIsPlayingAudio(false);
+            setAudioError(true);
+          }
         },
       });
 
-      if (!ok && referenceAudioUrl) {
-        await SoundService.playRemoteAudio(referenceAudioUrl, { timeoutMs: 3500 });
+      if (!ok && effectiveAudioUrl) {
+        await SoundService.playRemoteAudio(effectiveAudioUrl, { timeoutMs: 5000 });
       }
 
       setTimeout(() => {
         setIsPlayingAudio(false);
-      }, Math.max(1200, phraseToSpeak.length * 90));
+      }, Math.max(1500, phraseToSpeak.length * 100));
     } catch {
       setIsPlayingAudio(false);
       setAudioError(true);

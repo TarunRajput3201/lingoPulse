@@ -12,6 +12,7 @@ import practiceRoutes from './routes/practiceRoutes';
 import leaderboardRoutes from './routes/leaderboardRoutes';
 import achievementRoutes from './routes/achievementRoutes';
 import adminRoutes from './routes/adminRoutes';
+import ttsRoutes from './routes/ttsRoutes';
 import { errorHandler } from './middleware/errorHandler';
 
 export const createApp = (): express.Application => {
@@ -59,6 +60,7 @@ export const createApp = (): express.Application => {
   app.use('/api/leaderboard', leaderboardRoutes);
   app.use('/api/achievements', achievementRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/tts', ttsRoutes);
 
   // Global Error Handler
   app.use(errorHandler);

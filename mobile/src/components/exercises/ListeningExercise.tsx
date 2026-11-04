@@ -83,6 +83,7 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
 
     const spokenText = textToSpeak || prompt;
     const rate = isSlow ? 0.65 : 1.0;
+    const effectiveAudioUrl = audioUrl || (spokenText ? SoundService.getTTSAudioUrl(spokenText, targetLanguage) : '');
 
     try {
       // 1. Primary path: Native/Web TTS pronunciation in authentic language
@@ -99,8 +100,14 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
           onDone: () => {
             if (isMountedRef.current) setIsPlaying(false);
           },
-          onError: () => {
-            if (isMountedRef.current) {
+          onError: async () => {
+            if (effectiveAudioUrl && isMountedRef.current) {
+              const played = await SoundService.playRemoteAudio(effectiveAudioUrl, { timeoutMs: 5000 });
+              if (isMountedRef.current) {
+                setIsPlaying(false);
+                if (!played) setHasError(true);
+              }
+            } else if (isMountedRef.current) {
               setIsPlaying(false);
               setHasError(true);
             }
@@ -111,17 +118,18 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
           // Fallback auto-timer in case speech engine onDone doesn't fire
           setTimeout(() => {
             if (isMountedRef.current) setIsPlaying(false);
-          }, Math.max(1200, spokenText.length * 90));
+          }, Math.max(1500, spokenText.length * 100));
           return;
         }
       }
 
       // 2. Secondary fallback path: Remote audio URL
-      if (audioUrl) {
+      if (effectiveAudioUrl) {
         setIsLoading(true);
-        const played = await SoundService.playRemoteAudio(audioUrl, { timeoutMs: 3500 });
+        const played = await SoundService.playRemoteAudio(effectiveAudioUrl, { timeoutMs: 5000 });
         if (isMountedRef.current) {
           setIsLoading(false);
+          setIsPlaying(false);
           if (!played && !spokenText) {
             setHasError(true);
           }

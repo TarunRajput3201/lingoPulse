@@ -666,6 +666,7 @@ export default function LessonScreen() {
             options={currentExercise.data?.options || []}
             selectedOptionId={mcSelectedId}
             onSelectOption={setMcSelectedId}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -677,6 +678,7 @@ export default function LessonScreen() {
               options={currentExercise.data?.options || []}
               selectedOptionId={mcSelectedId}
               onSelectOption={setMcSelectedId}
+              targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
               disabled={feedback.status !== 'none'}
             />
           )}
@@ -704,6 +706,7 @@ export default function LessonScreen() {
             }
             selectedWords={selectedWords}
             onChangeWords={setSelectedWords}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -713,6 +716,7 @@ export default function LessonScreen() {
             prompt={currentExercise.prompt}
             pairs={currentExercise.data?.pairs || []}
             onCompleteAllPairs={setMatchedPairs}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -724,6 +728,7 @@ export default function LessonScreen() {
             options={currentExercise.data?.options}
             selectedWord={typedAnswer}
             onSelectWord={setTypedAnswer}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -731,7 +736,14 @@ export default function LessonScreen() {
         {currentExercise?.type === 'LISTENING_COMPREHENSION' && (
           <ListeningExercise
             prompt={currentExercise.prompt}
-            audioUrl={currentExercise.audioUrl || currentExercise.data?.audioUrl}
+            audioUrl={
+              currentExercise.audioUrl ||
+              currentExercise.data?.audioUrl ||
+              SoundService.getTTSAudioUrl(
+                currentExercise.data?.transcript || currentExercise.data?.phraseToSpeak || currentExercise.prompt,
+                course?.toLanguage || user?.targetLanguage || 'es'
+              )
+            }
             textToSpeak={currentExercise.data?.transcript || currentExercise.data?.phraseToSpeak || currentExercise.prompt}
             targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             options={currentExercise.data?.options || []}
@@ -747,6 +759,7 @@ export default function LessonScreen() {
             statement={currentExercise.data?.statement || currentExercise.prompt}
             selectedValue={tfSelectedVal}
             onSelectValue={setTfSelectedVal}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -757,9 +770,17 @@ export default function LessonScreen() {
             prompt={currentExercise.prompt}
             phraseToSpeak={currentExercise.data?.phraseToSpeak || currentExercise.prompt}
             phoneticGuide={currentExercise.data?.phoneticGuide}
+            referenceAudioUrl={
+              currentExercise.audioUrl ||
+              currentExercise.data?.audioUrl ||
+              SoundService.getTTSAudioUrl(
+                currentExercise.data?.phraseToSpeak || currentExercise.prompt,
+                course?.toLanguage || user?.targetLanguage || 'es'
+              )
+            }
             spokenText={spokenCaptured}
             onSpokenRecorded={setSpokenCaptured}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'fr'}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             disabled={feedback.status !== 'none'}
           />
         )}
