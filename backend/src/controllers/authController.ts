@@ -65,8 +65,8 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
       dailyGoalMinutes: data.dailyGoalMinutes,
       timezone: data.timezone,
     },
-    hearts: 5,
-    maxHearts: 5,
+    hearts: 100,
+    maxHearts: 100,
     lastHeartRefillAt: new Date(),
     totalXp: 0,
     currentStreak: 0,
@@ -174,3 +174,17 @@ export const deleteAccount = async (req: AuthenticatedRequest, res: Response): P
 
   res.json({ message: 'Account and all associated learning records have been permanently deleted.' });
 };
+
+export const getHearts = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const user = req.user!;
+  const { updated } = HeartService.refreshHearts(user);
+  if (updated) await user.save();
+  const status = HeartService.getHeartStatus(user);
+  res.json({
+    hearts: status.hearts,
+    maxHearts: status.maxHearts,
+    lastHeartRefillAt: status.lastHeartRefillAt,
+    nextHeartInSeconds: status.nextHeartInSeconds,
+  });
+};
+

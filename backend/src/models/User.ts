@@ -106,13 +106,13 @@ const UserSchema = new Schema<IUser>(
     },
     hearts: {
       type: Number,
-      default: 5,
+      default: 100,
       min: 0,
-      max: 5,
+      max: 100,
     },
     maxHearts: {
       type: Number,
-      default: 5,
+      default: 100,
     },
     lastHeartRefillAt: {
       type: Date,
@@ -161,6 +161,22 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 };
 
 UserSchema.methods.toSafeProfile = function () {
+  const now = Date.now();
+  const lastRefill = new Date(this.lastHeartRefillAt || now).getTime();
+  const elapsedMs = Math.max(0, now - lastRefill);
+  const REFILL_INTERVAL_MS = 10 * 60 * 1000;
+  let effectiveHearts = this.hearts ?? 100;
+  let nextHeartInSeconds = 0;
+
+  if (effectiveHearts < 100) {
+    const heartsToRegenerate = Math.floor(elapsedMs / REFILL_INTERVAL_MS);
+    effectiveHearts = Math.min(100, effectiveHearts + heartsToRegenerate);
+    if (effectiveHearts < 100) {
+      const remainingRemainderMs = elapsedMs % REFILL_INTERVAL_MS;
+      nextHeartInSeconds = Math.max(0, Math.ceil((REFILL_INTERVAL_MS - remainingRemainderMs) / 1000));
+    }
+  }
+
   return {
     id: this._id.toString(),
     email: this.email,
@@ -172,9 +188,10 @@ UserSchema.methods.toSafeProfile = function () {
     targetLanguage: this.targetLanguage,
     learningLevel: this.learningLevel,
     preferences: this.preferences,
-    hearts: this.hearts,
-    maxHearts: this.maxHearts,
+    hearts: effectiveHearts,
+    maxHearts: this.maxHearts || 100,
     lastHeartRefillAt: this.lastHeartRefillAt?.toISOString(),
+    nextHeartInSeconds,
     totalXp: this.totalXp,
     currentStreak: this.currentStreak,
     longestStreak: this.longestStreak,

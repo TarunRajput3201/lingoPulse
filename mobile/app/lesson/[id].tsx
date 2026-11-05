@@ -402,19 +402,30 @@ export default function LessonScreen() {
           const correctCount = attempts.filter((a) => a.isCorrect).length;
           const total = exercises.length || 1;
           const accuracy = Math.round((correctCount / total) * 100);
+          const passed = accuracy >= 50;
 
-          const localCompletion = await CurriculumService.completeLesson(id, xpEarned);
+          const localCompletion = await CurriculumService.completeLesson(id, xpEarned, accuracy);
 
           const completionData = {
-            xpEarned,
+            passed,
+            requiresRepeat: !passed,
             accuracy,
+            bestScore: localCompletion.bestScore,
+            isNewBest: localCompletion.isNewBest,
+            xpEarned: localCompletion.passed ? xpEarned : Math.max(2, Math.round(xpEarned * 0.25)),
             totalXp: localCompletion.totalXp,
             streak: localCompletion.streak,
             heartsRemaining: localCompletion.hearts,
+            maxHearts: 100,
+            nextHeartInSeconds: localCompletion.nextHeartInSeconds,
           };
           setCompletionResult(completionData);
           setIsCompleted(true);
-          SoundService.playFanfare().catch(() => {});
+          if (passed) {
+            SoundService.playFanfare().catch(() => {});
+          } else {
+            SoundService.playErrorThud().catch(() => {});
+          }
 
           updateUserLocally((prev) =>
             prev
@@ -423,6 +434,8 @@ export default function LessonScreen() {
                   totalXp: localCompletion.totalXp,
                   currentStreak: localCompletion.streak,
                   hearts: localCompletion.hearts,
+                  maxHearts: 100,
+                  nextHeartInSeconds: localCompletion.nextHeartInSeconds,
                 }
               : null
           );
@@ -438,6 +451,7 @@ export default function LessonScreen() {
               },
               body: JSON.stringify({
                 lessonId: lesson?.id || id,
+                accuracy,
                 attempts,
                 startedAt: new Date(Date.now() - 120000).toISOString(),
                 completedAt: new Date().toISOString(),
@@ -495,17 +509,47 @@ export default function LessonScreen() {
     );
   }
 
-  // Celebratory Level Up Screen (Screen 4 in Reference Image)
+  const handleRepeatSection = () => {
+    setCurrentIndex(0);
+    setAttempts([]);
+    setFeedback({ status: 'none' });
+    setIsCompleted(false);
+    setCompletionResult(null);
+    setMcSelectedId(null);
+    setTypedAnswer('');
+    setSelectedWords([]);
+    setTfSelectedVal(null);
+    setSpokenCaptured('');
+    setMatchedPairs(null);
+    startTimeRef.current = Date.now();
+  };
+
+  // Section Result Screen (Passed >= 50% vs Repeat < 50%)
   if (isCompleted && completionResult) {
+    const isPassed = completionResult.passed;
+
     return (
-      <SafeAreaView style={styles.levelUpContainer}>
+      <SafeAreaView style={[styles.levelUpContainer, !isPassed && { backgroundColor: '#1E293B' }]}>
         <ScrollView contentContainerStyle={styles.levelUpScroll}>
           {/* Header */}
-          <Text style={styles.levelUpHeading}>Level Up! ⭐</Text>
+          <Text style={[styles.levelUpHeading, !isPassed && { color: '#F59E0B' }]}>
+            {isPassed ? 'Section Passed! ⭐' : 'Section Needs Practice 💪'}
+          </Text>
 
-          {/* Golden Ribbon Badge */}
-          <View style={styles.goldRibbonBadge}>
-            <Text style={styles.goldRibbonText}>Level 2</Text>
+          {/* Golden / Amber Ribbon Badge */}
+          <View style={[styles.goldRibbonBadge, !isPassed && { backgroundColor: '#D97706', borderColor: '#F59E0B', borderBottomColor: '#B45309' }]}>
+            <Text style={styles.goldRibbonText}>
+              {isPassed ? `Passed • ${completionResult.accuracy}%` : `Score: ${completionResult.accuracy}% (Needs 50%)`}
+            </Text>
+          </View>
+
+          {/* Best Score Pill */}
+          <View style={styles.bestScorePill}>
+            <Trophy size={18} color="#FDE047" />
+            <Text style={styles.bestScoreText}>
+              Best Score: {completionResult.bestScore}%
+              {completionResult.isNewBest ? '  🏆 New High Score!' : ''}
+            </Text>
           </View>
 
           {/* Glowing XP Pill */}
@@ -514,12 +558,12 @@ export default function LessonScreen() {
             <Text style={styles.levelUpXpText}>+{completionResult.xpEarned || 20} XP</Text>
           </View>
 
-          {/* 3D Pip Robot Celebrating with Star Eyes & Star Medal (Screen 4) */}
+          {/* 3D Character Stage */}
           <View style={styles.pipLevelUpStage}>
-            <View style={styles.victoryAuraRing} />
+            <View style={[styles.victoryAuraRing, !isPassed && { borderColor: 'rgba(245, 158, 11, 0.25)' }]} />
             <CharacterView
-              character="pip"
-              pose="levelUp"
+              character={isPassed ? 'pip' : 'maya'}
+              pose={isPassed ? 'levelUp' : 'helper'}
               size={185}
               roundMask={false}
               interactive={true}
@@ -527,27 +571,58 @@ export default function LessonScreen() {
             <View style={styles.pedestalPlatform} />
           </View>
 
+          {/* Explanatory Banner for Failed Attempts */}
+          {!isPassed && (
+            <View style={styles.repeatNoticeBox}>
+              <AlertCircle size={20} color="#FBBF24" />
+              <Text style={styles.repeatNoticeText}>
+                A minimum score of 50% is required to unlock the next section. Repeat this section to master the words!
+              </Text>
+            </View>
+          )}
+
           {/* Stats Bar */}
           <View style={styles.levelUpStatsRow}>
             <View style={styles.statPill}>
               <Flame size={18} color={COLORS.orange} fill={COLORS.orange} />
-              <Text style={styles.statPillText}>{completionResult.streak || 5} Days</Text>
+              <Text style={styles.statPillText}>{completionResult.streak || 1} Days</Text>
             </View>
             <View style={styles.statPill}>
-              <CheckCircle2 size={18} color={COLORS.primary} />
-              <Text style={styles.statPillText}>{completionResult.accuracy || 100}% Accuracy</Text>
+              <CheckCircle2 size={18} color={isPassed ? COLORS.primary : COLORS.orange} />
+              <Text style={styles.statPillText}>{completionResult.accuracy}% Score</Text>
             </View>
           </View>
 
-          {/* Large Gold Continue Button */}
-          <Pressable
-            onPress={() => router.replace('/(tabs)')}
-            style={styles.levelUpContinueButton}
-            accessibilityRole="button"
-            accessibilityLabel="Continue to home"
-          >
-            <Text style={styles.levelUpContinueText}>Continue →</Text>
-          </Pressable>
+          {/* Action Buttons */}
+          {isPassed ? (
+            <Pressable
+              onPress={() => router.replace('/(tabs)')}
+              style={styles.levelUpContinueButton}
+              accessibilityRole="button"
+              accessibilityLabel="Continue to next section"
+            >
+              <Text style={styles.levelUpContinueText}>Continue to Next Section →</Text>
+            </Pressable>
+          ) : (
+            <View style={{ width: '100%', gap: 12 }}>
+              <Pressable
+                onPress={handleRepeatSection}
+                style={[styles.levelUpContinueButton, { backgroundColor: COLORS.primary, borderColor: COLORS.primaryDark }]}
+                accessibilityRole="button"
+                accessibilityLabel="Repeat this section"
+              >
+                <Text style={styles.levelUpContinueText}>Repeat Section 🔁</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => router.replace('/(tabs)')}
+                style={[styles.levelUpContinueButton, { backgroundColor: 'transparent', borderWidth: 2, borderColor: '#94A3B8' }]}
+                accessibilityRole="button"
+                accessibilityLabel="Return to learning path"
+              >
+                <Text style={[styles.levelUpContinueText, { color: '#E2E8F0' }]}>Return to Learning Path</Text>
+              </Pressable>
+            </View>
+          )}
         </ScrollView>
       </SafeAreaView>
     );
@@ -584,7 +659,7 @@ export default function LessonScreen() {
 
         <View style={styles.heartsContainer}>
           <Heart size={20} color={COLORS.accent} fill={COLORS.accent} />
-          <Text style={styles.heartsText}>{user?.hearts ?? 5}</Text>
+          <Text style={styles.heartsText}>{user?.hearts ?? 100}</Text>
         </View>
       </View>
 
@@ -1277,5 +1352,42 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: 0.5,
+  },
+  bestScorePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(250, 204, 21, 0.18)',
+    borderWidth: 1.5,
+    borderColor: '#FACC15',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: RADII.pill,
+    marginBottom: 12,
+  },
+  bestScoreText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FEF08A',
+  },
+  repeatNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 16,
+    marginVertical: 12,
+    marginHorizontal: 16,
+  },
+  repeatNoticeText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    color: '#FDE68A',
+    flex: 1,
   },
 });

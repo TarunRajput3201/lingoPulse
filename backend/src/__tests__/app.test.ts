@@ -56,7 +56,8 @@ describe('LingoPulse Health & Auth API', () => {
     });
     expect(res.status).toBe(200);
     expect(res.body.tokens.accessToken).toBeDefined();
-    expect(res.body.user.hearts).toBe(5);
+    expect(res.body.user.hearts).toBe(100);
+    expect(res.body.user.maxHearts).toBe(100);
   });
 
   it('GET /api/auth/profile should return learner profile with valid token', async () => {

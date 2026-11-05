@@ -86,7 +86,7 @@ export default function PracticeScreen() {
           await CurriculumService.resolveMistake(m.id);
         }
         updateUserLocally((prev) =>
-          prev ? { ...prev, hearts: Math.min(5, (prev.hearts || 0) + 1) } : null
+          prev ? { ...prev, hearts: Math.min(100, (prev.hearts || 0) + 1), maxHearts: 100 } : null
         );
 
         SoundService.playSuccessChime().catch(() => {});

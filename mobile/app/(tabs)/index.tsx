@@ -383,6 +383,28 @@ export default function HomeScreen() {
                 )}
               </Pressable>
 
+              {/* Best Score Badge / Repeat Indicator */}
+              {lesson.bestScore > 0 ? (
+                <View
+                  style={[
+                    styles.nodeScoreBadge,
+                    lesson.isCompleted ? styles.nodeScoreBadgePass : styles.nodeScoreBadgeRepeat,
+                  ]}
+                >
+                  {lesson.isCompleted ? (
+                    <Trophy size={10} color="#854D0E" />
+                  ) : null}
+                  <Text
+                    style={[
+                      styles.nodeScoreBadgeText,
+                      lesson.isCompleted ? styles.nodeScoreBadgePassText : styles.nodeScoreBadgeRepeatText,
+                    ]}
+                  >
+                    {lesson.isCompleted ? `${lesson.bestScore}%` : `Repeat (${lesson.bestScore}%)`}
+                  </Text>
+                </View>
+              ) : null}
+
               {/* Ground contact shadow under each 3D stepping stone island */}
               <View style={styles.stoneGroundShadow} />
             </View>
@@ -793,5 +815,35 @@ const styles = StyleSheet.create({
     height: 14,
     borderRadius: 7,
     backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  nodeScoreBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    alignSelf: 'center',
+    zIndex: 10,
+  },
+  nodeScoreBadgePass: {
+    backgroundColor: '#FEF9C3',
+    borderColor: '#FACC15',
+  },
+  nodeScoreBadgeRepeat: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+  },
+  nodeScoreBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  nodeScoreBadgePassText: {
+    color: '#854D0E',
+  },
+  nodeScoreBadgeRepeatText: {
+    color: '#B45309',
   },
 });

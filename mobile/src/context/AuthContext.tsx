@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { StorageService } from '../services/storageService';
+import { CurriculumService } from '../services/curriculumService';
 import { ENDPOINTS } from '../constants/api';
 
 export interface UserProfile {
@@ -23,6 +24,7 @@ export interface UserProfile {
   };
   hearts: number;
   maxHearts: number;
+  nextHeartInSeconds?: number;
   totalXp: number;
   currentStreak: number;
   longestStreak: number;
@@ -43,6 +45,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   updateUserLocally: (updater: (prev: UserProfile | null) => UserProfile | null) => void;
+  syncHearts: () => Promise<void>;
 }
 
 const createLocalProfile = (email: string, displayName: string, username: string): UserProfile => ({
@@ -64,8 +67,9 @@ const createLocalProfile = (email: string, displayName: string, username: string
     theme: 'light',
     timezone: 'UTC',
   },
-  hearts: 5,
-  maxHearts: 5,
+  hearts: 100,
+  maxHearts: 100,
+  nextHeartInSeconds: 0,
   totalXp: 0,
   currentStreak: 1,
   longestStreak: 1,
@@ -126,8 +130,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const syncHearts = async () => {
+    try {
+      const status = await CurriculumService.getHeartsStatus();
+      setUser((prev) => {
+        if (!prev) return null;
+        const updated = {
+          ...prev,
+          hearts: status.hearts,
+          maxHearts: 100,
+          nextHeartInSeconds: status.nextHeartInSeconds,
+        };
+        StorageService.setUserCache(updated).catch(() => {});
+        return updated;
+      });
+    } catch {}
+  };
+
   useEffect(() => {
     loadSession();
+    syncHearts();
+
+    const interval = setInterval(() => {
+      setUser((prev) => {
+        if (!prev) return null;
+        if (prev.hearts >= 100) {
+          if (prev.nextHeartInSeconds !== 0) {
+            return { ...prev, nextHeartInSeconds: 0 };
+          }
+          return prev;
+        }
+
+        const remaining = (prev.nextHeartInSeconds ?? 600) - 1;
+        if (remaining <= 0) {
+          const newHearts = Math.min(100, prev.hearts + 1);
+          CurriculumService.addHeart().catch(() => {});
+          const updated = {
+            ...prev,
+            hearts: newHearts,
+            nextHeartInSeconds: newHearts >= 100 ? 0 : 600,
+          };
+          StorageService.setUserCache(updated).catch(() => {});
+          return updated;
+        }
+
+        return { ...prev, nextHeartInSeconds: remaining };
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const continueAsGuest = async () => {
@@ -307,6 +358,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshUser,
         deleteAccount,
         updateUserLocally,
+        syncHearts,
       }}
     >
       {children}

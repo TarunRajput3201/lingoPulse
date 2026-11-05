@@ -99,8 +99,8 @@ export const seedDatabase = async (options: { preserveUsers?: boolean } = {}) =>
     nativeLanguage: 'en',
     targetLanguage: 'es',
     learningLevel: 'advanced',
-    hearts: 5,
-    maxHearts: 5,
+    hearts: 100,
+    maxHearts: 100,
     hasCompletedOnboarding: true,
   });
 
@@ -113,8 +113,8 @@ export const seedDatabase = async (options: { preserveUsers?: boolean } = {}) =>
     nativeLanguage: 'en',
     targetLanguage: 'es',
     learningLevel: 'beginner',
-    hearts: 5,
-    maxHearts: 5,
+    hearts: 100,
+    maxHearts: 100,
     totalXp: 45,
     currentStreak: 2,
     longestStreak: 5,

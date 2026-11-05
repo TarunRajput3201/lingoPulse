@@ -59,7 +59,7 @@ export const completePractice = async (req: AuthenticatedRequest, res: Response)
   }
 
   // Refill 1 heart as reward for practicing!
-  const newHearts = HeartService.addHeart(user);
+  const heartResult = HeartService.addHeart(user);
   await user.save();
 
   // Award 10 Practice XP
@@ -68,7 +68,9 @@ export const completePractice = async (req: AuthenticatedRequest, res: Response)
   res.json({
     success: true,
     message: 'Practice complete! You recovered 1 heart and earned 10 XP.',
-    heartsRemaining: newHearts,
+    heartsRemaining: heartResult.hearts,
+    maxHearts: heartResult.maxHearts,
+    nextHeartInSeconds: heartResult.nextHeartInSeconds,
     totalXp,
   });
 };

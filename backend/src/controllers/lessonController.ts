@@ -129,9 +129,9 @@ export const submitAnswer = async (req: AuthenticatedRequest, res: Response): Pr
   const validation = ExerciseValidator.validate(exercise, userAnswer);
 
   // If incorrect, deduct 1 heart
-  let heartsRemaining = user.hearts;
+  let heartStatus = HeartService.getHeartStatus(user);
   if (!validation.isCorrect) {
-    heartsRemaining = HeartService.deductHeart(user);
+    heartStatus = HeartService.deductHeart(user);
     await user.save();
   }
 
@@ -153,7 +153,9 @@ export const submitAnswer = async (req: AuthenticatedRequest, res: Response): Pr
     hint: validation.hint,
     pedagogicalTip: validation.pedagogicalTip,
     hasAccentWarning: validation.hasAccentWarning,
-    heartsRemaining,
+    heartsRemaining: user.hearts,
+    maxHearts: 100,
+    nextHeartInSeconds: heartStatus.nextHeartInSeconds,
   });
 };
 
@@ -210,18 +212,25 @@ export const completeLesson = async (req: AuthenticatedRequest, res: Response): 
     const correctCount = attempts.filter((a: any) => a.isCorrect).length;
     accuracyPercentage = Math.round((correctCount / attempts.length) * 100);
   }
+  const passed = accuracyPercentage >= 50;
   const isPerfect = accuracyPercentage === 100;
 
-  // Calculate XP reward: Base + bonus for perfection
+  // Calculate XP reward: Base + bonus for perfection (if passed)
   const baseXp = lesson.xpReward || 15;
-  const bonusXp = isPerfect ? 5 : 0;
-  const xpAwarded = baseXp + bonusXp;
+  const bonusXp = isPerfect && passed ? 5 : 0;
+  const xpAwarded = passed ? baseXp + bonusXp : Math.max(2, Math.round(baseXp * 0.25));
 
   // Award XP and update weekly leaderboard
   const { totalXp } = await XPService.awardXP(user, xpAwarded);
 
-  // Update user streak
-  const { currentStreak, isNewStreakDay } = StreakService.recordActivity(user);
+  // Update user streak if passed
+  let currentStreak = user.currentStreak;
+  let isNewStreakDay = false;
+  if (passed) {
+    const streakResult = StreakService.recordActivity(user);
+    currentStreak = streakResult.currentStreak;
+    isNewStreakDay = streakResult.isNewStreakDay;
+  }
   await user.save();
 
   // Update or record user progress for this course
@@ -235,50 +244,102 @@ export const completeLesson = async (req: AuthenticatedRequest, res: Response): 
     });
   }
 
-  const alreadyCompleted = progress.completedLessons.some(
+  const existingIndex = progress.completedLessons.findIndex(
     (l) => l.lessonId.toString() === lesson._id.toString()
   );
 
-  if (!alreadyCompleted) {
+  let bestScore = accuracyPercentage;
+  let isNewBest = true;
+  let attemptsCount = 1;
+
+  if (existingIndex >= 0) {
+    const existing = progress.completedLessons[existingIndex];
+    attemptsCount = (existing.attemptsCount || 1) + 1;
+    const prevBest = existing.bestScore ?? existing.accuracy ?? 0;
+    isNewBest = accuracyPercentage > prevBest;
+    bestScore = Math.max(prevBest, accuracyPercentage);
+
+    existing.accuracy = accuracyPercentage;
+    existing.bestScore = bestScore;
+    existing.attemptsCount = attemptsCount;
+    if (passed) {
+      existing.passed = true;
+      existing.completedAt = new Date();
+    }
+    if (!Array.isArray(existing.attemptsHistory)) {
+      existing.attemptsHistory = [];
+    }
+    existing.attemptsHistory.push({
+      score: accuracyPercentage,
+      passed,
+      completedAt: new Date(),
+      xpEarned: xpAwarded,
+    });
+  } else {
+    bestScore = accuracyPercentage;
     progress.completedLessons.push({
       lessonId: lesson._id as Types.ObjectId,
       completedAt: new Date(),
       accuracy: accuracyPercentage,
+      bestScore,
+      passed,
+      attemptsCount: 1,
+      attemptsHistory: [
+        {
+          score: accuracyPercentage,
+          passed,
+          completedAt: new Date(),
+          xpEarned: xpAwarded,
+        },
+      ],
       xpEarned: xpAwarded,
     });
-
-    // Recalculate course percentage scoped to this course
-    const courseUnits = await Unit.find({ courseId: actualCourseId, status: 'published' });
-    const unitIds = courseUnits.map((u) => u._id);
-    const totalCourseLessons = await Lesson.countDocuments({
-      unitId: { $in: unitIds },
-      status: 'published',
-    });
-    const totalCount = totalCourseLessons || 1;
-    progress.courseCompletionPercentage = Math.min(
-      100,
-      Math.round((progress.completedLessons.length / totalCount) * 100)
-    );
   }
+
+  // Recalculate course percentage: Only count lessons that have met the 50% passing threshold!
+  const courseUnits = await Unit.find({ courseId: actualCourseId, status: 'published' });
+  const unitIds = courseUnits.map((u) => u._id);
+  const totalCourseLessons = await Lesson.countDocuments({
+    unitId: { $in: unitIds },
+    status: 'published',
+  });
+  const passedLessonsCount = progress.completedLessons.filter((l) => l.passed).length;
+  const totalCount = totalCourseLessons || 1;
+  progress.courseCompletionPercentage = Math.min(
+    100,
+    Math.round((passedLessonsCount / totalCount) * 100)
+  );
 
   progress.lastStudiedAt = new Date();
   await progress.save();
 
-  // Check achievements
-  const unlockedAchievements = await XPService.checkAchievements(user, {
-    isPerfect,
-    completedLessonsCount: progress.completedLessons.length,
-  });
+  // Check achievements only if passed
+  const unlockedAchievements = passed
+    ? await XPService.checkAchievements(user, {
+        isPerfect,
+        completedLessonsCount: passedLessonsCount,
+      })
+    : [];
+
+  const heartStatus = HeartService.getHeartStatus(user);
 
   res.json({
     success: true,
+    passed,
+    requiresRepeat: !passed,
     xpAwarded,
     bonusXp,
     totalXp,
     newStreak: currentStreak,
     isStreakExtended: isNewStreakDay,
     heartsRemaining: user.hearts,
+    maxHearts: 100,
+    nextHeartInSeconds: heartStatus.nextHeartInSeconds,
     accuracyPercentage,
+    bestScore,
+    isNewBest,
+    attemptsCount,
+    attemptsHistory: progress.completedLessons[existingIndex >= 0 ? existingIndex : progress.completedLessons.length - 1]?.attemptsHistory || [],
     unlockedAchievements,
   });
 };
@@ -295,7 +356,11 @@ export const validateAnswerOnly = async (req: AuthenticatedRequest, res: Respons
 
 export const loseHeart = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const user = req.user!;
-  const heartsRemaining = HeartService.deductHeart(user);
+  const heartResult = HeartService.deductHeart(user);
   await user.save();
-  res.json({ heartsRemaining });
+  res.json({
+    heartsRemaining: heartResult.hearts,
+    maxHearts: heartResult.maxHearts,
+    nextHeartInSeconds: heartResult.nextHeartInSeconds,
+  });
 };

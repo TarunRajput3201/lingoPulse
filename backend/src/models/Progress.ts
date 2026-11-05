@@ -1,9 +1,20 @@
 import { Schema, model, Document, Types } from 'mongoose';
 
+export interface ILessonAttemptRecord {
+  score: number;
+  passed: boolean;
+  completedAt: Date;
+  xpEarned: number;
+}
+
 export interface ICompletedLesson {
   lessonId: Types.ObjectId;
   completedAt: Date;
   accuracy: number;
+  bestScore: number;
+  passed: boolean;
+  attemptsCount: number;
+  attemptsHistory: ILessonAttemptRecord[];
   xpEarned: number;
 }
 
@@ -17,6 +28,30 @@ export interface IProgress extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const LessonAttemptRecordSchema = new Schema<ILessonAttemptRecord>(
+  {
+    score: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 100,
+    },
+    passed: {
+      type: Boolean,
+      required: true,
+    },
+    completedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    xpEarned: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false }
+);
 
 const CompletedLessonSchema = new Schema<ICompletedLesson>(
   {
@@ -32,6 +67,22 @@ const CompletedLessonSchema = new Schema<ICompletedLesson>(
     accuracy: {
       type: Number,
       default: 100,
+    },
+    bestScore: {
+      type: Number,
+      default: 100,
+    },
+    passed: {
+      type: Boolean,
+      default: true,
+    },
+    attemptsCount: {
+      type: Number,
+      default: 1,
+    },
+    attemptsHistory: {
+      type: [LessonAttemptRecordSchema],
+      default: () => [],
     },
     xpEarned: {
       type: Number,
