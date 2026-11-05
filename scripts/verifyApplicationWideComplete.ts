@@ -209,7 +209,7 @@ async function runApplicationWideVerification() {
       'Authentication',
       'Profile Retrieval',
       'GET /api/auth/profile retrieves authenticated learner profile with initial hearts & streak',
-      profileRes.statusCode === 200 && profileUser.hearts === 5,
+      profileRes.statusCode === 200 && profileUser.hearts === 100,
       `Hearts: ${profileUser.hearts}, Current Streak: ${profileUser.currentStreak ?? 0}, Total XP: ${profileUser.totalXp ?? 0}`
     );
   } catch (e: any) {
@@ -650,15 +650,15 @@ async function runApplicationWideVerification() {
     `Payload: ${hugePayload.length} chars, Reassembled: ${reassembled?.length} chars`
   );
 
-  // 5.3 Heart clamping: Never drops below 0 or above 5
+  // 5.3 Heart clamping: Never drops below 0 or above 100
   await CurriculumService.refillHearts();
   let hearts = await CurriculumService.getHearts();
-  recordTest('Gamification', 'Heart Refill', 'Hearts refill to maximum 5', hearts === 5, `Hearts: ${hearts}`);
+  recordTest('Gamification', 'Heart Refill', 'Hearts refill to maximum 100', hearts === 100, `Hearts: ${hearts}`);
 
-  // Deduct 10 times to test floor clamping
+  // Deduct 105 times to test floor clamping from 100
   const sampleEx = allCourses[0].units[0].lessons[0].exercises[0];
   const sampleLId = allCourses[0].units[0].lessons[0].id;
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 105; i++) {
     await CurriculumService.submitAnswer(sampleLId, sampleEx.id, 'deliberately_wrong_answer', sampleEx);
   }
   const clampedFloorHearts = await CurriculumService.getHearts();

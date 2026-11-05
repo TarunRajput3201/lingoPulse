@@ -390,7 +390,7 @@ async function runAllTests() {
 
   // 7. Test CurriculumService: Answer Submission, Rapid Submissions & Heart Clamping
   console.log('\n--- Test Suite 7: CurriculumService & Rapid Answer Submission ---');
-  // Reset hearts to 5 using CurriculumService
+  // Reset hearts to 100 using CurriculumService
   await CurriculumService.refillHearts();
 
   const sampleLessonId = allCourses[0].units[0].lessons[0].id;
@@ -404,7 +404,7 @@ async function runAllTests() {
     sampleExercise
   );
   assert(correctResult.isCorrect === true, 'CurriculumService correctly marks valid answer');
-  assert(correctResult.heartsRemaining === 5, 'Hearts remain 5 on correct answer');
+  assert(correctResult.heartsRemaining === 100, 'Hearts remain 100 on correct answer');
 
   // Rapid Concurrent Submissions Simulation (Double Click)
   const [rapidRes1, rapidRes2] = await Promise.all([
@@ -415,7 +415,7 @@ async function runAllTests() {
   assert(typeof rapidRes1.heartsRemaining === 'number' && typeof rapidRes2.heartsRemaining === 'number', 'Hearts remaining returns valid numbers on rapid submit');
 
   // Repeated mistakes down to 0: Must clamp at 0 and never drop negative
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 105; i++) {
     await CurriculumService.submitAnswer(sampleLessonId, sampleExercise.id, 'wrong_answer', sampleExercise);
   }
   const floorHearts = await CurriculumService.getHearts();
