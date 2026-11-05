@@ -1,0 +1,46 @@
+// BCP-47 language tag mappings for all 38 platform languages
+export const LANGUAGE_BCP47_MAP: Record<string, string> = {
+  en: 'en-US',
+  es: 'es-ES',
+  fr: 'fr-FR',
+  de: 'de-DE',
+  it: 'it-IT',
+  pt: 'pt-BR',
+  ja: 'ja-JP',
+  ko: 'ko-KR',
+  zh: 'zh-CN',
+  hi: 'hi-IN',
+  ar: 'ar-SA',
+  ru: 'ru-RU',
+  nl: 'nl-NL',
+  tr: 'tr-TR',
+  sv: 'sv-SE',
+  no: 'no-NO',
+  da: 'da-DK',
+  pl: 'pl-PL',
+  el: 'el-GR',
+  he: 'he-IL',
+  th: 'th-TH',
+  vi: 'vi-VN',
+  id: 'id-ID',
+  ms: 'ms-MY',
+  tl: 'fil-PH',
+  bn: 'bn-IN',
+  ur: 'ur-PK',
+  pa: 'pa-IN',
+  ta: 'ta-IN',
+  te: 'te-IN',
+  mr: 'mr-IN',
+  gu: 'gu-IN',
+  uk: 'uk-UA',
+  fa: 'fa-IR',
+  sw: 'sw-KE',
+  ro: 'ro-RO',
+  cs: 'cs-CZ',
+  hu: 'hu-HU',
+};
+
+export function getBCP47Code(langCode?: string): string {
+  const norm = (langCode || 'en').toLowerCase().trim();
+  return LANGUAGE_BCP47_MAP[norm] || `${norm}-${norm.toUpperCase()}`;
+}

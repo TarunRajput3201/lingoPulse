@@ -40,9 +40,9 @@ test.describe('Gamification Mechanics & Frictionless Engagement', () => {
     const lessonData = await lessonRes.json();
     const exId = lessonData.exercises[0].id;
 
-    // Fail 6 times intentionally
-    let lastHeartCount = 5;
-    for (let i = 0; i < 6; i++) {
+    // Fail 105 times intentionally
+    let lastHeartCount = 100;
+    for (let i = 0; i < 105; i++) {
       const res = await request.post('/api/lessons/submit-answer', {
         headers: { Authorization: `Bearer ${token}` },
         data: {
@@ -57,8 +57,8 @@ test.describe('Gamification Mechanics & Frictionless Engagement', () => {
     // Must never fall below 0
     expect(lastHeartCount).toBe(0);
 
-    // Practice to recover hearts
-    for (let i = 0; i < 6; i++) {
+    // Practice 105 times to test ceiling cap at maxHearts (100)
+    for (let i = 0; i < 105; i++) {
       await request.post('/api/practice/complete', {
         headers: { Authorization: `Bearer ${token}` },
         data: { resolvedExerciseIds: [exId] },
@@ -70,8 +70,8 @@ test.describe('Gamification Mechanics & Frictionless Engagement', () => {
       headers: { Authorization: `Bearer ${token}` },
     });
     const profile = await profileRes.json();
-    // Cannot exceed maxHearts (5)
-    expect(profile.user.hearts).toBe(5);
+    // Cannot exceed maxHearts (100)
+    expect(profile.user.hearts).toBe(100);
   });
 
   test('Streak Idempotency: Multiple lessons on same calendar day maintain single day streak increment', async ({ request }) => {

@@ -67,7 +67,7 @@ test.describe('Exercise Engine & Answer Validation Suite', () => {
     expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body.isCorrect).toBe(true);
-    expect(body.heartsRemaining).toBe(5);
+    expect(body.heartsRemaining).toBe(100);
   });
 
   test('TC-EXE-03: Tolerates missing accents pedagogically in translation exercises without deducting hearts', async ({ request }) => {
@@ -89,7 +89,7 @@ test.describe('Exercise Engine & Answer Validation Suite', () => {
       expect(res.status()).toBe(200);
       const body = await res.json();
       expect(body.isCorrect).toBe(true);
-      expect(body.heartsRemaining).toBe(5);
+      expect(body.heartsRemaining).toBe(100);
     }
   });
 
@@ -111,7 +111,7 @@ test.describe('Exercise Engine & Answer Validation Suite', () => {
     expect(res.status()).toBe(200);
     const body = await res.json();
     expect(body.isCorrect).toBe(false);
-    expect(body.heartsRemaining).toBe(4);
+    expect(body.heartsRemaining).toBe(99);
     expect(body.explanation).toBeTruthy();
 
     // Verify mistake logged in practice

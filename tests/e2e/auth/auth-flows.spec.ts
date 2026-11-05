@@ -15,7 +15,7 @@ test.describe('Authentication & Session Management Suite', () => {
 
   let authToken = '';
 
-  test('TC-AUTH-01: Registers a new learner with correct initial state (5 hearts, 0 XP)', async ({ request }) => {
+  test('TC-AUTH-01: Registers a new learner with correct initial state (100 hearts, 0 XP)', async ({ request }) => {
     const res = await request.post('/api/auth/register', {
       data: testUser,
     });
@@ -25,7 +25,8 @@ test.describe('Authentication & Session Management Suite', () => {
     expect(body.user).toBeDefined();
     expect(body.user.email).toBe(testUser.email);
     expect(body.user.username).toBe(testUser.username);
-    expect(body.user.hearts).toBe(5);
+    expect(body.user.hearts).toBe(100);
+    expect(body.user.maxHearts).toBe(100);
     expect(body.user.totalXp).toBe(0);
     expect(body.user.currentStreak).toBe(0);
     expect(body.tokens?.accessToken).toBeTruthy();
@@ -74,7 +75,8 @@ test.describe('Authentication & Session Management Suite', () => {
     const body = await res.json();
     expect(body.user.id || body.user._id).toBeTruthy();
     expect(body.user.email).toBe(testUser.email);
-    expect(body.user.hearts).toBe(5);
+    expect(body.user.hearts).toBe(100);
+    expect(body.user.maxHearts).toBe(100);
   });
 
   test('TC-AUTH-06: Rejects profile request when unauthenticated or missing token', async ({ request }) => {

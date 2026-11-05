@@ -98,8 +98,8 @@ test.describe('Breaking Points, Rapid Inputs & Edge-Case Robustness E2E Suite', 
   });
 
   test('TC-BRK-04: Heart Floor Invariance: 10 consecutive wrong answers clamp at 0 hearts', async ({ request }) => {
-    // Exhaust user hearts
-    for (let i = 0; i < 7; i++) {
+    // Exhaust user hearts from 100
+    for (let i = 0; i < 105; i++) {
       await request.post('/api/lessons/lose-heart', {
         headers: { Authorization: `Bearer ${userToken}` },
       });

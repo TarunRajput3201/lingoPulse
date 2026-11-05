@@ -94,6 +94,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(savedToken || 'local-guest-token');
       } else if (savedToken) {
         setToken(savedToken);
+        const fallbackProfile = createLocalProfile('learner@lingopulse.local', 'Learner', 'learner');
+        setUser(fallbackProfile);
       } else {
         // Instant guest profile so learner never waits on network
         const defaultProfile = createLocalProfile('learner@lingopulse.local', 'Learner', 'learner');
@@ -148,7 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    loadSession();
+    const watchdogTimer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+
+    loadSession().finally(() => clearTimeout(watchdogTimer));
     syncHearts();
 
     const interval = setInterval(() => {

@@ -153,10 +153,17 @@ export default function LessonScreen() {
     if (!id) return;
     AdaptiveEngine.resetLesson();
 
+    const watchdogTimer = setTimeout(() => {
+      if (isMounted.current) {
+        setLoading(false);
+      }
+    }, 1500);
+
     // 1. Instant load from local static curriculum with language context
     CurriculumService.getLesson(id as string, user?.targetLanguage)
       .then((localData) => {
         if (!isMounted.current) return;
+        clearTimeout(watchdogTimer);
         if (localData && localData.exercises?.length) {
           setCourse(localData.course);
           setLesson(localData.lesson);

@@ -59,7 +59,7 @@ test.describe('Linguistic Quality, Accent Tolerance & Anti-Cheat Sanitization', 
     expect(data.isCorrect).toBe(true); // Must be marked correct!
     expect(data.hasAccentWarning).toBe(true); // Must flag accent reminder
     expect(data.pedagogicalTip).toContain('Buenos días');
-    expect(data.heartsRemaining).toBe(5); // Hearts preserved!
+    expect(data.heartsRemaining).toBe(100); // Hearts preserved!
   });
 
   test('Punctuation & Case Normalization: Inverted Spanish punctuation handling', async ({ request }) => {

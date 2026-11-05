@@ -55,6 +55,14 @@ export default function HomeScreen() {
     }
   }, [token, isLoading]);
 
+  // Watchdog timer: Guarantee HomeScreen skeleton never hangs indefinitely
+  useEffect(() => {
+    const watchdog = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+    return () => clearTimeout(watchdog);
+  }, []);
+
   const loadLearningPath = async (forceRemote: boolean = false) => {
     try {
       // 1. Instant load from local static curriculum (instant < 1ms)

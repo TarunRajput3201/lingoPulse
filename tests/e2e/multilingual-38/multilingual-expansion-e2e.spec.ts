@@ -7,7 +7,7 @@ import {
 import {
   LANGUAGE_BCP47_MAP,
   getBCP47Code,
-} from '../../../mobile/src/services/soundService';
+} from '../../../mobile/src/data/courses/bcp47';
 
 test.describe('38-Language Platform Expansion & Audio Localization E2E Suite', () => {
   test('TC-38LANG-01: Verifies all 38 languages exist with native names and flag emojis', async () => {

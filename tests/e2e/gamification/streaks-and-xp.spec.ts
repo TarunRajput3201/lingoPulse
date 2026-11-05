@@ -39,9 +39,9 @@ test.describe('Gamification, Streaks & XP Mechanics Suite', () => {
     const lessonData = await lessonRes.json();
     const exId = lessonData.exercises[0].id;
 
-    // Fail 6 times intentionally
-    let finalHearts = 5;
-    for (let i = 0; i < 6; i++) {
+    // Fail 105 times intentionally to test floor clamping from 100 hearts
+    let finalHearts = 100;
+    for (let i = 0; i < 105; i++) {
       const res = await request.post('/api/lessons/submit-answer', {
         headers: { Authorization: `Bearer ${token}` },
         data: {

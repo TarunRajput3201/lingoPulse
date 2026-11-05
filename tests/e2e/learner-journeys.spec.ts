@@ -26,7 +26,8 @@ test.describe('End-to-End Learner Journeys', () => {
     expect(regRes.status()).toBe(201);
     const regData = await regRes.json();
     beginnerToken = regData.tokens.accessToken;
-    expect(regData.user.hearts).toBe(5);
+    expect(regData.user.hearts).toBe(100);
+    expect(regData.user.maxHearts).toBe(100);
     expect(regData.user.totalXp).toBe(0);
 
     // 2. Complete guided onboarding
@@ -118,7 +119,7 @@ test.describe('End-to-End Learner Journeys', () => {
       expect(submitRes.status()).toBe(200);
       const submitData = await submitRes.json();
       expect(submitData.isCorrect).toBe(true);
-      expect(submitData.heartsRemaining).toBe(5);
+      expect(submitData.heartsRemaining).toBe(100);
 
       attempts.push({
         exerciseId: ex.id,
@@ -213,7 +214,7 @@ test.describe('End-to-End Learner Journeys', () => {
     const mistakeData = await mistakeRes.json();
 
     expect(mistakeData.isCorrect).toBe(false);
-    expect(mistakeData.heartsRemaining).toBe(4); // Heart deducted from 5 to 4
+    expect(mistakeData.heartsRemaining).toBe(99); // Heart deducted from 100 to 99
 
     // 3. Verify attempt was logged in Practice Mistakes
     const mistakesRes = await request.get('/api/practice/mistakes', {
@@ -236,7 +237,7 @@ test.describe('End-to-End Learner Journeys', () => {
     expect(practiceCompleteRes.status()).toBe(200);
     const practiceData = await practiceCompleteRes.json();
     expect(practiceData.success).toBe(true);
-    expect(practiceData.heartsRemaining).toBe(5); // Heart restored back to 5!
+    expect(practiceData.heartsRemaining).toBe(100); // Heart restored back to 100!
     expect(practiceData.totalXp).toBeGreaterThanOrEqual(30); // 20 + 10 practice XP
   });
 

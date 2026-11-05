@@ -5,6 +5,7 @@ const USER_KEY = 'lingopulse_user_cache';
 const CHUNK_SIZE = 1500; // Well below Android 2048-byte limit
 
 const memoryStorage: { [key: string]: string } = {};
+const SECURE_STORE_TIMEOUT_MS = 600;
 
 function isWebEnvironment(): boolean {
   return typeof localStorage !== 'undefined';
@@ -12,6 +13,13 @@ function isWebEnvironment(): boolean {
 
 function sanitizeKey(key: string): string {
   return key.replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+function withTimeout<T>(promise: Promise<T>, fallback: T, ms: number = SECURE_STORE_TIMEOUT_MS): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
 }
 
 export const StorageService = {
@@ -29,18 +37,18 @@ export const StorageService = {
         const safeKey = sanitizeKey(key);
 
         if (stringValue.length <= CHUNK_SIZE) {
-          await SecureStore.setItemAsync(safeKey, stringValue);
-          SecureStore.deleteItemAsync(`${safeKey}__cnt`).catch(() => {});
+          await withTimeout(SecureStore.setItemAsync(safeKey, stringValue), undefined);
+          withTimeout(SecureStore.deleteItemAsync(`${safeKey}__cnt`), undefined).catch(() => {});
         } else {
           // Chunk large value across multiple 1.5KB safe keys
           const totalChunks = Math.ceil(stringValue.length / CHUNK_SIZE);
-          await SecureStore.setItemAsync(`${safeKey}__cnt`, String(totalChunks));
+          await withTimeout(SecureStore.setItemAsync(`${safeKey}__cnt`, String(totalChunks)), undefined);
 
           for (let i = 0; i < totalChunks; i++) {
             const chunk = stringValue.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-            await SecureStore.setItemAsync(`${safeKey}__${i}`, chunk);
+            await withTimeout(SecureStore.setItemAsync(`${safeKey}__${i}`, chunk), undefined);
           }
-          SecureStore.deleteItemAsync(safeKey).catch(() => {});
+          withTimeout(SecureStore.deleteItemAsync(safeKey), undefined).catch(() => {});
         }
       }
     } catch (err) {
@@ -65,14 +73,14 @@ export const StorageService = {
 
       if (typeof SecureStore.getItemAsync === 'function') {
         const safeKey = sanitizeKey(key);
-        const countRaw = await SecureStore.getItemAsync(`${safeKey}__cnt`).catch(() => null);
+        const countRaw = await withTimeout(SecureStore.getItemAsync(`${safeKey}__cnt`).catch(() => null), null);
 
         if (countRaw) {
           const count = parseInt(countRaw, 10);
           if (!isNaN(count) && count > 0) {
             let assembled = '';
             for (let i = 0; i < count; i++) {
-              const chunk = await SecureStore.getItemAsync(`${safeKey}__${i}`).catch(() => '');
+              const chunk = await withTimeout(SecureStore.getItemAsync(`${safeKey}__${i}`).catch(() => ''), '');
               assembled += chunk || '';
             }
             if (assembled.length > 0) {
@@ -82,7 +90,7 @@ export const StorageService = {
           }
         }
 
-        const directVal = await SecureStore.getItemAsync(safeKey).catch(() => null);
+        const directVal = await withTimeout(SecureStore.getItemAsync(safeKey).catch(() => null), null);
         if (directVal !== null) {
           memoryStorage[key] = directVal;
           return directVal;
@@ -106,15 +114,15 @@ export const StorageService = {
 
       if (typeof SecureStore.deleteItemAsync === 'function') {
         const safeKey = sanitizeKey(key);
-        const countRaw = await SecureStore.getItemAsync(`${safeKey}__cnt`).catch(() => null);
+        const countRaw = await withTimeout(SecureStore.getItemAsync(`${safeKey}__cnt`).catch(() => null), null);
         if (countRaw) {
           const count = parseInt(countRaw, 10) || 0;
           for (let i = 0; i < count; i++) {
-            SecureStore.deleteItemAsync(`${safeKey}__${i}`).catch(() => {});
+            withTimeout(SecureStore.deleteItemAsync(`${safeKey}__${i}`), undefined).catch(() => {});
           }
-          SecureStore.deleteItemAsync(`${safeKey}__cnt`).catch(() => {});
+          withTimeout(SecureStore.deleteItemAsync(`${safeKey}__cnt`), undefined).catch(() => {});
         }
-        await SecureStore.deleteItemAsync(safeKey).catch(() => {});
+        await withTimeout(SecureStore.deleteItemAsync(safeKey), undefined).catch(() => {});
       }
     } catch {}
   },
