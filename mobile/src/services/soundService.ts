@@ -1,7 +1,8 @@
+import { Platform } from 'react-native';
 import type { Audio as AudioType } from 'expo-av';
 import type * as SpeechType from 'expo-speech';
 
-const isWeb = typeof window !== 'undefined';
+const isWeb = Platform.OS === 'web';
 
 // Safe lazy native module loaders (resilient across Web, Node testing, iOS, and Android)
 function getAudio(): typeof AudioType | null {
@@ -136,18 +137,18 @@ export function unlockAudioEngine(): void {
 }
 
 // Auto-register one-time user gesture unlock in browser environments
-if (isWeb && typeof window !== 'undefined') {
+if (isWeb && typeof window !== 'undefined' && typeof (window as any).addEventListener === 'function') {
   const triggerUnlock = () => {
     unlockAudioEngine();
-    window.removeEventListener('pointerdown', triggerUnlock);
-    window.removeEventListener('keydown', triggerUnlock);
-    window.removeEventListener('touchstart', triggerUnlock);
-    window.removeEventListener('click', triggerUnlock);
+    (window as any).removeEventListener?.('pointerdown', triggerUnlock);
+    (window as any).removeEventListener?.('keydown', triggerUnlock);
+    (window as any).removeEventListener?.('touchstart', triggerUnlock);
+    (window as any).removeEventListener?.('click', triggerUnlock);
   };
-  window.addEventListener('pointerdown', triggerUnlock, { passive: true, once: true });
-  window.addEventListener('keydown', triggerUnlock, { passive: true, once: true });
-  window.addEventListener('touchstart', triggerUnlock, { passive: true, once: true });
-  window.addEventListener('click', triggerUnlock, { passive: true, once: true });
+  (window as any).addEventListener('pointerdown', triggerUnlock, { passive: true, once: true });
+  (window as any).addEventListener('keydown', triggerUnlock, { passive: true, once: true });
+  (window as any).addEventListener('touchstart', triggerUnlock, { passive: true, once: true });
+  (window as any).addEventListener('click', triggerUnlock, { passive: true, once: true });
 }
 
 /**

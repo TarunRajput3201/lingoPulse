@@ -53,6 +53,21 @@ class GlobalErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 }
 
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  return (
+    <View style={errorStyles.container}>
+      <Text style={errorStyles.icon}>🌱</Text>
+      <Text style={errorStyles.title}>Something went wrong</Text>
+      <Text style={errorStyles.subtitle}>
+        LingoPulse encountered an unexpected issue, but your progress is safe.
+      </Text>
+      <Pressable style={errorStyles.button} onPress={retry}>
+        <Text style={errorStyles.buttonText}>Restart App</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 const errorStyles = StyleSheet.create({
   container: {
     flex: 1,
