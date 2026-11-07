@@ -40,6 +40,9 @@ export const WordOrderExercise: React.FC<WordOrderExerciseProps> = ({
 
   useEffect(() => {
     setSelectedIndices([]);
+    return () => {
+      SoundService.stopSpeaking().catch(() => {});
+    };
   }, [wordBank, prompt]);
 
   const handleSelectWord = (word: string, bankIndex: number) => {

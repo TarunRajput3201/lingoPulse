@@ -39,11 +39,13 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
+      SoundService.stopSpeaking().catch(() => {});
     };
   }, []);
 
   const handlePlayReference = async () => {
     HapticsService.lightTap();
+    await SoundService.stopSpeaking().catch(() => {});
     setIsPlayingAudio(true);
     setAudioError(false);
 

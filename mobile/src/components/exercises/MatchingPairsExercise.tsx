@@ -46,6 +46,7 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
     setErrorPair(null);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
+      SoundService.stopSpeaking().catch(() => {});
     };
   }, [pairs, prompt]);
 
@@ -78,6 +79,7 @@ export const MatchingPairsExercise: React.FC<MatchingPairsExerciseProps> = ({
   };
 
   const evaluatePair = (leftId: string, rightId: string) => {
+    SoundService.stopSpeaking().catch(() => {});
     if (leftId === rightId) {
       // Correct Match!
       HapticsService.success();

@@ -22,6 +22,12 @@ export const MultipleChoiceExercise: React.FC<MultipleChoiceExerciseProps> = ({
   targetLanguage = 'es',
   disabled = false,
 }) => {
+  React.useEffect(() => {
+    return () => {
+      SoundService.stopSpeaking().catch(() => {});
+    };
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.promptHeader}>

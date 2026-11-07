@@ -136,17 +136,21 @@ export default function LessonScreen() {
   const isContinuingRef = useRef(false);
   const timersRef = useRef<NodeJS.Timeout[]>([]);
   const startTimeRef = useRef<number>(Date.now());
+  const hasPlayedCompletionAudioRef = useRef(false);
 
   useEffect(() => {
     isMounted.current = true;
+    hasPlayedCompletionAudioRef.current = false;
+    SoundService.preloadSounds().catch(() => {});
     return () => {
       isMounted.current = false;
       isCheckingRef.current = false;
       isContinuingRef.current = false;
       timersRef.current.forEach((t) => clearTimeout(t));
       timersRef.current = [];
+      SoundService.stopAll().catch(() => {});
     };
-  }, []);
+  }, [id]);
 
   // Load lesson and exercises with robust fallback
   useEffect(() => {
@@ -329,9 +333,12 @@ export default function LessonScreen() {
           .finally(() => clearTimeout(timeoutId));
       }
 
+      // Immediately cancel any active speech or audio before playing answer feedback
+      SoundService.stopAll().catch(() => {});
+
       if (localResult.isCorrect) {
         setConsecutiveCombo((prev) => prev + 1);
-        SoundService.playSuccessChime().catch(() => {});
+        SoundService.playCorrect().catch(() => {});
         HapticsService.success().catch(() => {});
         setFeedback({
           status: 'correct',
@@ -341,7 +348,7 @@ export default function LessonScreen() {
         });
       } else {
         setConsecutiveCombo(0);
-        SoundService.playErrorThud().catch(() => {});
+        SoundService.playIncorrect().catch(() => {});
         HapticsService.error().catch(() => {});
         const remaining = typeof localResult.heartsRemaining === 'number'
           ? Math.max(0, localResult.heartsRemaining)
@@ -395,6 +402,9 @@ export default function LessonScreen() {
     if (isContinuingRef.current) return;
     isContinuingRef.current = true;
 
+    // Immediately stop audio/speech from prior question to prevent bleeding across questions
+    SoundService.stopAll().catch(() => {});
+
     try {
       HapticsService.lightTap();
 
@@ -435,10 +445,16 @@ export default function LessonScreen() {
           };
           setCompletionResult(completionData);
           setIsCompleted(true);
-          if (passed) {
-            SoundService.playFanfare().catch(() => {});
-          } else {
-            SoundService.playErrorThud().catch(() => {});
+
+          // Strictly play completion fanfare once and only when section was passed
+          if (!hasPlayedCompletionAudioRef.current) {
+            hasPlayedCompletionAudioRef.current = true;
+            SoundService.stopAll().catch(() => {});
+            if (passed) {
+              SoundService.playSectionComplete().catch(() => {});
+            } else {
+              SoundService.playIncorrect().catch(() => {});
+            }
           }
 
           updateUserLocally((prev) =>
@@ -953,6 +969,7 @@ export default function LessonScreen() {
               title="Quit Session"
               variant="outline"
               onPress={() => {
+                SoundService.stopAll().catch(() => {});
                 setShowExitModal(false);
                 router.replace('/(tabs)');
               }}

@@ -34,9 +34,17 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const isMountedRef = useRef(true);
 
-  // Pulse animation while audio is speaking
+  // Component lifecycle: set isMountedRef and stop audio on unmount
   useEffect(() => {
     isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      SoundService.stopSpeaking().catch(() => {});
+    };
+  }, []);
+
+  // Pulse animation while audio is speaking
+  useEffect(() => {
     if (isPlaying) {
       const loop = Animated.loop(
         Animated.sequence([
@@ -60,9 +68,6 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
     } else {
       pulseAnim.setValue(1);
     }
-    return () => {
-      isMountedRef.current = false;
-    };
   }, [isPlaying]);
 
   // Autoplay audio once on exercise entry
@@ -77,6 +82,7 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
 
   const handlePlayAudio = async (isSlow: boolean = false) => {
     HapticsService.lightTap();
+    await SoundService.stopSpeaking().catch(() => {});
     setActiveSpeed(isSlow ? 'slow' : 'normal');
     setIsLoading(true);
     setHasError(false);

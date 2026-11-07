@@ -61,6 +61,9 @@ export default function PracticeScreen() {
 
   useEffect(() => {
     loadMistakes();
+    return () => {
+      SoundService.stopAll().catch(() => {});
+    };
   }, [token]);
 
   const handleStartPracticeDrill = () => {
