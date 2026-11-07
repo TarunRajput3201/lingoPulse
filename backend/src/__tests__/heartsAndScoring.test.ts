@@ -92,6 +92,78 @@ describe('Hearts & Lives System (100 Max Hearts, 10-Min Refill)', () => {
     const result2 = HeartService.addHeart(mockUser);
     expect(result2.hearts).toBe(100);
   });
+
+  describe('Guest Users - Strict 10 Hearts & Zero Regeneration', () => {
+    it('should initialize guest with 10 max hearts and 0 nextHeartInSeconds', () => {
+      const mockGuest = {
+        role: 'guest',
+        isGuest: true,
+        hearts: 10,
+        maxHearts: 10,
+        lastHeartRefillAt: new Date(Date.now() - 3600 * 1000), // 1 hour ago
+      } as unknown as IUser;
+
+      const result = HeartService.refreshHearts(mockGuest);
+      expect(result.hearts).toBe(10);
+      expect(result.maxHearts).toBe(10);
+      expect(result.nextHeartInSeconds).toBe(0);
+      expect(result.updated).toBe(false);
+    });
+
+    it('guest should NEVER regenerate hearts even after long periods offline', () => {
+      const threeDaysAgo = new Date(Date.now() - 72 * 3600 * 1000);
+      const mockGuest = {
+        role: 'guest',
+        isGuest: true,
+        hearts: 3,
+        maxHearts: 10,
+        lastHeartRefillAt: threeDaysAgo,
+      } as unknown as IUser;
+
+      const result = HeartService.refreshHearts(mockGuest);
+      // Strictly remains 3; no +1 every 10 mins
+      expect(result.hearts).toBe(3);
+      expect(result.maxHearts).toBe(10);
+      expect(result.nextHeartInSeconds).toBe(0);
+      expect(result.updated).toBe(false);
+    });
+
+    it('guest deductHeart reduces heart count down to 0 and never below', () => {
+      const mockGuest = {
+        role: 'guest',
+        isGuest: true,
+        hearts: 1,
+        maxHearts: 10,
+        lastHeartRefillAt: new Date(),
+      } as unknown as IUser;
+
+      const res1 = HeartService.deductHeart(mockGuest);
+      expect(res1.hearts).toBe(0);
+      expect(res1.nextHeartInSeconds).toBe(0);
+
+      // Deducting again clamps at 0
+      const res2 = HeartService.deductHeart(mockGuest);
+      expect(res2.hearts).toBe(0);
+      expect(res2.nextHeartInSeconds).toBe(0);
+    });
+
+    it('guest practice recovers up to 10 hearts maximum', () => {
+      const mockGuest = {
+        role: 'guest',
+        isGuest: true,
+        hearts: 9,
+        maxHearts: 10,
+        lastHeartRefillAt: new Date(),
+      } as unknown as IUser;
+
+      const res1 = HeartService.addHeart(mockGuest);
+      expect(res1.hearts).toBe(10);
+
+      // Cannot exceed 10
+      const res2 = HeartService.addHeart(mockGuest);
+      expect(res2.hearts).toBe(10);
+    });
+  });
 });
 
 describe('Section Passing Rules & Best Score Tracking Logic', () => {

@@ -85,9 +85,16 @@ export default function PracticeScreen() {
         for (const m of mistakes) {
           await CurriculumService.resolveMistake(m.id);
         }
-        updateUserLocally((prev) =>
-          prev ? { ...prev, hearts: Math.min(100, (prev.hearts || 0) + 1), maxHearts: 100 } : null
-        );
+        updateUserLocally((prev) => {
+          if (!prev) return null;
+          const isGuestUser = prev.role === 'guest' || Boolean(prev.isGuest);
+          const limit = isGuestUser ? 10 : 100;
+          return {
+            ...prev,
+            hearts: Math.min(limit, (prev.hearts || 0) + 1),
+            maxHearts: limit,
+          };
+        });
 
         SoundService.playSuccessChime().catch(() => {});
         HapticsService.success().catch(() => {});

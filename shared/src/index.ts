@@ -367,7 +367,8 @@ export const APP_THEME = {
   cardShadow: 'rgba(0, 0, 0, 0.1)',
 };
 
-export const MAX_HEARTS = 5;
-export const HEART_REFILL_MINUTES = 30;
+export const MAX_HEARTS = 100;
+export const GUEST_MAX_HEARTS = 10;
+export const HEART_REFILL_MINUTES = 10;
 export const BASE_LESSON_XP = 15;
 export const PERFECT_LESSON_BONUS_XP = 5;

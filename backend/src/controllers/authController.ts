@@ -87,6 +87,58 @@ export const register = async (req: AuthenticatedRequest, res: Response): Promis
   });
 };
 
+export const createOrGetGuest = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const { deviceId } = req.body || {};
+
+  if (deviceId && typeof deviceId === 'string' && deviceId.trim().length > 0) {
+    const cleanDeviceId = deviceId.trim();
+    const existingGuest = await User.findOne({ guestDeviceId: cleanDeviceId, role: 'guest' });
+    if (existingGuest) {
+      const token = generateToken(existingGuest._id.toString());
+      res.json({
+        user: existingGuest.toSafeProfile(),
+        tokens: {
+          accessToken: token,
+          expiresIn: 30 * 24 * 3600,
+        },
+      });
+      return;
+    }
+  }
+
+  const guestSuffix = `${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+  const guestUser = new User({
+    email: `guest_${guestSuffix}@lingopulse.guest`,
+    password: `GuestPass_${guestSuffix}!`,
+    username: `guest_${guestSuffix}`,
+    displayName: 'Guest Learner',
+    role: 'guest',
+    isGuest: true,
+    guestDeviceId: deviceId && typeof deviceId === 'string' ? deviceId.trim() : '',
+    nativeLanguage: 'en',
+    targetLanguage: 'es',
+    learningLevel: 'beginner',
+    hearts: 10,
+    maxHearts: 10,
+    lastHeartRefillAt: new Date(),
+    totalXp: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    hasCompletedOnboarding: true,
+  });
+
+  await guestUser.save();
+  const token = generateToken(guestUser._id.toString());
+
+  res.status(201).json({
+    user: guestUser.toSafeProfile(),
+    tokens: {
+      accessToken: token,
+      expiresIn: 30 * 24 * 3600,
+    },
+  });
+};
+
 export const login = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const { email, password } = loginSchema.parse(req.body);
 

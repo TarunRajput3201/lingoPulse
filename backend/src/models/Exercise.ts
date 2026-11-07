@@ -1,4 +1,4 @@
-import { Schema, model, Document, Types } from 'mongoose';
+import { Schema, model, models, Document, Types, Model } from 'mongoose';
 
 export type ExerciseType =
   | 'MULTIPLE_CHOICE'
@@ -95,4 +95,4 @@ const ExerciseSchema = new Schema<IExercise>(
 
 ExerciseSchema.index({ lessonId: 1, order: 1 });
 
-export const Exercise = model<IExercise>('Exercise', ExerciseSchema);
+export const Exercise: Model<IExercise> = (models.Exercise as Model<IExercise>) || model<IExercise>('Exercise', ExerciseSchema);

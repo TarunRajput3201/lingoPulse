@@ -28,6 +28,21 @@ export const getLesson = async (req: AuthenticatedRequest, res: Response): Promi
     return;
   }
 
+  const user = req.user;
+  if (user) {
+    const isGuest = user.role === 'guest' || Boolean(user.isGuest);
+    if (isGuest && user.hearts <= 0) {
+      res.status(403).json({
+        error: 'GUEST_HEARTS_EXHAUSTED',
+        message: 'You have used all 10 free guest hearts. Please sign up or log in to continue learning and enjoy 100 hearts with automatic regeneration!',
+        requiresAuth: true,
+        heartsRemaining: 0,
+        maxHearts: 10,
+      });
+      return;
+    }
+  }
+
   const unit: any = lesson.unitId;
   const course: any = unit?.courseId;
 
@@ -117,6 +132,37 @@ export const getLesson = async (req: AuthenticatedRequest, res: Response): Promi
 
 export const submitAnswer = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const user = req.user!;
+  const isGuest = user.role === 'guest' || Boolean(user.isGuest);
+
+  if (isGuest && user.hearts <= 0) {
+    res.status(403).json({
+      error: 'GUEST_HEARTS_EXHAUSTED',
+      message: 'You have used all 10 free guest hearts. Please sign up or log in to continue learning and enjoy 100 hearts with automatic regeneration!',
+      requiresAuth: true,
+      heartsRemaining: 0,
+      maxHearts: 10,
+      nextHeartInSeconds: 0,
+    });
+    return;
+  }
+
+  if (!isGuest) {
+    const { updated } = HeartService.refreshHearts(user);
+    if (updated) await user.save();
+    if (user.hearts <= 0) {
+      const status = HeartService.getHeartStatus(user);
+      res.status(403).json({
+        error: 'OUT_OF_HEARTS',
+        message: 'You are out of hearts. Practice to refill hearts or wait for regeneration.',
+        requiresAuth: false,
+        heartsRemaining: 0,
+        maxHearts: 100,
+        nextHeartInSeconds: status.nextHeartInSeconds,
+      });
+      return;
+    }
+  }
+
   const { exerciseId, userAnswer, durationMs } = req.body;
 
   const exercise = await Exercise.findById(exerciseId);
@@ -128,11 +174,19 @@ export const submitAnswer = async (req: AuthenticatedRequest, res: Response): Pr
   // Validate answer authoritatively on server
   const validation = ExerciseValidator.validate(exercise, userAnswer);
 
-  // If incorrect, deduct 1 heart
-  let heartStatus = HeartService.getHeartStatus(user);
+  // If incorrect, deduct 1 heart atomically to prevent race conditions
+  let heartStatus: { hearts: number; maxHearts: number; nextHeartInSeconds: number; lastHeartRefillAt: Date };
   if (!validation.isCorrect) {
-    heartStatus = HeartService.deductHeart(user);
-    await user.save();
+    const freshUser = await HeartService.deductHeartAtomic(user._id);
+    if (freshUser) {
+      user.hearts = freshUser.hearts;
+      user.lastHeartRefillAt = freshUser.lastHeartRefillAt;
+    } else {
+      user.hearts = 0;
+    }
+    heartStatus = HeartService.getHeartStatus(user);
+  } else {
+    heartStatus = HeartService.getHeartStatus(user);
   }
 
   // Audit attempt in database
@@ -154,7 +208,7 @@ export const submitAnswer = async (req: AuthenticatedRequest, res: Response): Pr
     pedagogicalTip: validation.pedagogicalTip,
     hasAccentWarning: validation.hasAccentWarning,
     heartsRemaining: user.hearts,
-    maxHearts: 100,
+    maxHearts: isGuest ? 10 : 100,
     nextHeartInSeconds: heartStatus.nextHeartInSeconds,
   });
 };
@@ -333,7 +387,7 @@ export const completeLesson = async (req: AuthenticatedRequest, res: Response): 
     newStreak: currentStreak,
     isStreakExtended: isNewStreakDay,
     heartsRemaining: user.hearts,
-    maxHearts: 100,
+    maxHearts: (user.role === 'guest' || Boolean(user.isGuest)) ? 10 : 100,
     nextHeartInSeconds: heartStatus.nextHeartInSeconds,
     accuracyPercentage,
     bestScore,

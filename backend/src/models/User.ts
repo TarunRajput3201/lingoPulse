@@ -1,4 +1,4 @@
-import { Schema, model, Document } from 'mongoose';
+import { Schema, model, models, Document, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 export interface IUserPreferences {
@@ -17,7 +17,9 @@ export interface IUser extends Document {
   username: string;
   displayName: string;
   avatarUrl?: string;
-  role: 'learner' | 'admin' | 'creator';
+  role: 'learner' | 'admin' | 'creator' | 'guest';
+  isGuest?: boolean;
+  guestDeviceId?: string;
   nativeLanguage: string;
   targetLanguage: string;
   learningLevel: 'beginner' | 'elementary' | 'intermediate' | 'advanced';
@@ -83,8 +85,18 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['learner', 'admin', 'creator'],
+      enum: ['learner', 'admin', 'creator', 'guest'],
       default: 'learner',
+      index: true,
+    },
+    isGuest: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    guestDeviceId: {
+      type: String,
+      default: '',
       index: true,
     },
     nativeLanguage: {
@@ -161,6 +173,34 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
 };
 
 UserSchema.methods.toSafeProfile = function () {
+  const isGuestUser = this.role === 'guest' || Boolean(this.isGuest);
+  if (isGuestUser) {
+    return {
+      id: this._id.toString(),
+      email: this.email,
+      username: this.username,
+      displayName: this.displayName,
+      avatarUrl: this.avatarUrl,
+      role: 'guest',
+      isGuest: true,
+      nativeLanguage: this.nativeLanguage,
+      targetLanguage: this.targetLanguage,
+      learningLevel: this.learningLevel,
+      preferences: this.preferences,
+      hearts: Math.min(10, Math.max(0, this.hearts ?? 10)),
+      maxHearts: 10,
+      lastHeartRefillAt: this.lastHeartRefillAt?.toISOString(),
+      nextHeartInSeconds: 0,
+      totalXp: this.totalXp,
+      currentStreak: this.currentStreak,
+      longestStreak: this.longestStreak,
+      lastActiveDate: this.lastActiveDate,
+      hasCompletedOnboarding: this.hasCompletedOnboarding,
+      createdAt: this.createdAt?.toISOString(),
+      updatedAt: this.updatedAt?.toISOString(),
+    };
+  }
+
   const now = Date.now();
   const lastRefill = new Date(this.lastHeartRefillAt || now).getTime();
   const elapsedMs = Math.max(0, now - lastRefill);
@@ -184,12 +224,13 @@ UserSchema.methods.toSafeProfile = function () {
     displayName: this.displayName,
     avatarUrl: this.avatarUrl,
     role: this.role,
+    isGuest: false,
     nativeLanguage: this.nativeLanguage,
     targetLanguage: this.targetLanguage,
     learningLevel: this.learningLevel,
     preferences: this.preferences,
     hearts: effectiveHearts,
-    maxHearts: this.maxHearts || 100,
+    maxHearts: 100,
     lastHeartRefillAt: this.lastHeartRefillAt?.toISOString(),
     nextHeartInSeconds,
     totalXp: this.totalXp,
@@ -202,4 +243,4 @@ UserSchema.methods.toSafeProfile = function () {
   };
 };
 
-export const User = model<IUser>('User', UserSchema);
+export const User: Model<IUser> = (models.User as Model<IUser>) || model<IUser>('User', UserSchema);

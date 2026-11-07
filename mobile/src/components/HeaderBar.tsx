@@ -13,9 +13,10 @@ export const HeaderBar: React.FC = () => {
 
   const streak = user?.currentStreak || 0;
   const xp = user?.totalXp || 0;
-  const hearts = user?.hearts ?? 100;
-  const maxHearts = user?.maxHearts ?? 100;
-  const nextHeartInSeconds = user?.nextHeartInSeconds ?? 0;
+  const isGuest = user?.role === 'guest' || Boolean(user?.isGuest);
+  const hearts = user?.hearts ?? (isGuest ? 10 : 100);
+  const maxHearts = user?.maxHearts ?? (isGuest ? 10 : 100);
+  const nextHeartInSeconds = isGuest ? 0 : (user?.nextHeartInSeconds ?? 0);
   const targetLang = user?.targetLanguage?.toLowerCase();
 
   const formatCountdown = (secs: number) => {
@@ -188,7 +189,16 @@ export const HeaderBar: React.FC = () => {
 
             {/* Regeneration Status Card */}
             <View style={styles.regenInfoBox}>
-              {hearts < maxHearts ? (
+              {isGuest ? (
+                <>
+                  <Text style={styles.regenDescription}>
+                    As a <Text style={{ fontWeight: '800' }}>Guest</Text>, you receive exactly 10 free hearts. Guest hearts do not regenerate over time.
+                  </Text>
+                  <Text style={[styles.regenDescription, { marginTop: 6, color: COLORS.accentDark, fontWeight: '700' }]}>
+                    Sign up or log in to unlock 100 hearts with automatic +1 heart every 10 minutes!
+                  </Text>
+                </>
+              ) : hearts < maxHearts ? (
                 <>
                   <View style={styles.regenTimerRow}>
                     <Clock size={18} color={COLORS.accent} />
@@ -208,15 +218,28 @@ export const HeaderBar: React.FC = () => {
               )}
             </View>
 
-            {/* Practice Button */}
-            <Pressable
-              onPress={handlePracticeFromModal}
-              style={styles.modalPracticeButton}
-              accessibilityRole="button"
-              accessibilityLabel="Practice to earn hearts"
-            >
-              <Text style={styles.modalPracticeButtonText}>Practice Review Drill →</Text>
-            </Pressable>
+            {isGuest ? (
+              <Pressable
+                onPress={() => {
+                  setShowHeartsModal(false);
+                  router.push('/(auth)/register');
+                }}
+                style={styles.modalPracticeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Create account to get 100 hearts"
+              >
+                <Text style={styles.modalPracticeButtonText}>Unlock 100 Hearts (Free Sign Up) →</Text>
+              </Pressable>
+            ) : (
+              <Pressable
+                onPress={handlePracticeFromModal}
+                style={styles.modalPracticeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Practice to earn hearts"
+              >
+                <Text style={styles.modalPracticeButtonText}>Practice Review Drill →</Text>
+              </Pressable>
+            )}
           </View>
         </View>
       </Modal>

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   register,
   login,
+  createOrGetGuest,
   getProfile,
   updateProfile,
   completeOnboarding,
@@ -14,6 +15,7 @@ const router = Router();
 
 router.post('/register', register);
 router.post('/login', login);
+router.post('/guest', createOrGetGuest);
 router.get('/profile', authenticate, getProfile);
 router.put('/profile', authenticate, updateProfile);
 router.get('/hearts', authenticate, getHearts);

@@ -23,6 +23,7 @@ const STREAK_KEY = 'lingopulse_local_streak';
 const LAST_ACTIVE_KEY = 'lingopulse_local_last_active';
 
 export const MAX_HEARTS = 100;
+export const GUEST_MAX_HEARTS = 10;
 export const REFILL_INTERVAL_MS = 10 * 60 * 1000; // 1 heart every 10 minutes
 
 export interface LocalMistake {
@@ -388,18 +389,73 @@ export const CurriculumService = {
     };
   },
 
-  // 8. Accurate 100-Heart System with 10-minute regeneration countdown
+  async getOrCreateCachedUser(): Promise<any> {
+    let cachedUser = await StorageService.getUserCache();
+    if (!cachedUser) {
+      cachedUser = {
+        id: 'local_learner',
+        email: 'local@lingopulse.com',
+        username: 'learner',
+        displayName: 'Learner',
+        nativeLanguage: 'en',
+        targetLanguage: 'es',
+        learningLevel: 'beginner',
+        role: 'learner',
+        isGuest: false,
+        hearts: MAX_HEARTS,
+        maxHearts: MAX_HEARTS,
+        totalXp: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+        lastActiveDate: new Date().toISOString().split('T')[0],
+        hasCompletedOnboarding: true,
+        lastHeartRefillAt: new Date().toISOString(),
+        preferences: {
+          dailyGoalMinutes: 10,
+          soundEffects: true,
+          hapticFeedback: true,
+          dailyReminder: true,
+          reminderTime: '19:00',
+          theme: 'system',
+          timezone: 'UTC',
+        },
+      };
+      await StorageService.setUserCache(cachedUser);
+    }
+    return cachedUser;
+  },
+
+  // 8. Accurate 100-Heart System with 10-minute server-synced regeneration countdown
   async getHeartsStatus(): Promise<HeartStatus> {
+    const cachedUser = await this.getOrCreateCachedUser();
+    const isGuest = cachedUser?.role === 'guest' || Boolean(cachedUser?.isGuest);
+
+    if (isGuest) {
+      const hearts = typeof cachedUser?.hearts === 'number'
+        ? Math.min(GUEST_MAX_HEARTS, Math.max(0, cachedUser.hearts))
+        : GUEST_MAX_HEARTS;
+      return {
+        hearts,
+        maxHearts: GUEST_MAX_HEARTS,
+        nextHeartInSeconds: 0,
+        lastHeartRefillAt: cachedUser?.lastHeartRefillAt || new Date().toISOString(),
+      };
+    }
+
     const now = Date.now();
-    let hearts = await StorageService.getJSON<number>(HEARTS_KEY, MAX_HEARTS);
-    const lastRefillRaw = await StorageService.getItem(LAST_HEART_REFILL_KEY);
-    const lastRefillTime = lastRefillRaw ? parseInt(lastRefillRaw, 10) : now;
+    let hearts = typeof cachedUser?.hearts === 'number' ? cachedUser.hearts : MAX_HEARTS;
+    const lastRefillRaw = cachedUser?.lastHeartRefillAt;
+    const lastRefillTime = lastRefillRaw ? new Date(lastRefillRaw).getTime() : now;
     const elapsedMs = Math.max(0, now - lastRefillTime);
 
     if (hearts >= MAX_HEARTS) {
       hearts = MAX_HEARTS;
-      await StorageService.setJSON(HEARTS_KEY, MAX_HEARTS);
-      await StorageService.setItem(LAST_HEART_REFILL_KEY, String(now));
+      if (cachedUser && (cachedUser.hearts !== MAX_HEARTS || cachedUser.maxHearts !== MAX_HEARTS)) {
+        cachedUser.hearts = MAX_HEARTS;
+        cachedUser.maxHearts = MAX_HEARTS;
+        cachedUser.lastHeartRefillAt = new Date(now).toISOString();
+        await StorageService.setUserCache(cachedUser);
+      }
       return {
         hearts: MAX_HEARTS,
         maxHearts: MAX_HEARTS,
@@ -415,9 +471,12 @@ export const CurriculumService = {
       const remainderMs = elapsedMs % REFILL_INTERVAL_MS;
       const adjustedLastRefill = now - remainderMs;
 
-      hearts = newHearts;
-      await StorageService.setJSON(HEARTS_KEY, newHearts);
-      await StorageService.setItem(LAST_HEART_REFILL_KEY, String(adjustedLastRefill));
+      if (cachedUser) {
+        cachedUser.hearts = newHearts;
+        cachedUser.maxHearts = MAX_HEARTS;
+        cachedUser.lastHeartRefillAt = new Date(adjustedLastRefill).toISOString();
+        await StorageService.setUserCache(cachedUser);
+      }
 
       const nextHeartInSeconds = newHearts >= MAX_HEARTS ? 0 : Math.max(0, Math.ceil((REFILL_INTERVAL_MS - remainderMs) / 1000));
 
@@ -444,52 +503,91 @@ export const CurriculumService = {
   },
 
   async deductHeart(): Promise<HeartStatus> {
+    const cachedUser = await this.getOrCreateCachedUser();
+    const isGuest = cachedUser?.role === 'guest' || Boolean(cachedUser?.isGuest);
+
+    if (isGuest) {
+      const curHearts = typeof cachedUser?.hearts === 'number' ? cachedUser.hearts : GUEST_MAX_HEARTS;
+      const remaining = Math.max(0, curHearts - 1);
+      cachedUser.hearts = remaining;
+      cachedUser.maxHearts = GUEST_MAX_HEARTS;
+      await StorageService.setUserCache(cachedUser);
+      return {
+        hearts: remaining,
+        maxHearts: GUEST_MAX_HEARTS,
+        nextHeartInSeconds: 0,
+        lastHeartRefillAt: new Date().toISOString(),
+      };
+    }
+
     const status = await this.getHeartsStatus();
     let hearts = status.hearts;
     const now = Date.now();
 
     if (hearts > 0) {
       hearts -= 1;
-      await StorageService.setJSON(HEARTS_KEY, hearts);
+      cachedUser.hearts = hearts;
+      cachedUser.maxHearts = MAX_HEARTS;
       if (hearts === MAX_HEARTS - 1) {
         // Just dropped below max; initialize refill start point to right now
-        await StorageService.setItem(LAST_HEART_REFILL_KEY, String(now));
+        cachedUser.lastHeartRefillAt = new Date(now).toISOString();
       }
+      await StorageService.setUserCache(cachedUser);
     }
 
     return await this.getHeartsStatus();
   },
 
   async addHeart(): Promise<HeartStatus> {
+    const cachedUser = await this.getOrCreateCachedUser();
+    const isGuest = cachedUser?.role === 'guest' || Boolean(cachedUser?.isGuest);
+
+    if (isGuest) {
+      const curHearts = typeof cachedUser?.hearts === 'number' ? cachedUser.hearts : GUEST_MAX_HEARTS;
+      const remaining = Math.min(GUEST_MAX_HEARTS, curHearts + 1);
+      cachedUser.hearts = remaining;
+      cachedUser.maxHearts = GUEST_MAX_HEARTS;
+      await StorageService.setUserCache(cachedUser);
+      return {
+        hearts: remaining,
+        maxHearts: GUEST_MAX_HEARTS,
+        nextHeartInSeconds: 0,
+        lastHeartRefillAt: new Date().toISOString(),
+      };
+    }
+
     const status = await this.getHeartsStatus();
     let hearts = status.hearts;
     const now = Date.now();
 
     if (hearts < MAX_HEARTS) {
       hearts += 1;
-      await StorageService.setJSON(HEARTS_KEY, hearts);
+      cachedUser.hearts = hearts;
+      cachedUser.maxHearts = MAX_HEARTS;
       if (hearts >= MAX_HEARTS) {
-        await StorageService.setItem(LAST_HEART_REFILL_KEY, String(now));
+        cachedUser.lastHeartRefillAt = new Date(now).toISOString();
       }
+      await StorageService.setUserCache(cachedUser);
     }
 
     return await this.getHeartsStatus();
   },
 
-  // Refill Hearts to 100
+  // Refill Hearts to 100 (or 10 for guest)
   async refillHearts(): Promise<HeartStatus> {
+    const cachedUser = await this.getOrCreateCachedUser();
+    const isGuest = cachedUser?.role === 'guest' || Boolean(cachedUser?.isGuest);
+    const limit = isGuest ? GUEST_MAX_HEARTS : MAX_HEARTS;
     const now = Date.now();
-    await StorageService.setJSON(HEARTS_KEY, MAX_HEARTS);
-    await StorageService.setItem(LAST_HEART_REFILL_KEY, String(now));
-    const cachedUser = await StorageService.getUserCache();
-    if (cachedUser) {
-      cachedUser.hearts = MAX_HEARTS;
-      cachedUser.maxHearts = MAX_HEARTS;
-      await StorageService.setUserCache(cachedUser);
-    }
+
+    cachedUser.hearts = limit;
+    cachedUser.maxHearts = limit;
+    cachedUser.lastHeartRefillAt = new Date(now).toISOString();
+    await StorageService.setUserCache(cachedUser);
+
     return {
-      hearts: MAX_HEARTS,
-      maxHearts: MAX_HEARTS,
+      hearts: limit,
+      maxHearts: limit,
       nextHeartInSeconds: 0,
       lastHeartRefillAt: new Date(now).toISOString(),
     };

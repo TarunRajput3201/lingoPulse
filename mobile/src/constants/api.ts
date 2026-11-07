@@ -9,6 +9,8 @@ export const ENDPOINTS = {
   HEALTH: `${API_BASE_URL}/api/health`,
   REGISTER: `${API_BASE_URL}/api/auth/register`,
   LOGIN: `${API_BASE_URL}/api/auth/login`,
+  GUEST: `${API_BASE_URL}/api/auth/guest`,
+  HEARTS: `${API_BASE_URL}/api/auth/hearts`,
   PROFILE: `${API_BASE_URL}/api/auth/profile`,
   ONBOARDING: `${API_BASE_URL}/api/auth/onboarding`,
   DELETE_ACCOUNT: `${API_BASE_URL}/api/auth/account`,

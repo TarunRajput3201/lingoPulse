@@ -153,6 +153,13 @@ export default function LessonScreen() {
     if (!id) return;
     AdaptiveEngine.resetLesson();
 
+    const isGuestUser = user?.role === 'guest' || Boolean(user?.isGuest);
+    if ((user?.hearts ?? (isGuestUser ? 10 : 100)) <= 0) {
+      setLoading(false);
+      setShowOutOfHeartsModal(true);
+      return;
+    }
+
     const watchdogTimer = setTimeout(() => {
       if (isMounted.current) {
         setLoading(false);
@@ -338,7 +345,7 @@ export default function LessonScreen() {
         HapticsService.error().catch(() => {});
         const remaining = typeof localResult.heartsRemaining === 'number'
           ? Math.max(0, localResult.heartsRemaining)
-          : 5;
+          : Math.max(0, (user?.hearts ?? 100) - 1);
         updateUserLocally((prev) =>
           prev ? { ...prev, hearts: remaining } : null
         );
@@ -961,30 +968,59 @@ export default function LessonScreen() {
           <View style={styles.modalCard}>
             <CharacterView character="pip" pose="helper" size={90} roundMask={true} />
             <Text style={[styles.modalTitle, { color: COLORS.accentDark }]}>
-              You Ran Out of Hearts!
+              {user?.role === 'guest' || user?.isGuest
+                ? 'Guest Hearts Exhausted!'
+                : 'You Ran Out of Hearts!'}
             </Text>
             <Text style={styles.modalDesc}>
-              Review your previous mistakes in the Practice Hub to earn hearts back!
+              {user?.role === 'guest' || user?.isGuest
+                ? 'You have used all 10 free guest hearts! Create a free account or log in now to unlock 100 hearts with automatic 10-minute regeneration and keep learning.'
+                : 'Review your previous mistakes in the Practice Hub to earn hearts back!'}
             </Text>
 
-            <Button3D
-              title="Practice & Refill Hearts"
-              variant="primary"
-              onPress={() => {
-                setShowOutOfHeartsModal(false);
-                router.replace('/(tabs)/practice');
-              }}
-              style={{ width: '100%', marginTop: 14 }}
-            />
-            <Button3D
-              title="Return Home"
-              variant="outline"
-              onPress={() => {
-                setShowOutOfHeartsModal(false);
-                router.replace('/(tabs)');
-              }}
-              style={{ width: '100%', marginTop: 8 }}
-            />
+            {user?.role === 'guest' || user?.isGuest ? (
+              <>
+                <Button3D
+                  title="Create Free Account"
+                  variant="primary"
+                  onPress={() => {
+                    setShowOutOfHeartsModal(false);
+                    router.replace('/(auth)/register');
+                  }}
+                  style={{ width: '100%', marginTop: 14 }}
+                />
+                <Button3D
+                  title="Log In to Existing Account"
+                  variant="outline"
+                  onPress={() => {
+                    setShowOutOfHeartsModal(false);
+                    router.replace('/(auth)/login');
+                  }}
+                  style={{ width: '100%', marginTop: 8 }}
+                />
+              </>
+            ) : (
+              <>
+                <Button3D
+                  title="Practice & Refill Hearts"
+                  variant="primary"
+                  onPress={() => {
+                    setShowOutOfHeartsModal(false);
+                    router.replace('/(tabs)/practice');
+                  }}
+                  style={{ width: '100%', marginTop: 14 }}
+                />
+                <Button3D
+                  title="Return Home"
+                  variant="outline"
+                  onPress={() => {
+                    setShowOutOfHeartsModal(false);
+                    router.replace('/(tabs)');
+                  }}
+                  style={{ width: '100%', marginTop: 8 }}
+                />
+              </>
+            )}
           </View>
         </View>
       </Modal>

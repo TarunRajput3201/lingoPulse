@@ -10,6 +10,7 @@ export interface UserProfile {
   displayName: string;
   avatarUrl?: string;
   role: string;
+  isGuest?: boolean;
   nativeLanguage: string;
   targetLanguage: string;
   learningLevel: string;
@@ -25,6 +26,7 @@ export interface UserProfile {
   hearts: number;
   maxHearts: number;
   nextHeartInSeconds?: number;
+  lastHeartRefillAt?: string;
   totalXp: number;
   currentStreak: number;
   longestStreak: number;
@@ -48,13 +50,14 @@ interface AuthContextType {
   syncHearts: () => Promise<void>;
 }
 
-const createLocalProfile = (email: string, displayName: string, username: string): UserProfile => ({
-  id: `user_local_${Date.now()}`,
-  email: email || 'learner@lingopulse.local',
-  username: username || 'learner',
-  displayName: displayName || 'Learner',
+const createLocalProfile = (email: string, displayName: string, username: string, isGuest = false): UserProfile => ({
+  id: isGuest ? `guest_${Date.now()}` : `user_local_${Date.now()}`,
+  email: email || (isGuest ? 'guest@lingopulse.local' : 'learner@lingopulse.local'),
+  username: username || (isGuest ? 'guest' : 'learner'),
+  displayName: displayName || (isGuest ? 'Guest Learner' : 'Learner'),
   avatarUrl: '',
-  role: 'learner',
+  role: isGuest ? 'guest' : 'learner',
+  isGuest,
   nativeLanguage: 'en',
   targetLanguage: 'es',
   learningLevel: 'beginner',
@@ -67,9 +70,10 @@ const createLocalProfile = (email: string, displayName: string, username: string
     theme: 'light',
     timezone: 'UTC',
   },
-  hearts: 100,
-  maxHearts: 100,
+  hearts: isGuest ? 10 : 100,
+  maxHearts: isGuest ? 10 : 100,
   nextHeartInSeconds: 0,
+  lastHeartRefillAt: new Date().toISOString(),
   totalXp: 0,
   currentStreak: 1,
   longestStreak: 1,
@@ -90,27 +94,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const savedUser = await StorageService.getUserCache();
 
       if (savedUser) {
+        const isGuest = savedUser.role === 'guest' || Boolean(savedUser.isGuest);
+        if (!isGuest) {
+          // Calculate accumulated hearts from real elapsed time using savedUser.lastHeartRefillAt:
+          const now = Date.now();
+          let hearts = typeof savedUser.hearts === 'number' ? savedUser.hearts : 100;
+          const lastRefillTime = savedUser.lastHeartRefillAt ? new Date(savedUser.lastHeartRefillAt).getTime() : now;
+          const elapsedMs = Math.max(0, now - lastRefillTime);
+          const REFILL_MS = 10 * 60 * 1000;
+
+          if (hearts >= 100) {
+            savedUser.hearts = 100;
+            savedUser.maxHearts = 100;
+            savedUser.nextHeartInSeconds = 0;
+          } else {
+            const regenerated = Math.floor(elapsedMs / REFILL_MS);
+            if (regenerated > 0) {
+              const newHearts = Math.min(100, hearts + regenerated);
+              savedUser.hearts = newHearts;
+              savedUser.maxHearts = 100;
+              if (newHearts >= 100) {
+                savedUser.lastHeartRefillAt = new Date(now).toISOString();
+                savedUser.nextHeartInSeconds = 0;
+              } else {
+                const remainderMs = elapsedMs % REFILL_MS;
+                savedUser.lastHeartRefillAt = new Date(now - remainderMs).toISOString();
+                savedUser.nextHeartInSeconds = Math.max(0, Math.ceil((REFILL_MS - remainderMs) / 1000));
+              }
+            } else {
+              savedUser.maxHearts = 100;
+              savedUser.nextHeartInSeconds = Math.max(0, Math.ceil((REFILL_MS - elapsedMs) / 1000));
+            }
+          }
+        } else {
+          // Guest user: strictly capped at 10, no regeneration, zero countdown
+          savedUser.hearts = Math.min(10, Math.max(0, savedUser.hearts ?? 10));
+          savedUser.maxHearts = 10;
+          savedUser.nextHeartInSeconds = 0;
+        }
+
         setUser(savedUser);
-        setToken(savedToken || 'local-guest-token');
-      } else if (savedToken) {
+        setToken(savedToken || (savedUser.isGuest ? 'local-guest-token' : 'local-token'));
+        await StorageService.setUserCache(savedUser);
+      } else if (savedToken && !savedToken.startsWith('local-guest')) {
         setToken(savedToken);
-        const fallbackProfile = createLocalProfile('learner@lingopulse.local', 'Learner', 'learner');
+        const fallbackProfile = createLocalProfile('learner@lingopulse.local', 'Learner', 'learner', false);
         setUser(fallbackProfile);
       } else {
-        // Instant guest profile so learner never waits on network
-        const defaultProfile = createLocalProfile('learner@lingopulse.local', 'Learner', 'learner');
-        setUser(defaultProfile);
+        // Fresh install guest: 10 hearts
+        const guestProfile = createLocalProfile('guest@lingopulse.local', 'Guest Learner', 'guest', true);
+        setUser(guestProfile);
         setToken('local-guest-token');
-        StorageService.setUserCache(defaultProfile).catch(() => {});
+        await StorageService.setUserCache(guestProfile);
       }
 
       // Transition immediately - zero wait time!
       setIsLoading(false);
 
-      // Non-blocking background remote sync (1.5s timeout, never hangs UI)
+      // Non-blocking background remote sync (2s timeout, never hangs UI)
       if (savedToken && !savedToken.startsWith('local-')) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 1500);
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
 
         fetch(ENDPOINTS.PROFILE, {
           headers: { Authorization: `Bearer ${savedToken}` },
@@ -134,14 +178,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const syncHearts = async () => {
     try {
+      const savedToken = await StorageService.getToken();
+      if (savedToken && !savedToken.startsWith('local-')) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const res = await fetch(ENDPOINTS.HEARTS, {
+          headers: { Authorization: `Bearer ${savedToken}` },
+          signal: controller.signal,
+        }).catch(() => null);
+        clearTimeout(timeoutId);
+
+        if (res && res.ok) {
+          const data = await res.json();
+          setUser((prev) => {
+            if (!prev) return null;
+            const updated = {
+              ...prev,
+              hearts: data.hearts,
+              maxHearts: data.maxHearts || (prev.isGuest ? 10 : 100),
+              nextHeartInSeconds: data.nextHeartInSeconds ?? 0,
+              lastHeartRefillAt: data.lastHeartRefillAt || prev.lastHeartRefillAt,
+            };
+            StorageService.setUserCache(updated).catch(() => {});
+            return updated;
+          });
+          return;
+        }
+      }
+
       const status = await CurriculumService.getHeartsStatus();
       setUser((prev) => {
         if (!prev) return null;
         const updated = {
           ...prev,
           hearts: status.hearts,
-          maxHearts: 100,
+          maxHearts: status.maxHearts,
           nextHeartInSeconds: status.nextHeartInSeconds,
+          lastHeartRefillAt: status.lastHeartRefillAt || prev.lastHeartRefillAt,
         };
         StorageService.setUserCache(updated).catch(() => {});
         return updated;
@@ -160,6 +233,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const interval = setInterval(() => {
       setUser((prev) => {
         if (!prev) return null;
+        // Guests never regenerate hearts!
+        if (prev.role === 'guest' || prev.isGuest) {
+          if (prev.nextHeartInSeconds !== 0) {
+            return { ...prev, nextHeartInSeconds: 0 };
+          }
+          return prev;
+        }
+
         if (prev.hearts >= 100) {
           if (prev.nextHeartInSeconds !== 0) {
             return { ...prev, nextHeartInSeconds: 0 };
@@ -174,7 +255,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const updated = {
             ...prev,
             hearts: newHearts,
+            maxHearts: 100,
             nextHeartInSeconds: newHearts >= 100 ? 0 : 600,
+            lastHeartRefillAt: new Date().toISOString(),
           };
           StorageService.setUserCache(updated).catch(() => {});
           return updated;
@@ -188,7 +271,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const continueAsGuest = async () => {
-    const guestUser = createLocalProfile('guest@lingopulse.local', 'Explorer', 'explorer');
+    try {
+      const deviceId = await StorageService.getDeviceId();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+      const res = await fetch(ENDPOINTS.GUEST, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        setToken(data.tokens.accessToken);
+        await StorageService.setToken(data.tokens.accessToken);
+        await StorageService.setUserCache(data.user);
+        return;
+      }
+    } catch {}
+
+    const guestUser = createLocalProfile('guest@lingopulse.local', 'Guest Learner', 'guest', true);
     const guestToken = 'local-guest-token';
     setUser(guestUser);
     setToken(guestToken);
@@ -355,7 +461,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         token,
         isLoading,
-        isAuthenticated: !!user && !!token,
+        isAuthenticated: !!user && !!token && user.role !== 'guest' && !user.isGuest && !token.startsWith('local-guest'),
         login,
         register,
         logout,

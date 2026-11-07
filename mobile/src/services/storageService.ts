@@ -163,6 +163,16 @@ export const StorageService = {
     return await this.getJSON(USER_KEY, null);
   },
 
+  async getDeviceId(): Promise<string> {
+    const DEVICE_ID_KEY = 'lingopulse_device_id';
+    let devId = await this.getItem(DEVICE_ID_KEY);
+    if (!devId) {
+      devId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await this.setItem(DEVICE_ID_KEY, devId);
+    }
+    return devId;
+  },
+
   async clearAll(): Promise<void> {
     await this.removeToken();
     await this.removeItem(USER_KEY);

@@ -1,5 +1,8 @@
 import { test, expect } from '@playwright/test';
+import mongoose from '../../backend/node_modules/mongoose';
 import { MAX_HEARTS, REFILL_INTERVAL_MS, HeartService } from '../../backend/src/services/heartService';
+import { User } from '../../backend/src/models/User';
+import { Exercise } from '../../backend/src/models/Exercise';
 import {
   CharacterId,
   CHARACTER_PROFILES,
@@ -234,3 +237,302 @@ test.describe('LingoPulse E2E: Hearts System, 50% Passing Threshold & Best Score
     });
   });
 });
+
+test.describe('Mandatory 12 Scenarios: Hearts Persistence, Background Regeneration & Guest Restrictions', () => {
+  const API_URL = 'http://localhost:5050/api';
+
+  test.beforeAll(async () => {
+    if (mongoose.connection.readyState === 0) {
+      await mongoose.connect('mongodb://localhost:27017/lingopulse');
+    }
+  });
+
+  test.afterAll(async () => {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+  });
+
+  const createUser = async (request: any, prefix: string) => {
+    const id = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+    const email = `${prefix}_${id}@lingopulse.com`;
+    const password = 'Password123!';
+    const username = `${prefix}_${id}`;
+    const res = await request.post(`${API_URL}/auth/register`, {
+      data: {
+        username,
+        email,
+        password,
+        displayName: `${prefix} User`,
+        nativeLanguage: 'en',
+        targetLanguage: 'es',
+        learningLevel: 'beginner',
+      },
+    });
+    expect(res.status()).toBe(201);
+    const data = await res.json();
+    return { token: data.tokens.accessToken, user: data.user, email, password, username, id: data.user.id };
+  };
+
+  test('Scenario 1: Login with 5 hearts, close the app, wait 10+ minutes, reopen: balance must be 6', async ({ request }) => {
+    const { token, id } = await createUser(request, 'scen1');
+    const elevenMinutesAgo = new Date(Date.now() - 11 * 60 * 1000);
+    await User.findByIdAndUpdate(id, { hearts: 5, lastHeartRefillAt: elevenMinutesAgo });
+
+    const heartsRes = await request.get(`${API_URL}/auth/hearts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(heartsRes.status()).toBe(200);
+    const data = await heartsRes.json();
+    expect(data.hearts).toBe(6);
+    expect(data.maxHearts).toBe(100);
+    expect(data.nextHeartInSeconds).toBeGreaterThan(500);
+    expect(data.nextHeartInSeconds).toBeLessThanOrEqual(600);
+
+    const profileRes = await request.get(`${API_URL}/auth/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const profileData = await profileRes.json();
+    expect(profileData.user.hearts).toBe(6);
+  });
+
+  test('Scenario 2: Close the app for 30 minutes: balance must increase by 3, subject to the 100-heart cap', async ({ request }) => {
+    const { token, id } = await createUser(request, 'scen2');
+    const thirtyTwoMinutesAgo = new Date(Date.now() - 32 * 60 * 1000);
+    await User.findByIdAndUpdate(id, { hearts: 5, lastHeartRefillAt: thirtyTwoMinutesAgo });
+
+    const heartsRes = await request.get(`${API_URL}/auth/hearts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    expect(heartsRes.status()).toBe(200);
+    const data = await heartsRes.json();
+    expect(data.hearts).toBe(8);
+    expect(data.maxHearts).toBe(100);
+    expect(data.nextHeartInSeconds).toBeGreaterThan(450);
+    expect(data.nextHeartInSeconds).toBeLessThanOrEqual(500);
+  });
+
+  test('Scenario 3: Reopen repeatedly: hearts and countdown must never reset', async ({ request }) => {
+    const { token, id } = await createUser(request, 'scen3');
+    const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
+    await User.findByIdAndUpdate(id, { hearts: 10, lastHeartRefillAt: twentyMinutesAgo });
+
+    const res1 = await request.get(`${API_URL}/auth/hearts`, { headers: { Authorization: `Bearer ${token}` } });
+    const data1 = await res1.json();
+    expect(data1.hearts).toBe(12);
+
+    const res2 = await request.get(`${API_URL}/auth/hearts`, { headers: { Authorization: `Bearer ${token}` } });
+    const data2 = await res2.json();
+    expect(data2.hearts).toBe(12);
+    expect(data2.hearts).not.toBe(5);
+
+    const res3 = await request.get(`${API_URL}/auth/hearts`, { headers: { Authorization: `Bearer ${token}` } });
+    const data3 = await res3.json();
+    expect(data3.hearts).toBe(12);
+  });
+
+  test('Scenario 4: Switch devices and log in: same account balance and regeneration state must appear', async ({ request }) => {
+    const { token, id } = await createUser(request, 'scen4');
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+    await User.findByIdAndUpdate(id, { hearts: 20, lastHeartRefillAt: fifteenMinutesAgo });
+
+    const dev1Res = await request.get(`${API_URL}/auth/hearts`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'User-Agent': 'LingoPulse-iOS-Client/2.0',
+        'X-Device-Id': 'device_ios_001',
+      },
+    });
+    const dev1Data = await dev1Res.json();
+    expect(dev1Data.hearts).toBe(21);
+
+    const dev2Res = await request.get(`${API_URL}/auth/hearts`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'User-Agent': 'LingoPulse-Android-Tablet/2.0',
+        'X-Device-Id': 'device_android_002',
+      },
+    });
+    const dev2Data = await dev2Res.json();
+    expect(dev2Data.hearts).toBe(21);
+    expect(Math.abs(dev2Data.nextHeartInSeconds - dev1Data.nextHeartInSeconds)).toBeLessThanOrEqual(2);
+  });
+
+  test('Scenario 5: Log out and log back in: regeneration must reflect actual elapsed time', async ({ request }) => {
+    const { id, email, password } = await createUser(request, 'scen5');
+    const fortyFiveMinutesAgo = new Date(Date.now() - 45 * 60 * 1000);
+    await User.findByIdAndUpdate(id, { hearts: 10, lastHeartRefillAt: fortyFiveMinutesAgo });
+
+    const loginRes = await request.post(`${API_URL}/auth/login`, {
+      data: { email, password },
+    });
+    expect(loginRes.status()).toBe(200);
+    const loginData = await loginRes.json();
+    expect(loginData.user.hearts).toBe(14);
+    expect(loginData.user.maxHearts).toBe(100);
+  });
+
+  test('Scenario 6: Reach 100 hearts: no further regeneration', async ({ request }) => {
+    const { token, id } = await createUser(request, 'scen6');
+    const oneDayAgo = new Date(Date.now() - 24 * 3600 * 1000);
+    await User.findByIdAndUpdate(id, { hearts: 100, lastHeartRefillAt: oneDayAgo });
+
+    const heartsRes = await request.get(`${API_URL}/auth/hearts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await heartsRes.json();
+    expect(data.hearts).toBe(100);
+    expect(data.maxHearts).toBe(100);
+    expect(data.nextHeartInSeconds).toBe(0);
+  });
+
+  test('Scenario 7: Start with 99 hearts and wait 10 minutes: balance must become 100, never 101', async ({ request }) => {
+    const { token, id } = await createUser(request, 'scen7');
+    const thirtyFiveMinutesAgo = new Date(Date.now() - 35 * 60 * 1000);
+    await User.findByIdAndUpdate(id, { hearts: 99, lastHeartRefillAt: thirtyFiveMinutesAgo });
+
+    const heartsRes = await request.get(`${API_URL}/auth/hearts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await heartsRes.json();
+    expect(data.hearts).toBe(100);
+    expect(data.hearts).not.toBe(101);
+    expect(data.nextHeartInSeconds).toBe(0);
+  });
+
+  test('Scenario 8: Guest starts with 10 hearts: no regeneration under any circumstances', async ({ request }) => {
+    const guestDeviceId = `guest_device_spec_08_${Date.now()}`;
+    const guestRes = await request.post(`${API_URL}/auth/guest`, {
+      data: { deviceId: guestDeviceId },
+    });
+    expect([200, 201]).toContain(guestRes.status());
+    const guestData = await guestRes.json();
+    expect(guestData.user.hearts).toBe(10);
+    expect(guestData.user.maxHearts).toBe(10);
+    expect(guestData.user.isGuest).toBe(true);
+    expect(guestData.user.nextHeartInSeconds).toBe(0);
+
+    const guestToken = guestData.tokens.accessToken;
+    const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 3600 * 1000);
+    await User.findByIdAndUpdate(guestData.user.id, { hearts: 4, lastHeartRefillAt: fiveDaysAgo });
+
+    const heartsRes = await request.get(`${API_URL}/auth/hearts`, {
+      headers: { Authorization: `Bearer ${guestToken}` },
+    });
+    const heartsData = await heartsRes.json();
+    expect(heartsData.hearts).toBe(4);
+    expect(heartsData.maxHearts).toBe(10);
+    expect(heartsData.nextHeartInSeconds).toBe(0);
+  });
+
+  test('Scenario 9: Guest consumes all 10 hearts: learning must be blocked until login/signup', async ({ request }) => {
+    const guestDeviceId = `guest_device_spec_09_${Date.now()}`;
+    const guestRes = await request.post(`${API_URL}/auth/guest`, {
+      data: { deviceId: guestDeviceId },
+    });
+    const guestData = await guestRes.json();
+    const guestToken = guestData.tokens.accessToken;
+
+    await User.findByIdAndUpdate(guestData.user.id, { hearts: 0 });
+
+    const lessonRes = await request.get(`${API_URL}/lessons/6aea1ccd94ea4363bf054a1d`, {
+      headers: { Authorization: `Bearer ${guestToken}` },
+    });
+    expect(lessonRes.status()).toBe(403);
+    const lessonErr = await lessonRes.json();
+    expect(lessonErr.error).toBe('GUEST_HEARTS_EXHAUSTED');
+    expect(lessonErr.requiresAuth).toBe(true);
+
+    const submitRes = await request.post(`${API_URL}/lessons/submit-answer`, {
+      headers: { Authorization: `Bearer ${guestToken}` },
+      data: {
+        exerciseId: '6aea1ccd94ea4363bf054a20',
+        userAnswer: 'hola',
+      },
+    });
+    expect(submitRes.status()).toBe(403);
+    const submitErr = await submitRes.json();
+    expect(submitErr.error).toBe('GUEST_HEARTS_EXHAUSTED');
+    expect(submitErr.requiresAuth).toBe(true);
+  });
+
+  test('Scenario 10: Refresh, restart, clear frontend state, and attempt API manipulation: guest restrictions must remain enforced', async ({ request }) => {
+    const guestDeviceId = `guest_device_spec_10_${Date.now()}`;
+    const initRes = await request.post(`${API_URL}/auth/guest`, {
+      data: { deviceId: guestDeviceId },
+    });
+    const initData = await initRes.json();
+
+    await User.findByIdAndUpdate(initData.user.id, { hearts: 0 });
+
+    const relaunchRes = await request.post(`${API_URL}/auth/guest`, {
+      data: { deviceId: guestDeviceId },
+    });
+    expect(relaunchRes.status()).toBe(200);
+    const relaunchData = await relaunchRes.json();
+    expect(relaunchData.user.id).toBe(initData.user.id);
+    expect(relaunchData.user.hearts).toBe(0);
+
+    const checkHearts = await request.get(`${API_URL}/auth/hearts`, {
+      headers: { Authorization: `Bearer ${relaunchData.tokens.accessToken}` },
+    });
+    const checkData = await checkHearts.json();
+    expect(checkData.hearts).toBe(0);
+    expect(checkData.nextHeartInSeconds).toBe(0);
+  });
+
+  test('Scenario 11: Concurrent sessions, simultaneous requests, and rapid answer submissions for race conditions', async ({ request }) => {
+    const { token, id } = await createUser(request, 'scen11');
+    await User.findByIdAndUpdate(id, { hearts: 10 });
+
+    const exercise = await Exercise.findOne();
+    expect(exercise).toBeDefined();
+    const exerciseId = exercise!._id.toString();
+
+    const submissions = Array.from({ length: 5 }).map(() =>
+      request.post(`${API_URL}/lessons/submit-answer`, {
+        headers: { Authorization: `Bearer ${token}` },
+        data: {
+          exerciseId,
+          userAnswer: '__deliberate_incorrect_for_concurrency__',
+          durationMs: 500,
+        },
+      })
+    );
+
+    const responses = await Promise.all(submissions);
+    responses.forEach((res) => {
+      expect(res.status()).toBe(200);
+    });
+
+    const heartsRes = await request.get(`${API_URL}/auth/hearts`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const heartsData = await heartsRes.json();
+    expect(heartsData.hearts).toBe(5);
+    expect(heartsData.maxHearts).toBe(100);
+  });
+
+  test('Scenario 12: Existing users balances and learning progress are not lost during migration', async ({ request }) => {
+    const { token, id } = await createUser(request, 'scen12');
+    
+    await User.findByIdAndUpdate(id, {
+      hearts: 85,
+      totalXp: 250,
+      currentStreak: 7,
+      longestStreak: 14,
+      lastHeartRefillAt: new Date(Date.now() - 22 * 60 * 1000),
+    });
+
+    const profileRes = await request.get(`${API_URL}/auth/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const profileData = await profileRes.json();
+    expect(profileData.user.totalXp).toBe(250);
+    expect(profileData.user.currentStreak).toBe(7);
+    expect(profileData.user.longestStreak).toBe(14);
+    expect(profileData.user.hearts).toBe(87);
+    expect(profileData.user.maxHearts).toBe(100);
+  });
+});
+
