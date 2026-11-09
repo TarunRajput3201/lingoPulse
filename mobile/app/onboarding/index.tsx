@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from 'react-n
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Check, Globe2 } from 'lucide-react-native';
-import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
+import { COLORS, RADII, SHADOWS, TYPOGRAPHY, LAYOUT } from '../../src/constants/theme';
 import { Button3D } from '../../src/components/Button3D';
 import { CharacterView } from '../../src/components/character/CharacterView';
 import { useAuth } from '../../src/context/AuthContext';
@@ -77,15 +77,17 @@ export default function OnboardingScreen() {
     <View style={styles.container}>
       {/* Progress Header */}
       <View style={[styles.header, { paddingTop: Math.max(50, insets.top + 12) }]}>
-        <View style={styles.progressBarBackground}>
-          <View
-            style={[
-              styles.progressBarFill,
-              { width: `${(step / 3) * 100}%` },
-            ]}
-          />
+        <View style={styles.headerInner}>
+          <View style={styles.progressBarBackground}>
+            <View
+              style={[
+                styles.progressBarFill,
+                { width: `${(step / 3) * 100}%` },
+              ]}
+            />
+          </View>
+          <Text style={styles.stepCounterText}>Step {step} of 3</Text>
         </View>
-        <Text style={styles.stepCounterText}>Step {step} of 3</Text>
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 140 }]}>
@@ -259,20 +261,23 @@ export default function OnboardingScreen() {
           { paddingBottom: Math.max(16, insets.bottom + 12) },
         ]}
       >
-        <Button3D
-          title={
-            step === 1
-              ? 'Start Learning →'
-              : step === 3
-              ? submitting
-                ? 'Creating Adventure...'
-                : 'Complete & Begin'
-              : 'Next Step →'
-          }
-          variant="primary"
-          onPress={handleNext}
-          disabled={submitting}
-        />
+        <View style={styles.footerInner}>
+          <Button3D
+            title={
+              step === 1
+                ? 'Start Learning →'
+                : step === 3
+                ? submitting
+                  ? 'Creating Adventure...'
+                  : 'Complete & Begin'
+                : 'Next Step →'
+            }
+            variant="primary"
+            onPress={handleNext}
+            disabled={submitting}
+            fullWidth
+          />
+        </View>
       </View>
     </View>
   );
@@ -284,14 +289,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-    gap: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
+    paddingHorizontal: 20,
+    paddingBottom: 12,
+  },
+  headerInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   progressBarBackground: {
     flex: 1,
@@ -311,6 +321,9 @@ const styles = StyleSheet.create({
     color: COLORS.grayText,
   },
   content: {
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
     paddingHorizontal: 20,
     paddingTop: 16,
   },
@@ -468,5 +481,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     ...SHADOWS.float,
+  },
+  footerInner: {
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
 });

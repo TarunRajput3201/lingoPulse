@@ -110,6 +110,25 @@ export const SPACING = {
   huge: 48,
 };
 
+export const LAYOUT = {
+  maxWidth: 580,
+  authMaxWidth: 440,
+  cardPadding: 16,
+  screenPadding: 20,
+  tabBarHeight: 68,
+  headerHeight: 60,
+  container: {
+    width: '100%' as const,
+    maxWidth: 580,
+    alignSelf: 'center' as const,
+  },
+  authContainer: {
+    width: '100%' as const,
+    maxWidth: 440,
+    alignSelf: 'center' as const,
+  },
+};
+
 export const RADII = {
   xs: 4,
   sm: 8,

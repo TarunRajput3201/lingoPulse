@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Check, Globe, BookOpen, Search, X } from 'lucide-react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
+import { COLORS, RADII, TYPOGRAPHY, LAYOUT } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
@@ -256,7 +256,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingBottom: 60,
+    paddingBottom: 80,
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   headerTitleContainer: {
     flexDirection: 'row',

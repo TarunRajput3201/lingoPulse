@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Heart, Target, Sparkles, CheckCircle2, RotateCcw, ArrowRight } from 'lucide-react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
+import { COLORS, RADII, TYPOGRAPHY, LAYOUT } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { Button3D } from '../../src/components/Button3D';
 import { MascotPip } from '../../src/components/MascotPip';
@@ -282,7 +282,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingBottom: 60,
+    paddingBottom: 80,
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   headerTitleContainer: {
     flexDirection: 'row',

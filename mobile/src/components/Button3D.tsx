@@ -8,6 +8,7 @@ import {
   GestureResponderEvent,
   ActivityIndicator,
   View,
+  Platform,
 } from 'react-native';
 import { COLORS, RADII, TYPOGRAPHY } from '../constants/theme';
 import { HapticsService } from '../services/hapticsService';
@@ -15,10 +16,11 @@ import { HapticsService } from '../services/hapticsService';
 interface Button3DProps {
   title: string;
   onPress: (event: GestureResponderEvent) => void;
-  variant?: 'primary' | 'secondary' | 'accent' | 'gold' | 'purple' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'accent' | 'danger' | 'gold' | 'purple' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
+  fullWidth?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
   icon?: React.ReactNode;
@@ -31,6 +33,7 @@ export const Button3D: React.FC<Button3DProps> = ({
   size = 'md',
   disabled = false,
   loading = false,
+  fullWidth = false,
   style,
   textStyle,
   icon,
@@ -52,6 +55,7 @@ export const Button3D: React.FC<Button3DProps> = ({
           text: COLORS.white,
         };
       case 'accent':
+      case 'danger':
         return {
           bg: COLORS.accent,
           border: COLORS.accentDark,
@@ -140,6 +144,8 @@ export const Button3D: React.FC<Button3DProps> = ({
       onPress={onPress}
       style={[
         styles.baseButton,
+        fullWidth && { width: '100%' },
+        Platform.OS === 'web' && ({ cursor: isInteractive ? 'pointer' : 'not-allowed', userSelect: 'none' } as any),
         {
           minHeight: sizeStyles.minHeight,
           paddingVertical: sizeStyles.paddingVertical,

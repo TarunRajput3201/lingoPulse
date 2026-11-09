@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Trophy, Shield, Flame, Sparkles, Award } from 'lucide-react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
+import { COLORS, RADII, TYPOGRAPHY, LAYOUT } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
@@ -217,15 +217,17 @@ export default function LeaderboardScreen() {
       {/* Sticky My Rank Pill at bottom */}
       {myEntry && (
         <View style={styles.stickyMyRank}>
-          <View style={styles.myRankLeft}>
-            <View style={styles.myRankBadge}>
-              <Text style={styles.myRankNumber}>#{myEntry.rank}</Text>
+          <View style={styles.stickyInner}>
+            <View style={styles.myRankLeft}>
+              <View style={styles.myRankBadge}>
+                <Text style={styles.myRankNumber}>#{myEntry.rank}</Text>
+              </View>
+              <Text style={styles.myRankName}>{user?.displayName || 'You'}</Text>
             </View>
-            <Text style={styles.myRankName}>{user?.displayName || 'You'}</Text>
-          </View>
-          <View style={styles.myRankRight}>
-            <Sparkles size={16} color={COLORS.gold} />
-            <Text style={styles.myRankXp}>{myEntry.weeklyXp ?? myEntry.totalXp ?? 0} XP</Text>
+            <View style={styles.myRankRight}>
+              <Sparkles size={16} color={COLORS.gold} />
+              <Text style={styles.myRankXp}>{myEntry.weeklyXp ?? myEntry.totalXp ?? 0} XP</Text>
+            </View>
           </View>
         </View>
       )}
@@ -240,7 +242,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 120,
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   leagueCard: {
     flexDirection: 'row',
@@ -462,14 +467,19 @@ const styles = StyleSheet.create({
     borderTopColor: COLORS.grayBorder,
     paddingHorizontal: 20,
     paddingVertical: 14,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     shadowColor: COLORS.charcoal,
     shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 8,
+  },
+  stickyInner: {
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   myRankLeft: {
     flexDirection: 'row',

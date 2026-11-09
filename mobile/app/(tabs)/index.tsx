@@ -25,7 +25,7 @@ import {
   Clock,
   Play,
 } from 'lucide-react-native';
-import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
+import { COLORS, RADII, SHADOWS, TYPOGRAPHY, LAYOUT } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { Button3D } from '../../src/components/Button3D';
 import { CharacterView } from '../../src/components/character/CharacterView';
@@ -418,6 +418,28 @@ export default function HomeScreen() {
             </View>
           );
         })}
+
+        {/* Milestone Trophy Node at Unit Completion */}
+        <View style={styles.unitMilestoneNode}>
+          <View
+            style={[
+              styles.milestoneCircle,
+              unit.lessons?.every((l: any) => l.isCompleted)
+                ? styles.milestoneCompleted
+                : styles.milestonePending,
+            ]}
+          >
+            <Trophy
+              size={28}
+              color={unit.lessons?.every((l: any) => l.isCompleted) ? COLORS.white : COLORS.grayText}
+            />
+          </View>
+          <Text style={styles.milestoneText}>
+            {unit.lessons?.every((l: any) => l.isCompleted)
+              ? 'Unit Mastered! 🏆'
+              : `Complete Unit ${unit.unitNumber}`}
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -476,7 +498,10 @@ const styles = StyleSheet.create({
     color: COLORS.grayText,
   },
   scrollContent: {
-    paddingBottom: 60,
+    paddingBottom: 80,
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   learnerBanner: {
     flexDirection: 'row',
@@ -853,5 +878,36 @@ const styles = StyleSheet.create({
   },
   nodeScoreBadgeRepeatText: {
     color: '#B45309',
+  },
+  unitMilestoneNode: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  milestoneCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderBottomWidth: 5,
+  },
+  milestoneCompleted: {
+    backgroundColor: COLORS.gold,
+    borderColor: '#FEF08A',
+    borderBottomColor: COLORS.goldDark,
+    ...SHADOWS.float,
+  },
+  milestonePending: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+    borderBottomColor: '#CBD5E1',
+  },
+  milestoneText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.charcoal,
+    marginTop: 8,
   },
 });

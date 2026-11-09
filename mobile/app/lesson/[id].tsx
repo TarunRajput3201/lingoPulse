@@ -11,7 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets, SafeAreaView } from 'react-native-safe-area-context';
 import { X, Heart, CheckCircle2, AlertCircle, Sparkles, Flame, Trophy, Award } from 'lucide-react-native';
-import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../src/constants/theme';
+import { COLORS, RADII, SHADOWS, TYPOGRAPHY, LAYOUT } from '../../src/constants/theme';
 import { Button3D } from '../../src/components/Button3D';
 import { CharacterView } from '../../src/components/character/CharacterView';
 import { AdaptiveEngine } from '../../src/services/adaptiveEngine';
@@ -901,53 +901,56 @@ export default function LessonScreen() {
           feedback.status === 'incorrect' && styles.footerBarIncorrect,
         ]}
       >
-        {feedback.status === 'correct' && (
-          <View style={styles.feedbackInfo}>
-            <View style={styles.feedbackTitleRow}>
-              <CheckCircle2 size={24} color={COLORS.primaryDark} strokeWidth={3} />
-              <Text style={styles.feedbackTitleCorrect}>Excellent! 🌟</Text>
-              {consecutiveCombo >= 2 && (
-                <View style={styles.comboBadge}>
-                  <Flame size={14} color={COLORS.orange} fill={COLORS.orange} />
-                  <Text style={styles.comboBadgeText}>{consecutiveCombo} in a row!</Text>
-                </View>
-              )}
+        <View style={styles.footerInner}>
+          {feedback.status === 'correct' && (
+            <View style={styles.feedbackInfo}>
+              <View style={styles.feedbackTitleRow}>
+                <CheckCircle2 size={24} color={COLORS.primaryDark} strokeWidth={3} />
+                <Text style={styles.feedbackTitleCorrect}>Excellent! 🌟</Text>
+                {consecutiveCombo >= 2 && (
+                  <View style={styles.comboBadge}>
+                    <Flame size={14} color={COLORS.orange} fill={COLORS.orange} />
+                    <Text style={styles.comboBadgeText}>{consecutiveCombo} in a row!</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.feedbackSubCorrect}>You're doing great!</Text>
+              {feedback.explanation ? (
+                <Text style={styles.feedbackExplanation}>{feedback.explanation}</Text>
+              ) : null}
+              {feedback.hasAccentWarning && feedback.pedagogicalTip ? (
+                <Text style={styles.accentWarningText}>{feedback.pedagogicalTip}</Text>
+              ) : null}
             </View>
-            <Text style={styles.feedbackSubCorrect}>You're doing great!</Text>
-            {feedback.explanation ? (
-              <Text style={styles.feedbackExplanation}>{feedback.explanation}</Text>
-            ) : null}
-            {feedback.hasAccentWarning && feedback.pedagogicalTip ? (
-              <Text style={styles.accentWarningText}>{feedback.pedagogicalTip}</Text>
-            ) : null}
-          </View>
-        )}
+          )}
 
-        {feedback.status === 'incorrect' && (
-          <View style={styles.feedbackInfo}>
-            <View style={styles.feedbackTitleRow}>
-              <AlertCircle size={24} color={COLORS.accentDark} strokeWidth={3} />
-              <Text style={styles.feedbackTitleIncorrect}>Correct Solution:</Text>
+          {feedback.status === 'incorrect' && (
+            <View style={styles.feedbackInfo}>
+              <View style={styles.feedbackTitleRow}>
+                <AlertCircle size={24} color={COLORS.accentDark} strokeWidth={3} />
+                <Text style={styles.feedbackTitleIncorrect}>Correct Solution:</Text>
+              </View>
+              <Text style={styles.feedbackCorrectAnswer}>{feedback.correctAnswer}</Text>
+              {feedback.explanation ? (
+                <Text style={styles.feedbackExplanation}>{feedback.explanation}</Text>
+              ) : null}
             </View>
-            <Text style={styles.feedbackCorrectAnswer}>{feedback.correctAnswer}</Text>
-            {feedback.explanation ? (
-              <Text style={styles.feedbackExplanation}>{feedback.explanation}</Text>
-            ) : null}
-          </View>
-        )}
+          )}
 
-        <Button3D
-          title={
-            feedback.status === 'none'
-              ? submitting
-                ? 'Checking...'
-                : 'Check'
-              : 'Continue'
-          }
-          variant={feedback.status === 'incorrect' ? 'accent' : 'primary'}
-          onPress={feedback.status === 'none' ? handleCheckAnswer : handleContinue}
-          disabled={feedback.status === 'none' && (!isAnswerProvided() || submitting)}
-        />
+          <Button3D
+            title={
+              feedback.status === 'none'
+                ? submitting
+                  ? 'Checking...'
+                  : 'Check'
+                : 'Continue'
+            }
+            variant={feedback.status === 'incorrect' ? 'accent' : 'primary'}
+            onPress={feedback.status === 'none' ? handleCheckAnswer : handleContinue}
+            disabled={feedback.status === 'none' && (!isAnswerProvided() || submitting)}
+            fullWidth
+          />
+        </View>
       </View>
 
       {/* Exit Modal */}
@@ -1068,6 +1071,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     gap: 10,
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   exitButton: {
     padding: 6,
@@ -1110,6 +1116,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 8,
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   courseBadge: {
     flexDirection: 'row',
@@ -1172,6 +1181,9 @@ const styles = StyleSheet.create({
   exerciseScroll: {
     paddingHorizontal: 16,
     paddingTop: 12,
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   characterQuestionHeader: {
     alignItems: 'center',
@@ -1192,6 +1204,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 26,
     borderTopRightRadius: 26,
     ...SHADOWS.modal,
+  },
+  footerInner: {
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   footerBarCorrect: {
     backgroundColor: '#DCFCE7',
@@ -1304,6 +1321,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: '100%',
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   levelUpHeading: {
     fontSize: 34,

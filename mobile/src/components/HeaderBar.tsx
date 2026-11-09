@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, Modal } from 'react-native';
 import { Flame, Diamond, Heart, Plus, ChevronDown, Clock, X, Sparkles } from 'lucide-react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../constants/theme';
+import { COLORS, RADII, TYPOGRAPHY, LAYOUT } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'expo-router';
 import { HapticsService } from '../services/hapticsService';
+
+const FLAG_MAP: Record<string, string> = {
+  en: '🇬🇧', es: '🇪🇸', fr: '🇫🇷', de: '🇩🇪', it: '🇮🇹', pt: '🇧🇷',
+  ja: '🇯🇵', ko: '🇰🇷', zh: '🇨🇳', hi: '🇮🇳', ar: '🇸🇦', ru: '🇷🇺',
+  nl: '🇳🇱', tr: '🇹🇷', sv: '🇸🇪', no: '🇳🇴', da: '🇩🇰', pl: '🇵🇱',
+  el: '🇬🇷', he: '🇮🇱', th: '🇹🇭', vi: '🇻🇳', id: '🇮🇩', ms: '🇲🇾',
+  tl: '🇵🇭', bn: '🇧🇩', ur: '🇵🇰', pa: '🇮🇳', ta: '🇮🇳', te: '🇮🇳',
+  mr: '🇮🇳', gu: '🇮🇳', uk: '🇺🇦', fa: '🇮🇷', sw: '🇰🇪', ro: '🇷🇴',
+  cs: '🇨🇿', hu: '🇭🇺',
+};
 
 export const HeaderBar: React.FC = () => {
   const { user } = useAuth();
@@ -27,25 +37,8 @@ export const HeaderBar: React.FC = () => {
   };
 
   const getFlagEmoji = () => {
-    switch (targetLang) {
-      case 'en': return '🇬🇧';
-      case 'fr': return '🇫🇷';
-      case 'ja': return '🇯🇵';
-      case 'de': return '🇩🇪';
-      case 'ko': return '🇰🇷';
-      case 'it': return '🇮🇹';
-      case 'zh': return '🇨🇳';
-      case 'pt': return '🇧🇷';
-      case 'hi': return '🇮🇳';
-      case 'ar': return '🇸🇦';
-      case 'ru': return '🇷🇺';
-      case 'nl': return '🇳🇱';
-      case 'tr': return '🇹🇷';
-      case 'sv': return '🇸🇪';
-      case 'es':
-      default:
-        return '🇪🇸';
-    }
+    if (!targetLang) return '🇪🇸';
+    return FLAG_MAP[targetLang] || '🌐';
   };
 
   const handleLanguagePress = () => {
@@ -67,16 +60,17 @@ export const HeaderBar: React.FC = () => {
   return (
     <>
       <View style={styles.container}>
-        {/* Target Language Flag Selector */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Change learning language"
-          onPress={handleLanguagePress}
-          style={styles.flagButton}
-        >
-          <Text style={styles.flagText}>{getFlagEmoji()}</Text>
-          <ChevronDown size={14} color={COLORS.grayText} strokeWidth={2.5} style={{ marginLeft: 4 }} />
-        </Pressable>
+        <View style={styles.innerContainer}>
+          {/* Target Language Flag Selector */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Change learning language"
+            onPress={handleLanguagePress}
+            style={styles.flagButton}
+          >
+            <Text style={styles.flagText}>{getFlagEmoji()}</Text>
+            <ChevronDown size={14} color={COLORS.grayText} strokeWidth={2.5} style={{ marginLeft: 4 }} />
+          </Pressable>
 
         {/* Stats Pills Row */}
         <View style={styles.statsRow}>
@@ -145,6 +139,7 @@ export const HeaderBar: React.FC = () => {
               </View>
             ) : null}
           </Pressable>
+        </View>
         </View>
       </View>
 
@@ -249,15 +244,21 @@ export const HeaderBar: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'android' ? 12 : 8,
+    paddingTop: Platform.OS === 'android' ? 12 : Platform.OS === 'web' ? 12 : 8,
     paddingBottom: 10,
     backgroundColor: COLORS.white,
     borderBottomWidth: 2,
-    borderBottomColor: COLORS.grayBorder,
+    borderBottomColor: '#F1F5F9',
+    zIndex: 100,
+  },
+  innerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: LAYOUT.maxWidth,
+    alignSelf: 'center',
   },
   flagButton: {
     flexDirection: 'row',

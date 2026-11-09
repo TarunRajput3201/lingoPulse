@@ -9,8 +9,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Flame, Diamond, Award, Settings, LogOut, Trash2, Globe, CheckCircle2 } from 'lucide-react-native';
-import { COLORS, RADII, TYPOGRAPHY } from '../../src/constants/theme';
+import { Flame, Diamond, Award, Settings, LogOut, Trash2, Globe, CheckCircle2, Heart, Volume2, Smartphone, Bell } from 'lucide-react-native';
+import { COLORS, RADII, TYPOGRAPHY, LAYOUT } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { Button3D } from '../../src/components/Button3D';
 import { CharacterView } from '../../src/components/character/CharacterView';
@@ -155,7 +155,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Stats Grid */}
+        {/* Stats Grid - 4 core metrics */}
         <View style={styles.statsGrid}>
           <View style={styles.statBox}>
             <Flame size={24} color={COLORS.gold} fill={COLORS.gold} />
@@ -167,6 +167,18 @@ export default function ProfileScreen() {
             <Diamond size={24} color={COLORS.secondary} fill={COLORS.secondary} />
             <Text style={styles.statValue}>{user?.totalXp || 0}</Text>
             <Text style={styles.statLabel}>Total XP</Text>
+          </View>
+
+          <View style={styles.statBox}>
+            <Heart size={24} color={COLORS.accent} fill={COLORS.accent} />
+            <Text style={styles.statValue}>{user?.hearts ?? 100}/{user?.maxHearts ?? 100}</Text>
+            <Text style={styles.statLabel}>Hearts</Text>
+          </View>
+
+          <View style={styles.statBox}>
+            <Award size={24} color={COLORS.purple} />
+            <Text style={styles.statValue}>{user?.longestStreak || user?.currentStreak || 0}</Text>
+            <Text style={styles.statLabel}>Best Streak</Text>
           </View>
         </View>
 
@@ -237,9 +249,14 @@ export default function ProfileScreen() {
 
         <View style={styles.preferencesCard}>
           <View style={styles.preferenceRow}>
-            <View>
-              <Text style={styles.preferenceText}>Sound Effects</Text>
-              <Text style={styles.preferenceSub}>Chimes and audio cues during lessons</Text>
+            <View style={styles.prefLeft}>
+              <View style={[styles.prefIconCircle, { backgroundColor: '#DCFCE7' }]}>
+                <Volume2 size={18} color={COLORS.primary} />
+              </View>
+              <View>
+                <Text style={styles.preferenceText}>Sound Effects</Text>
+                <Text style={styles.preferenceSub}>Instant audio cues & celebratory chimes</Text>
+              </View>
             </View>
             <Switch
               value={soundEnabled}
@@ -249,9 +266,14 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.preferenceRow}>
-            <View>
-              <Text style={styles.preferenceText}>Haptic Feedback</Text>
-              <Text style={styles.preferenceSub}>Vibrations on taps and answers</Text>
+            <View style={styles.prefLeft}>
+              <View style={[styles.prefIconCircle, { backgroundColor: '#E0F2FE' }]}>
+                <Smartphone size={18} color={COLORS.secondary} />
+              </View>
+              <View>
+                <Text style={styles.preferenceText}>Haptic Feedback</Text>
+                <Text style={styles.preferenceSub}>Tactile feedback on taps & answers</Text>
+              </View>
             </View>
             <Switch
               value={hapticsEnabled}
@@ -261,9 +283,14 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.preferenceRow}>
-            <View>
-              <Text style={styles.preferenceText}>Daily Reminders</Text>
-              <Text style={styles.preferenceSub}>Habit notifications to keep your streak</Text>
+            <View style={styles.prefLeft}>
+              <View style={[styles.prefIconCircle, { backgroundColor: '#FEF3C7' }]}>
+                <Bell size={18} color={COLORS.gold} />
+              </View>
+              <View>
+                <Text style={styles.preferenceText}>Daily Reminders</Text>
+                <Text style={styles.preferenceSub}>Friendly nudge to protect your streak</Text>
+              </View>
             </View>
             <Switch
               value={remindersEnabled}
@@ -278,6 +305,7 @@ export default function ProfileScreen() {
           <Button3D
             title="Sign Out"
             variant="outline"
+            fullWidth
             onPress={handleLogout}
             icon={<LogOut size={18} color={COLORS.charcoal} />}
           />
@@ -285,6 +313,7 @@ export default function ProfileScreen() {
           <Button3D
             title="Delete Account"
             variant="accent"
+            fullWidth
             onPress={handleDeleteAccount}
             icon={<Trash2 size={18} color={COLORS.white} />}
             style={{ marginTop: 12 }}
@@ -301,8 +330,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.grayBackground,
   },
   content: {
-    padding: 20,
-    paddingBottom: 60,
+    padding: LAYOUT.screenPadding,
+    paddingBottom: 80,
+    maxWidth: LAYOUT.maxWidth,
+    width: '100%',
+    alignSelf: 'center',
   },
   profileHeader: {
     alignItems: 'center',
@@ -354,12 +386,14 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
     marginVertical: 16,
   },
   statBox: {
-    flex: 1,
-    padding: 16,
+    flexBasis: '47%',
+    flexGrow: 1,
+    padding: 14,
     borderRadius: RADII.xl,
     backgroundColor: COLORS.white,
     borderWidth: 2,
@@ -474,6 +508,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  prefLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    marginRight: 10,
+  },
+  prefIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   preferenceText: {
     fontSize: 15,
