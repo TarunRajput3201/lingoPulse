@@ -30,13 +30,13 @@ export default defineConfig({
       command: 'npm run start --prefix backend',
       url: 'http://localhost:5050/api/health',
       reuseExistingServer: true,
-      timeout: 30000,
+      timeout: 60000,
     },
     {
       command: 'npm run dev --prefix admin',
       url: 'http://localhost:5180',
       reuseExistingServer: true,
-      timeout: 30000,
+      timeout: 60000,
     },
   ],
 });
