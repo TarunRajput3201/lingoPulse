@@ -196,24 +196,31 @@ export default function HomeScreen() {
 
   const renderHeader = () => (
     <>
-      {/* 1. Top Learner Progress Banner (Screen 5) */}
+      {/* 1. 3D Floating Companion Hero Island & Progress Banner */}
       <View style={styles.learnerBanner}>
         <View style={styles.learnerBannerLeft}>
           <CharacterView
             character="maya"
             mood="idle"
-            size={72}
+            size={120}
+            showStage={true}
+            environmentType="classroom"
             roundMask={false}
             interactive={true}
+            message="Ready for today's lesson?"
+            messagePosition="top"
           />
-          <View style={{ marginLeft: 12 }}>
+          <View style={{ marginLeft: 8, flex: 1 }}>
             <Text style={styles.learnerTitle}>
-              Amazing Progress, {user?.displayName || 'Learner'}! ✨
+              Welcome back, {user?.displayName || 'Learner'}! ✨
+            </Text>
+            <Text style={styles.learnerSubtitle}>
+              Maya is ready for you in the Classroom
             </Text>
             <View style={styles.streakBadgeRow}>
               <Flame size={16} color={COLORS.orange} fill={COLORS.orange} />
               <Text style={styles.streakBadgeText}>
-                {user?.currentStreak ?? 5} Day Streak
+                {user?.currentStreak ?? 5} Day Streak Active
               </Text>
             </View>
           </View>
@@ -522,6 +529,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     color: COLORS.charcoal,
+  },
+  learnerSubtitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.grayText,
+    marginTop: 2,
   },
   streakBadgeRow: {
     flexDirection: 'row',

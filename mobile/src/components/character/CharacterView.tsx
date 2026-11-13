@@ -18,6 +18,7 @@ import {
   CHARACTER_PROFILES,
   getCharacterQuote,
 } from './Character3DRegistry';
+import { EnvironmentType } from './models/Character3DRig';
 import { Realtime3DCharacter } from './Realtime3DCharacter';
 
 export interface CharacterViewProps {
@@ -37,6 +38,7 @@ export interface CharacterViewProps {
   themeMode?: 'daylight' | 'evening' | 'celebration';
   emotionBadge?: 'star' | 'flame' | 'sparkle' | 'heart' | 'lightbulb';
   autoSpeakMessage?: boolean;
+  environmentType?: EnvironmentType;
 }
 
 export const CharacterView: React.FC<CharacterViewProps> = ({
@@ -56,6 +58,7 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
   themeMode = 'daylight',
   emotionBadge,
   autoSpeakMessage = false,
+  environmentType = 'auto',
 }) => {
   const [currentMood, setCurrentMood] = useState<CharacterMood>(initialMood || 'idle');
   const [activeMessage, setActiveMessage] = useState<string | undefined>(initialMessage);
@@ -215,6 +218,7 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
           onPress={handlePress}
           themeMode={themeMode}
           showStage={showStage}
+          environmentType={environmentType}
         />
 
         {/* Floating Emotion Badge (Optional) */}

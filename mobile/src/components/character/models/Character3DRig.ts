@@ -18,7 +18,17 @@ export interface RigInstance {
   auraRings?: THREE.Mesh[];
   particles?: THREE.Points;
   pedestal: THREE.Group;
+  environmentGroup?: THREE.Group;
   update: (delta: number, time: number, isSpeaking: boolean, mood: CharacterMood) => void;
+  dispose: () => void;
+}
+
+export type EnvironmentType = 'classroom' | 'studio' | 'cafe' | 'challenge' | 'auto';
+
+export interface EnvironmentInstance {
+  group: THREE.Group;
+  type: 'classroom' | 'studio' | 'cafe' | 'challenge';
+  update: (delta: number, time: number, isSpeaking: boolean) => void;
   dispose: () => void;
 }
 
@@ -27,7 +37,8 @@ export interface RigInstance {
  */
 export function createCharacter3DScene(
   characterId: CharacterId,
-  themeMode: 'daylight' | 'evening' | 'celebration' = 'daylight'
+  themeMode: 'daylight' | 'evening' | 'celebration' = 'daylight',
+  environmentType: EnvironmentType = 'auto'
 ): {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
@@ -71,12 +82,16 @@ export function createCharacter3DScene(
   const pedestal = createPedestalStage(profile);
   root.add(pedestal);
 
+  // 3D Thematic Environment Backdrop & Props
+  const env = build3DEnvironment(environmentType, characterId, themeMode, profile);
+  root.add(env.group);
+
   // Ambient Floating Particle Motes
   const particles = createAmbientParticles(profile.accentColor);
   root.add(particles);
 
   // Construct Character Rig
-  const rig = buildCharacterRig(scene, characterId, profile, root, pedestal, particles);
+  const rig = buildCharacterRig(scene, characterId, profile, root, pedestal, particles, env);
 
   return { scene, camera, rig };
 }
@@ -293,6 +308,510 @@ function createLipSyncMouth(colorHex = 0xBE123C): THREE.Group {
 }
 
 /**
+ * 1. Classroom 3D Environment (Slate Blackboard, Bookshelf, Warm Brass Lamp)
+ */
+function createClassroomEnvironment(
+  themeMode: 'daylight' | 'evening' | 'celebration',
+  _profile: typeof CHARACTER_PROFILES[CharacterId]
+): EnvironmentInstance {
+  const group = new THREE.Group();
+  group.position.set(0, 0, -0.42);
+
+  // Classroom Backdrop Wall with Wainscoting Trim
+  const wallGeo = new THREE.BoxGeometry(3.6, 2.5, 0.06);
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: themeMode === 'evening' ? 0x1E293B : 0xF1F5F9,
+    roughness: 0.85,
+    metalness: 0.05,
+  });
+  const wallMesh = new THREE.Mesh(wallGeo, wallMat);
+  wallMesh.position.set(0, 0.45, -0.05);
+  group.add(wallMesh);
+
+  // Dark Oak Lower Wainscot Baseboard
+  const wainscotGeo = new THREE.BoxGeometry(3.6, 0.55, 0.08);
+  const wainscotMat = new THREE.MeshStandardMaterial({
+    color: 0x451A03,
+    roughness: 0.6,
+    metalness: 0.1,
+  });
+  const wainscot = new THREE.Mesh(wainscotGeo, wainscotMat);
+  wainscot.position.set(0, -0.52, -0.04);
+  group.add(wainscot);
+
+  // Slate Chalkboard Frame (Dark Oak)
+  const boardFrameGeo = new THREE.BoxGeometry(1.95, 1.3, 0.05);
+  const boardFrameMat = new THREE.MeshStandardMaterial({
+    color: 0x78350F,
+    roughness: 0.55,
+    metalness: 0.15,
+  });
+  const boardFrame = new THREE.Mesh(boardFrameGeo, boardFrameMat);
+  boardFrame.position.set(0, 0.46, 0.02);
+  group.add(boardFrame);
+
+  // Slate Chalkboard Surface (Emerald Green Slate)
+  const boardInnerGeo = new THREE.PlaneGeometry(1.82, 1.16);
+  const boardInnerMat = new THREE.MeshStandardMaterial({
+    color: 0x064E3B,
+    roughness: 0.75,
+    metalness: 0.05,
+  });
+  const boardInner = new THREE.Mesh(boardInnerGeo, boardInnerMat);
+  boardInner.position.set(0, 0.46, 0.048);
+  group.add(boardInner);
+
+  // Chalk Tray along bottom of board
+  const chalkTrayGeo = new THREE.BoxGeometry(1.85, 0.035, 0.08);
+  const chalkTray = new THREE.Mesh(chalkTrayGeo, boardFrameMat);
+  chalkTray.position.set(0, -0.13, 0.07);
+  group.add(chalkTray);
+
+  // Chalk Sticks on tray (White, Gold, Sky Blue)
+  const chalkColors = [0xFFFFFF, 0xFACC15, 0x38BDF8];
+  chalkColors.forEach((color, i) => {
+    const chalkGeo = new THREE.CylinderGeometry(0.012, 0.012, 0.07, 10);
+    const chalkMat = new THREE.MeshBasicMaterial({ color });
+    const chalk = new THREE.Mesh(chalkGeo, chalkMat);
+    chalk.rotation.z = Math.PI / 2;
+    chalk.position.set(-0.25 + i * 0.1, -0.115, 0.08);
+    group.add(chalk);
+  });
+
+  // Floating Bookshelf on Left
+  const shelfGeo = new THREE.BoxGeometry(0.72, 0.045, 0.24);
+  const shelfMat = new THREE.MeshStandardMaterial({ color: 0x92400E, roughness: 0.6 });
+  const shelf = new THREE.Mesh(shelfGeo, shelfMat);
+  shelf.position.set(-1.05, 0.38, 0.02);
+  group.add(shelf);
+
+  // Colorful Hardbound Volumes on shelf
+  const bookColors = [0x991B1B, 0x1E3A8A, 0x065F46, 0xD97706];
+  const bookHeights = [0.24, 0.28, 0.22, 0.26];
+  bookColors.forEach((color, idx) => {
+    const bookGeo = new THREE.BoxGeometry(0.055, bookHeights[idx], 0.16);
+    const bookMat = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
+    const book = new THREE.Mesh(bookGeo, bookMat);
+    book.position.set(-1.24 + idx * 0.075, 0.4 + bookHeights[idx] / 2, 0.02);
+    if (idx === 3) book.rotation.z = 0.16;
+    group.add(book);
+  });
+
+  // Vintage Brass Lamp on Right with Warm Illumination
+  const lampPoleGeo = new THREE.CylinderGeometry(0.018, 0.022, 0.35, 12);
+  const brassMat = new THREE.MeshStandardMaterial({
+    color: 0xF59E0B,
+    roughness: 0.25,
+    metalness: 0.85,
+  });
+  const lampPole = new THREE.Mesh(lampPoleGeo, brassMat);
+  lampPole.position.set(1.05, 0.42, 0.02);
+  group.add(lampPole);
+
+  const lampShadeGeo = new THREE.ConeGeometry(0.12, 0.1, 16, 1, true);
+  const lampShadeMat = new THREE.MeshStandardMaterial({
+    color: 0x065F46,
+    roughness: 0.3,
+    metalness: 0.4,
+  });
+  const lampShade = new THREE.Mesh(lampShadeGeo, lampShadeMat);
+  lampShade.position.set(1.05, 0.58, 0.04);
+  lampShade.rotation.x = 0.3;
+  group.add(lampShade);
+
+  const warmLampLight = new THREE.PointLight(0xFDE68A, 0.75, 3.2);
+  warmLampLight.position.set(1.05, 0.52, 0.12);
+  group.add(warmLampLight);
+
+  const update = (_delta: number, time: number) => {
+    warmLampLight.intensity = 0.75 + Math.sin(time * 2.2) * 0.08;
+  };
+
+  const dispose = () => {
+    warmLampLight.dispose();
+  };
+
+  return { group, type: 'classroom', update, dispose };
+}
+
+/**
+ * 2. Studio 3D Environment (Acoustic Walnut Slats, Halo Ring, Audio VU Console)
+ */
+function createStudioEnvironment(
+  _themeMode: 'daylight' | 'evening' | 'celebration',
+  _profile: typeof CHARACTER_PROFILES[CharacterId]
+): EnvironmentInstance {
+  const group = new THREE.Group();
+  group.position.set(0, 0, -0.42);
+
+  // Dark Acoustic Studio Backing Wall
+  const backWallGeo = new THREE.BoxGeometry(3.6, 2.5, 0.06);
+  const backWallMat = new THREE.MeshStandardMaterial({
+    color: 0x0B1120,
+    roughness: 0.9,
+    metalness: 0.1,
+  });
+  const backWall = new THREE.Mesh(backWallGeo, backWallMat);
+  backWall.position.set(0, 0.45, -0.05);
+  group.add(backWall);
+
+  // 9 Vertical Walnut Acoustic Slats
+  const slatGeo = new THREE.BoxGeometry(0.065, 2.2, 0.045);
+  const slatMat = new THREE.MeshStandardMaterial({
+    color: 0x451A03,
+    roughness: 0.55,
+    metalness: 0.15,
+  });
+  const slatSpacing = 0.28;
+  for (let s = -4; s <= 4; s++) {
+    const slat = new THREE.Mesh(slatGeo, slatMat);
+    slat.position.set(s * slatSpacing, 0.45, -0.01);
+    group.add(slat);
+  }
+
+  // Overhead Circular LED Studio Halo Ring
+  const haloGeo = new THREE.TorusGeometry(0.92, 0.024, 16, 44);
+  const haloMat = new THREE.MeshStandardMaterial({
+    color: 0x38BDF8,
+    emissive: 0x0284C7,
+    emissiveIntensity: 0.95,
+    roughness: 0.2,
+    metalness: 0.8,
+  });
+  const haloRing = new THREE.Mesh(haloGeo, haloMat);
+  haloRing.rotation.x = Math.PI / 2.2;
+  haloRing.position.set(0, 1.05, 0.05);
+  group.add(haloRing);
+
+  // Audio Rack Console (Right side)
+  const consoleGeo = new THREE.BoxGeometry(0.52, 0.46, 0.16);
+  const consoleMat = new THREE.MeshStandardMaterial({
+    color: 0x1E293B,
+    roughness: 0.4,
+    metalness: 0.6,
+  });
+  const consoleMesh = new THREE.Mesh(consoleGeo, consoleMat);
+  consoleMesh.position.set(0.92, -0.22, 0.02);
+  group.add(consoleMesh);
+
+  // Dual Dynamic VU Meter Columns (5 LED Segments each)
+  const vuLeds: { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; threshold: number }[] = [];
+  const ledColors = [0x10B981, 0x10B981, 0xF59E0B, 0xF59E0B, 0xEF4444];
+
+  for (let col = 0; col < 2; col++) {
+    const colX = 0.82 + col * 0.14;
+    for (let seg = 0; seg < 5; seg++) {
+      const ledGeo = new THREE.BoxGeometry(0.08, 0.024, 0.02);
+      const ledMat = new THREE.MeshStandardMaterial({
+        color: ledColors[seg],
+        emissive: ledColors[seg],
+        emissiveIntensity: 0.2,
+        transparent: true,
+        opacity: 0.35,
+      });
+      const ledMesh = new THREE.Mesh(ledGeo, ledMat);
+      ledMesh.position.set(colX, -0.32 + seg * 0.05, 0.11);
+      group.add(ledMesh);
+      vuLeds.push({ mesh: ledMesh, mat: ledMat, threshold: seg + 1 });
+    }
+  }
+
+  // Suspended Studio Broadcast Mic on Left
+  const micArmGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.48, 10);
+  const micArmMat = new THREE.MeshStandardMaterial({ color: 0x0F172A, metalness: 0.9, roughness: 0.2 });
+  const micArm = new THREE.Mesh(micArmGeo, micArmMat);
+  micArm.position.set(-0.95, 0.7, 0.05);
+  micArm.rotation.z = -0.4;
+  group.add(micArm);
+
+  const micBodyGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.15, 16);
+  const micBodyMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.85, roughness: 0.3 });
+  const micBody = new THREE.Mesh(micBodyGeo, micBodyMat);
+  micBody.position.set(-0.84, 0.52, 0.08);
+  group.add(micBody);
+
+  const update = (_delta: number, time: number, isSpeaking: boolean) => {
+    // Dynamic VU meter bounce reacting to speech
+    const energyLevel = isSpeaking
+      ? 1 + Math.abs(Math.sin(time * 19.5)) * 4.2
+      : 1;
+
+    vuLeds.forEach((led) => {
+      if (led.threshold <= energyLevel) {
+        led.mat.opacity = 1.0;
+        led.mat.emissiveIntensity = 1.35;
+      } else {
+        led.mat.opacity = 0.25;
+        led.mat.emissiveIntensity = 0.15;
+      }
+    });
+
+    // Subtle halo breathing pulse
+    haloMat.emissiveIntensity = 0.8 + Math.sin(time * 2.8) * 0.25;
+  };
+
+  const dispose = () => {};
+
+  return { group, type: 'studio', update, dispose };
+}
+
+/**
+ * 3. Café 3D Environment (Terracotta Bistro, Festoon Edison Lights, Marble Table)
+ */
+function createCafeEnvironment(
+  _themeMode: 'daylight' | 'evening' | 'celebration',
+  _profile: typeof CHARACTER_PROFILES[CharacterId]
+): EnvironmentInstance {
+  const group = new THREE.Group();
+  group.position.set(0, 0, -0.42);
+
+  // Terracotta Bistro Wall Backdrop
+  const wallGeo = new THREE.BoxGeometry(3.6, 2.5, 0.06);
+  const wallMat = new THREE.MeshStandardMaterial({
+    color: 0x7C2D12,
+    roughness: 0.88,
+    metalness: 0.05,
+  });
+  const wallMesh = new THREE.Mesh(wallGeo, wallMat);
+  wallMesh.position.set(0, 0.45, -0.05);
+  group.add(wallMesh);
+
+  // Arched European Bistro Window (Warm interior cafe light)
+  const windowFrameGeo = new THREE.TorusGeometry(0.68, 0.04, 12, 32, Math.PI);
+  const frameMat = new THREE.MeshStandardMaterial({ color: 0xFEF3C7, roughness: 0.4 });
+  const windowFrame = new THREE.Mesh(windowFrameGeo, frameMat);
+  windowFrame.position.set(0, 0.65, 0.01);
+  group.add(windowFrame);
+
+  const windowGlowGeo = new THREE.CircleGeometry(0.64, 24, 0, Math.PI);
+  const windowGlowMat = new THREE.MeshBasicMaterial({ color: 0xFDE68A, transparent: true, opacity: 0.45 });
+  const windowGlow = new THREE.Mesh(windowGlowGeo, windowGlowMat);
+  windowGlow.position.set(0, 0.65, 0);
+  group.add(windowGlow);
+
+  // Draped Festoon String Lights across top
+  const festoonBulbs: { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial }[] = [];
+  const bulbCoords = [
+    { x: -1.15, y: 0.95 },
+    { x: -0.45, y: 0.82 },
+    { x: 0.35, y: 0.84 },
+    { x: 1.15, y: 0.96 },
+  ];
+
+  bulbCoords.forEach((coord, i) => {
+    const bulbGeo = new THREE.SphereGeometry(0.048, 14, 14);
+    const bulbMat = new THREE.MeshStandardMaterial({
+      color: 0xF59E0B,
+      emissive: 0xF59E0B,
+      emissiveIntensity: 0.9,
+      roughness: 0.2,
+    });
+    const bulb = new THREE.Mesh(bulbGeo, bulbMat);
+    bulb.position.set(coord.x, coord.y, 0.08);
+    group.add(bulb);
+    festoonBulbs.push({ mesh: bulb, mat: bulbMat });
+
+    // Mini filament socket
+    const socketGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.03, 10);
+    const socketMat = new THREE.MeshStandardMaterial({ color: 0x1E293B, metalness: 0.8 });
+    const socket = new THREE.Mesh(socketGeo, socketMat);
+    socket.position.set(coord.x, coord.y + 0.045, 0.08);
+    group.add(socket);
+  });
+
+  // Bistro Round Carrara Marble Table (Left Side)
+  const tableGeo = new THREE.CylinderGeometry(0.42, 0.44, 0.04, 32);
+  const tableMat = new THREE.MeshStandardMaterial({
+    color: 0xF8FAFC,
+    roughness: 0.2,
+    metalness: 0.15,
+  });
+  const table = new THREE.Mesh(tableGeo, tableMat);
+  table.position.set(-0.95, -0.28, 0.08);
+  group.add(table);
+
+  // Brass Table Rim
+  const tableRimGeo = new THREE.TorusGeometry(0.43, 0.016, 12, 36);
+  const brassMat = new THREE.MeshStandardMaterial({ color: 0xF59E0B, metalness: 0.85, roughness: 0.25 });
+  const tableRim = new THREE.Mesh(tableRimGeo, brassMat);
+  tableRim.rotation.x = Math.PI / 2;
+  tableRim.position.set(-0.95, -0.26, 0.08);
+  group.add(tableRim);
+
+  // Porcelain Espresso Cup & Saucer
+  const saucerGeo = new THREE.CylinderGeometry(0.09, 0.07, 0.014, 20);
+  const porcelainMat = new THREE.MeshStandardMaterial({ color: 0xFFFFFF, roughness: 0.15 });
+  const saucer = new THREE.Mesh(saucerGeo, porcelainMat);
+  saucer.position.set(-0.95, -0.25, 0.08);
+  group.add(saucer);
+
+  const cupGeo = new THREE.CylinderGeometry(0.048, 0.036, 0.065, 18);
+  const cup = new THREE.Mesh(cupGeo, porcelainMat);
+  cup.position.set(-0.95, -0.21, 0.08);
+  group.add(cup);
+
+  // Dark Crema Coffee Surface
+  const coffeeGeo = new THREE.CircleGeometry(0.042, 16);
+  const coffeeMat = new THREE.MeshBasicMaterial({ color: 0x451A03 });
+  const coffee = new THREE.Mesh(coffeeGeo, coffeeMat);
+  coffee.rotation.x = -Math.PI / 2;
+  coffee.position.set(-0.95, -0.178, 0.08);
+  group.add(coffee);
+
+  const update = (_delta: number, time: number) => {
+    festoonBulbs.forEach((bulb, i) => {
+      bulb.mat.emissiveIntensity = 0.85 + Math.sin(time * 3.2 + i * 1.5) * 0.18;
+    });
+  };
+
+  const dispose = () => {};
+
+  return { group, type: 'cafe', update, dispose };
+}
+
+/**
+ * 4. Challenge Arena 3D Environment (Holographic Hex Floor, Dual Neon Rings, Floating Beacons)
+ */
+function createChallengeEnvironment(
+  _themeMode: 'daylight' | 'evening' | 'celebration',
+  _profile: typeof CHARACTER_PROFILES[CharacterId]
+): EnvironmentInstance {
+  const group = new THREE.Group();
+  group.position.set(0, 0, -0.42);
+
+  // Deep Obsidian Space Backdrop
+  const spaceGeo = new THREE.BoxGeometry(3.6, 2.5, 0.06);
+  const spaceMat = new THREE.MeshStandardMaterial({
+    color: 0x020617,
+    roughness: 0.9,
+    metalness: 0.3,
+  });
+  const spaceMesh = new THREE.Mesh(spaceGeo, spaceMat);
+  spaceMesh.position.set(0, 0.45, -0.05);
+  group.add(spaceMesh);
+
+  // Holographic Hexagonal Energy Floor
+  const hexFloorGeo = new THREE.CylinderGeometry(1.4, 1.45, 0.03, 6);
+  const hexFloorMat = new THREE.MeshStandardMaterial({
+    color: 0x0F172A,
+    roughness: 0.3,
+    metalness: 0.8,
+  });
+  const hexFloor = new THREE.Mesh(hexFloorGeo, hexFloorMat);
+  hexFloor.position.set(0, -0.58, 0.04);
+  group.add(hexFloor);
+
+  // Outer Neon Violet Portal Ring
+  const outerRingGeo = new THREE.TorusGeometry(1.18, 0.024, 16, 52);
+  const violetNeonMat = new THREE.MeshStandardMaterial({
+    color: 0x8B5CF6,
+    emissive: 0x8B5CF6,
+    emissiveIntensity: 1.4,
+    roughness: 0.2,
+    metalness: 0.8,
+  });
+  const outerRing = new THREE.Mesh(outerRingGeo, violetNeonMat);
+  outerRing.position.set(0, 0.42, 0.02);
+  group.add(outerRing);
+
+  // Inner Neon Cyan Portal Ring
+  const innerRingGeo = new THREE.TorusGeometry(0.96, 0.02, 16, 44);
+  const cyanNeonMat = new THREE.MeshStandardMaterial({
+    color: 0x06B6D4,
+    emissive: 0x06B6D4,
+    emissiveIntensity: 1.5,
+    roughness: 0.2,
+    metalness: 0.8,
+  });
+  const innerRing = new THREE.Mesh(innerRingGeo, cyanNeonMat);
+  innerRing.position.set(0, 0.42, 0.05);
+  group.add(innerRing);
+
+  // Floating Obsidian Energy Beacons (Left & Right)
+  const beaconGeo = new THREE.OctahedronGeometry(0.095, 0);
+  const beaconMat = new THREE.MeshStandardMaterial({
+    color: 0x7C3AED,
+    emissive: 0x8B5CF6,
+    emissiveIntensity: 1.1,
+    roughness: 0.15,
+    metalness: 0.85,
+  });
+
+  const leftBeacon = new THREE.Mesh(beaconGeo, beaconMat);
+  leftBeacon.position.set(-1.12, 0.35, 0.06);
+  group.add(leftBeacon);
+
+  const rightBeacon = new THREE.Mesh(beaconGeo, beaconMat.clone());
+  rightBeacon.position.set(1.12, 0.35, 0.06);
+  group.add(rightBeacon);
+
+  const update = (delta: number, time: number, isSpeaking: boolean) => {
+    outerRing.rotation.z += delta * 0.45;
+    innerRing.rotation.z -= delta * 0.55;
+    innerRing.rotation.x = Math.sin(time * 1.8) * 0.18;
+
+    leftBeacon.position.y = 0.35 + Math.sin(time * 2.8) * 0.07;
+    rightBeacon.position.y = 0.35 + Math.sin(time * 2.8 + 1.6) * 0.07;
+    leftBeacon.rotation.y += delta * 1.5;
+    rightBeacon.rotation.y -= delta * 1.5;
+
+    const pulseMult = isSpeaking ? 1.85 : 1.0;
+    violetNeonMat.emissiveIntensity = (1.2 + Math.sin(time * 3.5) * 0.35) * pulseMult;
+    cyanNeonMat.emissiveIntensity = (1.3 + Math.sin(time * 4.2) * 0.35) * pulseMult;
+  };
+
+  const dispose = () => {};
+
+  return { group, type: 'challenge', update, dispose };
+}
+
+/**
+ * 3D Environment Master Dispatcher
+ */
+export function build3DEnvironment(
+  type: EnvironmentType = 'auto',
+  characterId: CharacterId = 'maya',
+  themeMode: 'daylight' | 'evening' | 'celebration' = 'daylight',
+  profile: typeof CHARACTER_PROFILES[CharacterId]
+): EnvironmentInstance {
+  let resolved: 'classroom' | 'studio' | 'cafe' | 'challenge' = 'classroom';
+
+  if (type === 'auto') {
+    switch (characterId) {
+      case 'maya':
+        resolved = 'classroom';
+        break;
+      case 'leo':
+        resolved = 'studio';
+        break;
+      case 'elena':
+        resolved = 'cafe';
+        break;
+      case 'kael':
+        resolved = 'challenge';
+        break;
+      case 'pip':
+      default:
+        resolved = 'studio';
+        break;
+    }
+  } else {
+    resolved = type;
+  }
+
+  switch (resolved) {
+    case 'classroom':
+      return createClassroomEnvironment(themeMode, profile);
+    case 'studio':
+      return createStudioEnvironment(themeMode, profile);
+    case 'cafe':
+      return createCafeEnvironment(themeMode, profile);
+    case 'challenge':
+      return createChallengeEnvironment(themeMode, profile);
+  }
+}
+
+/**
  * Master Rig Builder dispatching to individual characters
  */
 function buildCharacterRig(
@@ -301,22 +820,40 @@ function buildCharacterRig(
   profile: typeof CHARACTER_PROFILES[CharacterId],
   root: THREE.Group,
   pedestal: THREE.Group,
-  particles: THREE.Points
+  particles: THREE.Points,
+  environment?: EnvironmentInstance
 ): RigInstance {
   const characterGroup = new THREE.Group();
   root.add(characterGroup);
 
+  let rig: RigInstance;
   if (characterId === 'maya') {
-    return buildMayaRig(scene, profile, root, characterGroup, pedestal, particles);
+    rig = buildMayaRig(scene, profile, root, characterGroup, pedestal, particles);
   } else if (characterId === 'leo') {
-    return buildLeoRig(scene, profile, root, characterGroup, pedestal, particles);
+    rig = buildLeoRig(scene, profile, root, characterGroup, pedestal, particles);
   } else if (characterId === 'elena') {
-    return buildElenaRig(scene, profile, root, characterGroup, pedestal, particles);
+    rig = buildElenaRig(scene, profile, root, characterGroup, pedestal, particles);
   } else if (characterId === 'kael') {
-    return buildKaelRig(scene, profile, root, characterGroup, pedestal, particles);
+    rig = buildKaelRig(scene, profile, root, characterGroup, pedestal, particles);
   } else {
-    return buildPipRig(scene, profile, root, characterGroup, pedestal, particles);
+    rig = buildPipRig(scene, profile, root, characterGroup, pedestal, particles);
   }
+
+  if (environment) {
+    rig.environmentGroup = environment.group;
+    const baseUpdate = rig.update;
+    rig.update = (delta: number, time: number, isSpeaking: boolean, mood: CharacterMood) => {
+      baseUpdate(delta, time, isSpeaking, mood);
+      environment.update(delta, time, isSpeaking);
+    };
+    const baseDispose = rig.dispose;
+    rig.dispose = () => {
+      baseDispose();
+      environment.dispose();
+    };
+  }
+
+  return rig;
 }
 
 // ============================================================================

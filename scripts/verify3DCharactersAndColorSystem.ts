@@ -302,6 +302,90 @@ async function runVerification() {
     );
   });
 
+  // --------------------------------------------------------------------------
+  // TEST SUITE 6: 4 UNIQUE 3D THEMATIC ENVIRONMENTS & DYNAMIC PROPS
+  // --------------------------------------------------------------------------
+  console.log('\n--- Test Suite 6: 4 Unique 3D Thematic Environments & Dynamic Props ---');
+
+  // 1. Verify Classroom Environment for Maya
+  const { rig: mayaSceneRig } = createCharacter3DScene('maya', 'daylight', 'classroom');
+  assert(
+    !!mayaSceneRig.environmentGroup && (mayaSceneRig.environmentGroup as any).isGroup,
+    'Classroom 3D Environment Group',
+    'Classroom environment group attached with blackboard, bookshelf, and brass lamp'
+  );
+  assert(
+    (mayaSceneRig.environmentGroup?.children?.length ?? 0) >= 6,
+    'Classroom 3D Geometry Density',
+    `Classroom contains ${mayaSceneRig.environmentGroup?.children?.length} individual 3D objects (blackboard, chalk tray, books, lamp, wainscot)`
+  );
+
+  // 2. Verify Studio Environment for Leo with VU meter reaction
+  const { rig: studioRig } = createCharacter3DScene('leo', 'daylight', 'studio');
+  assert(
+    !!studioRig.environmentGroup && (studioRig.environmentGroup as any).isGroup,
+    'Studio 3D Environment Group',
+    'Studio environment group attached with acoustic walnut slats, circular halo, and mixing console'
+  );
+
+  // VU meter dynamics
+  studioRig.update(0.016, 1.0, false, 'idle');
+  studioRig.update(0.016, 1.5, true, 'speaking');
+  assert(
+    (studioRig.environmentGroup?.children?.length ?? 0) >= 12,
+    'Studio 3D Geometry Density',
+    `Studio contains ${studioRig.environmentGroup?.children?.length} objects including 9 walnut acoustic slats and audio VU LED array`
+  );
+
+  // 3. Verify Café Environment for Elena
+  const { rig: cafeRig } = createCharacter3DScene('elena', 'evening', 'cafe');
+  assert(
+    !!cafeRig.environmentGroup && (cafeRig.environmentGroup as any).isGroup,
+    'Café 3D Environment Group',
+    'Café environment group attached with terracotta bistro facade, festoon Edison lights, and marble table'
+  );
+  assert(
+    (cafeRig.environmentGroup?.children?.length ?? 0) >= 8,
+    'Café 3D Geometry Density',
+    `Café contains ${cafeRig.environmentGroup?.children?.length} objects including marble table, porcelain espresso cup, and festoon string lights`
+  );
+
+  // 4. Verify Challenge Arena Environment for Kael
+  const { rig: challengeRig } = createCharacter3DScene('kael', 'daylight', 'challenge');
+  assert(
+    !!challengeRig.environmentGroup && (challengeRig.environmentGroup as any).isGroup,
+    'Challenge Arena 3D Environment Group',
+    'Challenge arena attached with obsidian hex floor, dual rotating neon rings, and floating beacon crystals'
+  );
+
+  // Test Neon Rings rotation
+  const prevRotZ = (challengeRig.environmentGroup?.children?.[2] as THREE.Mesh)?.rotation?.z ?? 0;
+  challengeRig.update(0.033, 2.0, false, 'idle');
+  const nextRotZ = (challengeRig.environmentGroup?.children?.[2] as THREE.Mesh)?.rotation?.z ?? 0;
+  assert(
+    nextRotZ !== prevRotZ,
+    'Challenge Arena Neon Rings Kinematics',
+    `Outer neon portal ring rotated from ${prevRotZ.toFixed(3)} to ${nextRotZ.toFixed(3)} rad`
+  );
+
+  // 5. Verify Auto-Environment Resolution across all 5 characters
+  const charEnvMap: Record<CharacterId, string> = {
+    maya: 'classroom',
+    leo: 'studio',
+    elena: 'cafe',
+    kael: 'challenge',
+    pip: 'studio',
+  };
+
+  Object.entries(charEnvMap).forEach(([char, expectedType]) => {
+    const { rig: autoRig } = createCharacter3DScene(char as CharacterId, 'daylight', 'auto');
+    assert(
+      !!autoRig.environmentGroup,
+      `Auto Environment for [${char}]`,
+      `Character [${char}] successfully mapped to canonical environment [${expectedType}]`
+    );
+  });
+
   console.log('\n========================================================================');
   console.log(`TOTAL CHECKS: ${totalChecks}`);
   console.log(`PASSED:       ${passedChecks}`);

@@ -7,13 +7,20 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Flame, Diamond, Award, Settings, LogOut, Trash2, Globe, CheckCircle2, Heart, Volume2, Smartphone, Bell } from 'lucide-react-native';
+import { Flame, Diamond, Award, Settings, LogOut, Trash2, Globe, CheckCircle2, Heart, Volume2, Smartphone, Bell, Sparkles } from 'lucide-react-native';
 import { COLORS, RADII, TYPOGRAPHY, LAYOUT } from '../../src/constants/theme';
 import { HeaderBar } from '../../src/components/HeaderBar';
 import { Button3D } from '../../src/components/Button3D';
 import { CharacterView } from '../../src/components/character/CharacterView';
+import {
+  CharacterId,
+  CHARACTER_PROFILES,
+  getCharacterQuote,
+} from '../../src/components/character/Character3DRegistry';
+import { SoundService } from '../../src/services/soundService';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { HapticsService } from '../../src/services/hapticsService';
@@ -25,6 +32,7 @@ export default function ProfileScreen() {
 
   const [achievements, setAchievements] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCompanion, setSelectedCompanion] = useState<CharacterId>('maya');
 
   // Preference switches initialized from user profile (BUG-008 Fix)
   const [soundEnabled, setSoundEnabled] = useState(user?.preferences?.soundEffects ?? true);
@@ -136,18 +144,67 @@ export default function ProfileScreen() {
       <HeaderBar />
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Profile Hero Header */}
+        {/* 3D Character Showcase & Companion Inspector */}
         <View style={styles.profileHeader}>
           <CharacterView
-            character="maya"
+            character={selectedCompanion}
             mood="idle"
-            size={110}
+            size={145}
             roundMask={false}
             showStage={true}
+            environmentType="auto"
             interactive={true}
+            message={getCharacterQuote(selectedCompanion, 'intro')}
+            messagePosition="top"
           />
           <Text style={styles.displayName}>{user?.displayName || 'Learner'}</Text>
           <Text style={styles.usernameText}>@{user?.username || 'learner'}</Text>
+
+          {/* Active 3D Companion Badge */}
+          <View style={[styles.companionRoleBadge, { borderColor: CHARACTER_PROFILES[selectedCompanion].pedestalBorder }]}>
+            <Sparkles size={14} color={CHARACTER_PROFILES[selectedCompanion].accentColor} />
+            <Text style={[styles.companionRoleText, { color: CHARACTER_PROFILES[selectedCompanion].accentColor }]}>
+              {CHARACTER_PROFILES[selectedCompanion].name} • {CHARACTER_PROFILES[selectedCompanion].title}
+            </Text>
+          </View>
+
+          {/* Interactive 3D Companion Switcher */}
+          <View style={styles.companionPickerRow}>
+            {(['maya', 'leo', 'elena', 'kael', 'pip'] as CharacterId[]).map((cid) => {
+              const p = CHARACTER_PROFILES[cid];
+              const isSelected = selectedCompanion === cid;
+              return (
+                <Pressable
+                  key={cid}
+                  onPress={() => {
+                    HapticsService.lightTap();
+                    setSelectedCompanion(cid);
+                    const quote = getCharacterQuote(cid, 'intro');
+                    SoundService.speak(quote).catch(() => {});
+                  }}
+                  style={[
+                    styles.companionChip,
+                    isSelected && {
+                      borderColor: p.accentColor,
+                      backgroundColor: '#FFFFFF',
+                      shadowColor: p.accentColor,
+                      shadowOpacity: 0.25,
+                      elevation: 4,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.companionChipText,
+                      isSelected && { color: p.accentColor, fontWeight: '900' },
+                    ]}
+                  >
+                    {p.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
 
           <View style={styles.langPill}>
             <Globe size={14} color={COLORS.secondaryDark} />
@@ -383,6 +440,45 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: COLORS.secondaryDark,
+  },
+  companionRoleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: RADII.pill,
+    backgroundColor: COLORS.white,
+    borderWidth: 1.5,
+    borderBottomWidth: 3,
+    marginTop: 8,
+  },
+  companionRoleText: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  companionPickerRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    maxWidth: 380,
+  },
+  companionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: RADII.pill,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    borderBottomWidth: 3,
+    borderBottomColor: '#CBD5E1',
+  },
+  companionChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.charcoal,
   },
   statsGrid: {
     flexDirection: 'row',

@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import * as THREE from 'three';
 import { CharacterId, CharacterMood, CHARACTER_PROFILES } from './Character3DRegistry';
-import { createCharacter3DScene, RigInstance } from './models/Character3DRig';
+import { createCharacter3DScene, RigInstance, EnvironmentType } from './models/Character3DRig';
 import { SoundService } from '../../services/soundService';
 
 export interface Realtime3DCharacterProps {
@@ -19,6 +19,7 @@ export interface Realtime3DCharacterProps {
   onPress?: () => void;
   themeMode?: 'daylight' | 'evening' | 'celebration';
   showStage?: boolean;
+  environmentType?: EnvironmentType;
 }
 
 /**
@@ -33,6 +34,7 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
   onPress,
   themeMode = 'daylight',
   showStage = true,
+  environmentType = 'auto',
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -97,7 +99,7 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
     }
 
     // Build Character Scene & Rig
-    const { scene, camera, rig } = createCharacter3DScene(character, themeMode);
+    const { scene, camera, rig } = createCharacter3DScene(character, themeMode, environmentType);
     rigRef.current = rig;
 
     if (!showStage && rig.pedestal) {
@@ -137,7 +139,7 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
       rendererRef.current = null;
       rigRef.current = null;
     };
-  }, [character, themeMode, size, showStage, mood]);
+  }, [character, themeMode, size, showStage, mood, environmentType]);
 
   const handlePress = useCallback(() => {
     if (!interactive) return;

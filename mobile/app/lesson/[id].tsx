@@ -588,14 +588,17 @@ export default function LessonScreen() {
             <Text style={styles.levelUpXpText}>+{completionResult.xpEarned || 20} XP</Text>
           </View>
 
-          {/* 3D Character Stage */}
+          {/* 3D Character Hero Stage */}
           <View style={styles.pipLevelUpStage}>
             <View style={[styles.victoryAuraRing, !isPassed && { borderColor: 'rgba(245, 158, 11, 0.25)' }]} />
             <CharacterView
               character={isPassed ? 'pip' : 'maya'}
               pose={isPassed ? 'levelUp' : 'helper'}
-              size={185}
+              size={215}
               roundMask={false}
+              showStage={true}
+              themeMode={isPassed ? 'celebration' : 'daylight'}
+              environmentType="auto"
               interactive={true}
             />
             <View style={styles.pedestalPlatform} />
@@ -729,7 +732,7 @@ export default function LessonScreen() {
           { paddingBottom: insets.bottom + 160 },
         ]}
       >
-        {/* Active 3D Character Mentor Stage with Role & Dynamic Reaction */}
+        {/* Active 3D Character Mentor Hero Stage with Role, Environment & Dynamic Reaction */}
         <View style={styles.characterQuestionHeader}>
           <CharacterView
             character={activeCharacter}
@@ -740,8 +743,9 @@ export default function LessonScreen() {
                 ? 'wrong'
                 : 'idle'
             }
-            size={110}
+            size={175}
             showStage={true}
+            environmentType="auto"
             interactive={true}
             message={
               feedback.status === 'correct'
