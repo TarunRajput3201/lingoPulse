@@ -1,5 +1,7 @@
 import util from 'util';
 import http from 'http';
+import path from 'path';
+import { spawn, ChildProcess } from 'child_process';
 import {
   getAllCourses,
   getCourseByCode,
@@ -29,6 +31,71 @@ let totalCount = 0;
 let passCount = 0;
 let failCount = 0;
 
+let spawnedBackendProcess: ChildProcess | null = null;
+
+async function checkHealth(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port: 5050,
+        path: '/api/health',
+        method: 'GET',
+        timeout: 2000,
+      },
+      (res) => {
+        resolve(res.statusCode === 200);
+      }
+    );
+    req.on('error', () => resolve(false));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(false);
+    });
+    req.end();
+  });
+}
+
+async function ensureBackendRunning(): Promise<void> {
+  const isHealthy = await checkHealth();
+  if (isHealthy) {
+    console.log('⚡ Backend server is already running on port 5050.\n');
+    return;
+  }
+
+  console.log('⚡ Auto-launching backend server on port 5050...');
+  const backendDir = path.resolve(__dirname, '../backend');
+
+  spawnedBackendProcess = spawn('node', ['dist/server.js'], {
+    cwd: backendDir,
+    stdio: 'ignore',
+    shell: false,
+  });
+
+  const startTime = Date.now();
+  while (Date.now() - startTime < 30000) {
+    await new Promise((r) => setTimeout(r, 1000));
+    if (await checkHealth()) {
+      console.log('✅ Backend server is live and healthy on port 5050.\n');
+      return;
+    }
+  }
+  throw new Error('Timed out waiting for backend server to start on port 5050.');
+}
+
+function cleanupBackend() {
+  if (spawnedBackendProcess && spawnedBackendProcess.pid) {
+    try {
+      if (process.platform === 'win32') {
+        require('child_process').execSync(`taskkill /pid ${spawnedBackendProcess.pid} /T /F`);
+      } else {
+        spawnedBackendProcess.kill('SIGTERM');
+      }
+    } catch {}
+    spawnedBackendProcess = null;
+  }
+}
+
 function recordTest(category: string, feature: string, description: string, passed: boolean, evidence: string) {
   totalCount++;
   if (passed) {
@@ -43,6 +110,9 @@ function recordTest(category: string, feature: string, description: string, pass
 
 // HTTP request helper to test live backend
 function apiRequest(options: http.RequestOptions, postData?: string): Promise<{ statusCode: number; data: any }> {
+  if (options.hostname === 'localhost' || !options.hostname) {
+    options.hostname = '127.0.0.1';
+  }
   return new Promise((resolve, reject) => {
     const req = http.request(options, (res) => {
       let body = '';
@@ -73,12 +143,15 @@ async function runApplicationWideVerification() {
   console.log('   LINGOPULSE COMPLETE APPLICATION-WIDE END-TO-END VERIFICATION SUITE   ');
   console.log('========================================================================\n');
 
-  // ==========================================================================
-  // SECTION 1: LIVE BACKEND API & DATABASE INTEGRITY
-  // ==========================================================================
-  console.log('--- Phase 1: Live Backend APIs & Database Consistency ---');
+  try {
+    await ensureBackendRunning();
 
-  // 1.1 Health Check API
+    // ==========================================================================
+    // SECTION 1: LIVE BACKEND API & DATABASE INTEGRITY
+    // ==========================================================================
+    console.log('--- Phase 1: Live Backend APIs & Database Consistency ---');
+
+    // 1.1 Health Check API
   try {
     const health = await apiRequest({
       hostname: 'localhost',
@@ -714,6 +787,10 @@ async function runApplicationWideVerification() {
   console.log(`OVERALL STABILITY:       ${((passCount / totalCount) * 100).toFixed(1)}%`);
   console.log('========================================================================\n');
 
+  } finally {
+    cleanupBackend();
+  }
+
   if (failCount > 0) {
     process.exit(1);
   } else {
@@ -723,6 +800,7 @@ async function runApplicationWideVerification() {
 }
 
 runApplicationWideVerification().catch((err) => {
+  cleanupBackend();
   console.error('Fatal runner error:', err);
   process.exit(1);
 });
