@@ -203,26 +203,24 @@ export default function HomeScreen() {
           <CharacterView
             character="maya"
             mood="idle"
-            size={120}
+            size={90}
             showStage={true}
             environmentType="classroom"
             roundMask={false}
             interactive={true}
-            targetLanguage={user?.targetLanguage || 'es'}
-            message={getCharacterQuote('maya', 'intro', user?.targetLanguage || 'es')}
-            messagePosition="top"
+            targetLanguage={user?.targetLanguage || 'fr'}
           />
-          <View style={{ marginLeft: 8, flex: 1 }}>
+          <View style={{ marginLeft: 12, flex: 1 }}>
             <Text style={styles.learnerTitle}>
               Welcome back, {user?.displayName || 'Learner'}! ✨
             </Text>
-            <Text style={styles.learnerSubtitle}>
-              Maya is ready for you in the Classroom
+            <Text style={styles.learnerSubtitle} numberOfLines={2}>
+              {getCharacterQuote('maya', 'intro', user?.targetLanguage || 'fr')}
             </Text>
             <View style={styles.streakBadgeRow}>
               <Flame size={16} color={COLORS.orange} fill={COLORS.orange} />
               <Text style={styles.streakBadgeText}>
-                {user?.currentStreak ?? 5} Day Streak Active
+                {user?.currentStreak ?? 1} Day Streak Active
               </Text>
             </View>
           </View>
@@ -466,7 +464,7 @@ export default function HomeScreen() {
         initialNumToRender={5}
         maxToRenderPerBatch={5}
         windowSize={7}
-        removeClippedSubviews={Platform.OS === 'android'}
+        removeClippedSubviews={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -526,6 +524,7 @@ const styles = StyleSheet.create({
   learnerBannerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
   learnerTitle: {
     fontSize: 15,

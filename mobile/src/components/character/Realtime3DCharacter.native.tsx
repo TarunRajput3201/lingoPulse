@@ -320,12 +320,8 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
             <Path d="M 83 62 Q 90 60 97 63" stroke="#3E2723" strokeWidth="2" strokeLinecap="round" fill="none" />
             <Path d="M 103 63 Q 110 60 117 62" stroke="#3E2723" strokeWidth="2" strokeLinecap="round" fill="none" />
             {/* Articulated Speech Mouth */}
-            <Animated.View style={{ transform: [{ scaleY: mouthAnim }] }}>
-              <Svg width="200" height="200" viewBox="0 0 200 200" style={StyleSheet.absoluteFill}>
-                <Ellipse cx="100" cy="90" rx="6" ry={isSpeaking ? 5 : 2.5} fill="#991B1B" />
-                <Path d="M 95 89 Q 100 92 105 89" stroke="#E11D48" strokeWidth="1.5" fill="none" />
-              </Svg>
-            </Animated.View>
+            <Ellipse cx="100" cy="90" rx="6" ry={isSpeaking ? 5 : 2.5} fill="#991B1B" />
+            <Path d="M 95 89 Q 100 92 105 89" stroke="#E11D48" strokeWidth="1.5" fill="none" />
           </G>
         );
 

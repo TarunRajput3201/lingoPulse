@@ -240,7 +240,7 @@ async function runVerification() {
           `Detected authentic Japanese script`
         );
       } else if (lang.code === 'it') {
-        const isItalianLike = /[àèéìíîòóùú]|ciao|pronto|eccellente|bravo|forza|frase|perfetto|ascolta|ripeti|pratica|suono|piazza|bene|madrelingua|veloce|rapido|riflessi|istinto|piccola/i.test(
+        const isItalianLike = /[àèéìíîòóùú]|ciao|pronto|eccellente|bravo|forza|frase|perfetto|ascolta|ripeti|pratica|suono|piazza|bene|madrelingua|veloce|rapido|riflessi|istinto|piccola|amico|conversazione|parleresti/i.test(
           introQuote + correctQuote + encourageQuote
         );
         assert(
