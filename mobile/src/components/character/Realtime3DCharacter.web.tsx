@@ -91,6 +91,10 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
       });
       renderer.setSize(size, size);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.08;
       rendererRef.current = renderer;
     } catch (err) {
       console.warn('[Realtime3DCharacter.web] WebGL initialization failed, using high-fidelity fallback', err);

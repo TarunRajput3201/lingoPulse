@@ -600,6 +600,7 @@ export default function LessonScreen() {
               themeMode={isPassed ? 'celebration' : 'daylight'}
               environmentType="auto"
               interactive={true}
+              targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             />
             <View style={styles.pedestalPlatform} />
           </View>
@@ -747,11 +748,20 @@ export default function LessonScreen() {
             showStage={true}
             environmentType="auto"
             interactive={true}
+            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
             message={
               feedback.status === 'correct'
-                ? getCharacterQuote(activeCharacter, 'correct')
+                ? getCharacterQuote(
+                    activeCharacter,
+                    'correct',
+                    course?.toLanguage || user?.targetLanguage || 'es'
+                  )
                 : feedback.status === 'incorrect'
-                ? getCharacterQuote(activeCharacter, 'wrong')
+                ? getCharacterQuote(
+                    activeCharacter,
+                    'wrong',
+                    course?.toLanguage || user?.targetLanguage || 'es'
+                  )
                 : undefined
             }
             messagePosition="top"

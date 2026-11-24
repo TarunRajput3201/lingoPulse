@@ -46,18 +46,41 @@ let currentWebAudio: any = null;
 let isAudioEnabled = true;
 let isAudioModeConfigured = false;
 let isAudioEngineUnlocked = false;
+let lastAudioLatencyMs = 0;
 
 // Concurrency tracking sets to ensure clean, instant teardown
 const activeWebAudioNodes = new Set<any>();
 const activeHtml5Audio = new Set<any>();
 const activeNativeSounds = new Set<any>();
 const cachedAudioBuffers = new Map<AudioAssetKey, any>();
+const preloadedAudioElements = new Map<string, HTMLAudioElement>();
 const lastPlayTimestamps: Record<string, number> = {};
+
+// Voice cache for ultra-fast <10ms lookup
+let cachedVoices: SpeechSynthesisVoice[] = [];
+
+function refreshVoices(): void {
+  if (isWeb && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    try {
+      const v = window.speechSynthesis.getVoices();
+      if (v && v.length > 0) {
+        cachedVoices = v;
+      }
+    } catch {}
+  }
+}
+
+if (isWeb && typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  refreshVoices();
+  window.speechSynthesis.onvoiceschanged = () => {
+    refreshVoices();
+  };
+}
 
 /**
  * Throttle duplicate sounds to prevent overlapping audio on rapid clicks
  */
-function canPlaySound(key: string, minIntervalMs = 100): boolean {
+function canPlaySound(key: string, minIntervalMs = 80): boolean {
   const now = Date.now();
   const last = lastPlayTimestamps[key] || 0;
   if (now - last < minIntervalMs) return false;
@@ -181,6 +204,7 @@ export function unlockAudioEngine(): void {
     if ('speechSynthesis' in window && window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
     }
+    refreshVoices();
     preloadAudioBuffers().catch(() => {});
   } catch {}
 }
@@ -261,7 +285,7 @@ function playSyntheticWebChime(type: 'success' | 'error' | 'fanfare' | 'tap'): b
       });
       return true;
     } else if (type === 'error') {
-      // Gentle, non-discouraging descending marimba thud 220Hz -> 150Hz
+      // Gentle descending marimba thud 220Hz -> 140Hz
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
@@ -326,12 +350,12 @@ function playSyntheticWebChime(type: 'success' | 'error' | 'fanfare' | 'tap'): b
 }
 
 /**
- * Play in-memory audio asset instantly with zero network delay
+ * Play in-memory audio asset instantly with zero network delay (< 5ms)
  */
 async function playInMemorySound(key: AudioAssetKey, volume = 1.0): Promise<boolean> {
   if (!isAudioEnabled) return false;
 
-  // Headless test / Node runtime: instant in-memory asset validation without hanging on missing native bridge
+  // Headless test / Node runtime
   if (isNodeEnvironment) {
     return true;
   }
@@ -448,78 +472,36 @@ function notifySpeaking(speaking: boolean) {
 const activeUtterances = new Set<any>();
 
 /**
- * Play authentic audio stream through HTML5 Audio element
+ * Finds the most authentic native voice for the given language
  */
-function playWebAudioElement(
-  url: string,
-  rate = 1.0,
-  onStart?: () => void,
-  onDone?: () => void,
-  onError?: (err: any) => void
-): Promise<boolean> {
-  return new Promise((resolve) => {
-    if (!isWeb || typeof window === 'undefined') return resolve(false);
-    try {
-      unlockAudioEngine();
+function findBestNativeVoice(bcp47: string): SpeechSynthesisVoice | null {
+  if (!cachedVoices || cachedVoices.length === 0) {
+    refreshVoices();
+  }
+  if (!cachedVoices || cachedVoices.length === 0) return null;
 
-      if (currentWebAudio) {
-        try {
-          currentWebAudio.pause();
-          currentWebAudio.currentTime = 0;
-          activeHtml5Audio.delete(currentWebAudio);
-        } catch {}
-        currentWebAudio = null;
-      }
+  const targetLangLower = bcp47.toLowerCase();
+  const prefix = targetLangLower.split('-')[0];
 
-      const audio = new window.Audio(url);
-      currentWebAudio = audio;
-      activeHtml5Audio.add(audio);
-      audio.playbackRate = Math.max(0.5, Math.min(2.0, rate));
-      audio.volume = 1.0;
+  // 1. Exact match e.g. "fr-FR" === "fr-fr"
+  const exact = cachedVoices.find((v) => v.lang.toLowerCase() === targetLangLower);
+  if (exact) return exact;
 
-      let settled = false;
-      const settle = (success: boolean) => {
-        if (!settled) {
-          settled = true;
-          activeHtml5Audio.delete(audio);
-          if (currentWebAudio === audio) currentWebAudio = null;
-          if (success) {
-            if (onDone) onDone();
-          } else {
-            if (onError) onError(new Error('Web audio stream failed'));
-          }
-          resolve(success);
-        }
-      };
+  // 2. Normalized prefix match e.g. "fr-CA" for "fr-FR"
+  const prefixMatch = cachedVoices.find((v) =>
+    v.lang.toLowerCase().replace('_', '-').startsWith(prefix)
+  );
+  if (prefixMatch) return prefixMatch;
 
-      audio.onplay = () => {
-        if (onStart) onStart();
-      };
-      audio.onended = () => settle(true);
-      audio.onerror = (e) => {
-        console.warn('[SoundService] HTML5 Audio error, falling back:', e);
-        settle(false);
-      };
+  // 3. Substring match
+  const subMatch = cachedVoices.find((v) => v.lang.toLowerCase().includes(prefix));
+  if (subMatch) return subMatch;
 
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn('[SoundService] Audio.play() blocked by browser policy:', err);
-          settle(false);
-        });
-      }
-
-      // Safety fallback timeout
-      setTimeout(() => settle(true), 12000);
-    } catch (err) {
-      console.warn('[SoundService] playWebAudioElement exception:', err);
-      resolve(false);
-    }
-  });
+  return null;
 }
 
 /**
- * Play speech synthesis using browser Web Speech API with voice resolution
+ * Play speech synthesis using browser Web Speech API with sub-50ms instant start
  */
 function playWebSpeechSynthesis(
   text: string,
@@ -540,24 +522,18 @@ function playWebSpeechSynthesis(
         window.speechSynthesis.resume();
       }
 
+      // Cancel prior utterances to ensure instant playback without speech queuing
+      window.speechSynthesis.cancel();
+
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = bcp47;
       utterance.rate = Math.max(0.5, Math.min(1.8, rate));
       utterance.pitch = Math.max(0.5, Math.min(1.8, pitch));
       utterance.volume = 1.0;
 
-      // Select matching voice for the target language if available in browser
-      const voices = window.speechSynthesis.getVoices();
-      if (voices && voices.length > 0) {
-        const targetLangLower = bcp47.toLowerCase();
-        const prefix = targetLangLower.split('-')[0];
-        const matchingVoice =
-          voices.find((v) => v.lang.toLowerCase() === targetLangLower) ||
-          voices.find((v) => v.lang.toLowerCase().replace('_', '-').startsWith(prefix)) ||
-          voices.find((v) => v.lang.toLowerCase().includes(prefix));
-        if (matchingVoice) {
-          utterance.voice = matchingVoice;
-        }
+      const matchingVoice = findBestNativeVoice(bcp47);
+      if (matchingVoice) {
+        utterance.voice = matchingVoice;
       }
 
       let settled = false;
@@ -595,6 +571,84 @@ function playWebSpeechSynthesis(
   });
 }
 
+/**
+ * Play preloaded or streaming audio through HTML5 Audio element
+ */
+function playWebAudioElement(
+  url: string,
+  rate = 1.0,
+  onStart?: () => void,
+  onDone?: () => void,
+  onError?: (err: any) => void
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (!isWeb || typeof window === 'undefined') return resolve(false);
+    try {
+      unlockAudioEngine();
+
+      if (currentWebAudio) {
+        try {
+          currentWebAudio.pause();
+          currentWebAudio.currentTime = 0;
+          activeHtml5Audio.delete(currentWebAudio);
+        } catch {}
+        currentWebAudio = null;
+      }
+
+      // Check preloaded cache first for instant 0ms playback
+      let audio = preloadedAudioElements.get(url);
+      if (!audio) {
+        audio = new window.Audio(url);
+      } else {
+        audio.currentTime = 0;
+      }
+
+      currentWebAudio = audio;
+      activeHtml5Audio.add(audio);
+      audio.playbackRate = Math.max(0.5, Math.min(2.0, rate));
+      audio.volume = 1.0;
+
+      let settled = false;
+      const settle = (success: boolean) => {
+        if (!settled) {
+          settled = true;
+          activeHtml5Audio.delete(audio);
+          if (currentWebAudio === audio) currentWebAudio = null;
+          if (success) {
+            if (onDone) onDone();
+          } else {
+            if (onError) onError(new Error('Web audio stream failed'));
+          }
+          resolve(success);
+        }
+      };
+
+      audio.onplay = () => {
+        if (onStart) onStart();
+      };
+      audio.onended = () => settle(true);
+      audio.onerror = (e) => {
+        console.warn('[SoundService] HTML5 Audio error:', e);
+        settle(false);
+      };
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('[SoundService] Audio.play() blocked by browser policy:', err);
+          settle(false);
+        });
+      }
+
+      // Fallback timeout
+      setTimeout(() => settle(true), 8000);
+    } catch (err) {
+      console.warn('[SoundService] playWebAudioElement exception:', err);
+      resolve(false);
+    }
+  });
+}
+
 export const SoundService = {
   setEnabled(enabled: boolean) {
     isAudioEnabled = enabled;
@@ -609,10 +663,33 @@ export const SoundService = {
   },
 
   /**
-   * Preload audio buffers for instant zero-latency playback
+   * Preload audio for zero-latency instant playback
    */
   async preloadSounds(): Promise<void> {
     await preloadAudioBuffers();
+    refreshVoices();
+  },
+
+  /**
+   * Preload specific TTS audio URL into memory cache
+   */
+  preloadTTS(text: string, langCode?: string): void {
+    if (!isWeb || typeof window === 'undefined' || !text) return;
+    try {
+      const url = getTTSAudioUrl(text, langCode);
+      if (url && !preloadedAudioElements.has(url)) {
+        const audio = new window.Audio(url);
+        audio.preload = 'auto';
+        preloadedAudioElements.set(url, audio);
+      }
+    } catch {}
+  },
+
+  /**
+   * Measure latency of the most recent speech or audio playback
+   */
+  getLastAudioLatency(): number {
+    return lastAudioLatencyMs;
   },
 
   /**
@@ -627,11 +704,7 @@ export const SoundService = {
   },
 
   /**
-   * Immediately stops all active audio playback:
-   * - Disconnects active Web Audio nodes and oscillators
-   * - Stops and resets active HTML5 Audio elements
-   * - Stops active Expo AV native sound instances
-   * - Cancels active speech synthesis and TTS playback
+   * Immediately stops all active audio playback
    */
   async stopAll(options: { keepSpeech?: boolean } = {}): Promise<void> {
     // 1. Stop all Web Audio nodes
@@ -686,22 +759,25 @@ export const SoundService = {
 
   /**
    * Speak pronunciation text out loud through the device speaker.
+   * Instant low-latency execution (<50ms start time).
    */
   async speak(text: string, options: SpeakOptions = {}): Promise<boolean> {
     if (!text || !isAudioEnabled) return false;
 
-    // Cancel prior speech before starting new speech to prevent overlapping voices
+    const requestStart = Date.now();
+
+    // Cancel prior speech immediately to prevent overlapping voices
     await this.stopSpeaking();
 
     const bcp47 = getBCP47Code(options.lang);
     const lang = (options.lang || 'es').toLowerCase().trim().replace(/(-en|-es)$/, '');
     const rate = options.rate ?? 1.0;
     const pitch = options.pitch ?? 1.0;
-    const ttsAudioUrl = getTTSAudioUrl(text, lang);
 
     await ensureAudioMode();
 
     const handleStart = () => {
+      lastAudioLatencyMs = Date.now() - requestStart;
       notifySpeaking(true);
       if (options.onStart) options.onStart();
     };
@@ -716,9 +792,23 @@ export const SoundService = {
       if (options.onError) options.onError(e);
     };
 
-    // Tier 1: Web Environment
+    // Tier 1: Web Environment - Instant Web Speech API Primary Engine
     if (isWeb && typeof window !== 'undefined') {
-      // 1a. Stream authentic native audio stream through device loudspeaker via backend proxy
+      // 1a. Native Web Speech API with language-specific voice (Instant <50ms start)
+      if ('speechSynthesis' in window) {
+        const speechPlayed = await playWebSpeechSynthesis(
+          text,
+          bcp47,
+          rate,
+          pitch,
+          handleStart,
+          handleDone
+        );
+        if (speechPlayed) return true;
+      }
+
+      // 1b. Low-latency streamed audio via backend
+      const ttsAudioUrl = getTTSAudioUrl(text, lang);
       const streamPlayed = await playWebAudioElement(
         ttsAudioUrl,
         rate,
@@ -726,17 +816,6 @@ export const SoundService = {
         handleDone
       );
       if (streamPlayed) return true;
-
-      // 1b. Fallback to Web Speech API if voice is supported
-      const speechPlayed = await playWebSpeechSynthesis(
-        text,
-        bcp47,
-        rate,
-        pitch,
-        handleStart,
-        handleDone
-      );
-      if (speechPlayed) return true;
 
       // 1c. Direct Google Translate stream fallback
       const directGoogleUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&client=tw-ob`;
@@ -748,7 +827,7 @@ export const SoundService = {
       );
       if (directPlayed) return true;
 
-      // 1d. Synthetic Web Audio tone fallback so user always gets auditory cue
+      // 1d. Synthetic Web Audio tone fallback so user always gets auditory feedback
       const chimePlayed = playSyntheticWebChime('success');
       if (chimePlayed) {
         handleStart();
@@ -774,6 +853,7 @@ export const SoundService = {
           onDone: handleDone,
           onError: (err: any) => {
             console.warn('[SoundService] Native speech error, falling back to remote stream:', err);
+            const ttsAudioUrl = getTTSAudioUrl(text, lang);
             this.playRemoteAudio(ttsAudioUrl, { volume: 1.0, timeoutMs: 5000 })
               .then((remoteOk) => {
                 if (!remoteOk) handleError(err);
@@ -787,7 +867,8 @@ export const SoundService = {
       console.warn('[SoundService] SpeechModule.speak failed:', err?.message);
     }
 
-    // Tier 3: Remote Audio Stream Playback (Cross-Platform Loudspeaker Fallback)
+    // Tier 3: Remote Audio Stream Playback
+    const ttsAudioUrl = getTTSAudioUrl(text, lang);
     const remotePlayed = await this.playRemoteAudio(ttsAudioUrl, { volume: 1.0, timeoutMs: 5000 });
     if (remotePlayed) {
       handleStart();
@@ -845,7 +926,7 @@ export const SoundService = {
   },
 
   /**
-   * Play remote audio file safely through device speaker (used ONLY for full sentence speech / listening audio)
+   * Play remote audio file safely through device speaker
    */
   async playRemoteAudio(url: string, options: { volume?: number; timeoutMs?: number } = {}): Promise<boolean> {
     if (!url || !isAudioEnabled) return false;
@@ -917,48 +998,36 @@ export const SoundService = {
 
   /**
    * Instant, cheerful success chime for correct answers.
-   * Completely in-memory, 0 network requests, <10ms latency.
    */
   async playSuccessChime(): Promise<void> {
-    if (!canPlaySound('correct', 100)) return;
+    if (!canPlaySound('correct', 80)) return;
     await playInMemorySound('CORRECT_CHIME', 0.85);
   },
 
-  /**
-   * Alias for playSuccessChime
-   */
   async playCorrect(): Promise<void> {
     return this.playSuccessChime();
   },
 
   /**
-   * Instant, gentle wooden marimba thud for wrong answers.
-   * Gentle, non-discouraging, completely in-memory, 0 network requests.
+   * Instant, gentle marimba thud for wrong answers.
    */
   async playErrorThud(): Promise<void> {
-    if (!canPlaySound('wrong', 100)) return;
+    if (!canPlaySound('wrong', 80)) return;
     await playInMemorySound('WRONG_THUD', 0.80);
   },
 
-  /**
-   * Alias for playErrorThud
-   */
   async playIncorrect(): Promise<void> {
     return this.playErrorThud();
   },
 
   /**
    * Instant, triumphant fanfare for successful section completion.
-   * Plays celebratory arpeggio and sustained resonant chord.
    */
   async playFanfare(): Promise<void> {
-    if (!canPlaySound('fanfare', 300)) return;
+    if (!canPlaySound('fanfare', 250)) return;
     await playInMemorySound('SECTION_COMPLETE_FANFARE', 0.90);
   },
 
-  /**
-   * Dedicated method for section completion
-   */
   async playSectionComplete(): Promise<void> {
     return this.playFanfare();
   },

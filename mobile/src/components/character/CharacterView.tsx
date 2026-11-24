@@ -39,6 +39,7 @@ export interface CharacterViewProps {
   emotionBadge?: 'star' | 'flame' | 'sparkle' | 'heart' | 'lightbulb';
   autoSpeakMessage?: boolean;
   environmentType?: EnvironmentType;
+  targetLanguage?: string;
 }
 
 export const CharacterView: React.FC<CharacterViewProps> = ({
@@ -59,13 +60,13 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
   emotionBadge,
   autoSpeakMessage = false,
   environmentType = 'auto',
+  targetLanguage = 'es',
 }) => {
   const [currentMood, setCurrentMood] = useState<CharacterMood>(initialMood || 'idle');
   const [activeMessage, setActiveMessage] = useState<string | undefined>(initialMessage);
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const floatAnim = useRef(new Animated.Value(0)).current;
 
   // Sync external message and mood updates
   useEffect(() => {
@@ -87,27 +88,7 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
     }
   }, [pose]);
 
-  // Subtle 3D floating animation
-  useEffect(() => {
-    const floatLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(floatAnim, {
-          toValue: -5,
-          duration: 1800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(floatAnim, {
-          toValue: 0,
-          duration: 1800,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    floatLoop.start();
-    return () => floatLoop.stop();
-  }, [floatAnim]);
-
-  // Subscribe to speech events for visual voice indicators
+  // Subscribe to speech events for visual voice indicators & mouth sync
   useEffect(() => {
     const unsubscribe = SoundService.addSpeakingListener((speaking) => {
       setIsSpeaking(speaking);
@@ -122,12 +103,12 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
     };
   }, [initialMood]);
 
-  // Auto-speak message if requested
+  // Auto-speak message in target language if requested
   useEffect(() => {
     if (autoSpeakMessage && activeMessage) {
-      SoundService.speak(activeMessage).catch(() => {});
+      SoundService.speak(activeMessage, { lang: targetLanguage }).catch(() => {});
     }
-  }, [autoSpeakMessage, activeMessage]);
+  }, [autoSpeakMessage, activeMessage, targetLanguage]);
 
   const profile = CHARACTER_PROFILES[character] || CHARACTER_PROFILES.maya;
 
@@ -135,26 +116,26 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
     if (!interactive) return;
     HapticsService.lightTap();
 
-    // Lively interactive bounce
+    // Natural tactile feedback bounce
     Animated.sequence([
       Animated.timing(scaleAnim, {
-        toValue: 0.92,
-        duration: 90,
+        toValue: 0.94,
+        duration: 80,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 3.5,
-        tension: 100,
+        friction: 4,
+        tension: 110,
         useNativeDriver: true,
       }),
     ]).start();
 
-    // Trigger spontaneous cheerful quote if no message is pinned
+    // Trigger spontaneous cheerful quote in active learning language if no message is pinned
     if (!initialMessage) {
-      const quote = getCharacterQuote(character, currentMood);
+      const quote = getCharacterQuote(character, currentMood, targetLanguage);
       setActiveMessage(quote);
-      SoundService.speak(quote).catch(() => {});
+      SoundService.speak(quote, { lang: targetLanguage }).catch(() => {});
     }
 
     if (onPress) {
@@ -165,7 +146,7 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
   const speakCurrentMessage = () => {
     if (activeMessage) {
       HapticsService.lightTap();
-      SoundService.speak(activeMessage).catch(() => {});
+      SoundService.speak(activeMessage, { lang: targetLanguage }).catch(() => {});
     }
   };
 
@@ -200,12 +181,12 @@ export const CharacterView: React.FC<CharacterViewProps> = ({
         </View>
       ) : null}
 
-      {/* 3D Character Viewport & Interactive Stage */}
+      {/* 3D Character Viewport & Grounded Stage (No floating detachment) */}
       <Animated.View
         style={[
           styles.stageContainer,
           {
-            transform: [{ scale: scaleAnim }, { translateY: floatAnim }],
+            transform: [{ scale: scaleAnim }],
           },
           style,
         ]}
@@ -249,89 +230,76 @@ const styles = StyleSheet.create({
   speechBubbleWrapper: {
     alignItems: 'center',
     marginBottom: 8,
-    maxWidth: 320,
-    zIndex: 30,
+    zIndex: 10,
+    width: '100%',
+    maxWidth: 360,
   },
   speechBubbleBottom: {
-    marginBottom: 0,
     marginTop: 8,
+    marginBottom: 0,
   },
   speechBubble: {
-    ...SHADOWS.card3D,
     backgroundColor: COLORS.white,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 22,
-    borderWidth: 1.5,
+    paddingVertical: 10,
+    borderRadius: 18,
+    borderWidth: 2,
     borderColor: '#E2E8F0',
-    borderBottomWidth: 3.5,
-    borderBottomColor: '#CBD5E1',
+    ...SHADOWS.card3D,
+    width: '100%',
   },
   nameTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginBottom: 4,
+    gap: 6,
+    marginBottom: 3,
   },
   nameTagText: {
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
   },
   roleTagText: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.grayText,
+    color: '#64748B',
   },
   audioHintPill: {
     marginLeft: 'auto',
-    padding: 3,
-    borderRadius: 8,
-    backgroundColor: '#F1F5F9',
+    padding: 2,
   },
   speechText: {
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     color: COLORS.charcoal,
-    lineHeight: 20,
+    lineHeight: 19,
   },
   bubbleTail: {
-    width: 14,
-    height: 14,
-    backgroundColor: COLORS.white,
-    borderRightWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: '#CBD5E1',
-    transform: [{ rotate: '45deg' }],
-    alignSelf: 'center',
+    width: 0,
+    height: 0,
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
   },
   bubbleTailTop: {
-    marginTop: -7,
+    borderTopWidth: 8,
+    borderTopColor: '#E2E8F0',
   },
   bubbleTailBottom: {
-    marginTop: 0,
-    marginBottom: -7,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    borderLeftWidth: 2,
-    borderTopWidth: 2,
+    borderBottomWidth: 8,
+    borderBottomColor: '#E2E8F0',
   },
   emotionBadgeContainer: {
     position: 'absolute',
-    top: 6,
-    right: 4,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#FFFFFF',
+    top: 4,
+    right: 8,
+    backgroundColor: COLORS.white,
+    borderRadius: 14,
+    padding: 5,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    borderBottomWidth: 3,
-    borderBottomColor: '#CBD5E1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 25,
-    ...SHADOWS.float,
+    ...SHADOWS.sm,
   },
 });

@@ -70,15 +70,19 @@ export const ListeningExercise: React.FC<ListeningExerciseProps> = ({
     }
   }, [isPlaying]);
 
-  // Autoplay audio once on exercise entry
+  // Preload and autoplay audio on exercise entry
   useEffect(() => {
+    const spoken = textToSpeak || prompt;
+    if (spoken) {
+      SoundService.preloadTTS(spoken, targetLanguage);
+    }
     const timer = setTimeout(() => {
       if (isMountedRef.current) {
         handlePlayAudio(false);
       }
-    }, 350);
+    }, 120);
     return () => clearTimeout(timer);
-  }, [textToSpeak, audioUrl]);
+  }, [textToSpeak, audioUrl, targetLanguage]);
 
   const handlePlayAudio = async (isSlow: boolean = false) => {
     HapticsService.lightTap();

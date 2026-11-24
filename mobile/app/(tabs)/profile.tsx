@@ -154,7 +154,8 @@ export default function ProfileScreen() {
             showStage={true}
             environmentType="auto"
             interactive={true}
-            message={getCharacterQuote(selectedCompanion, 'intro')}
+            targetLanguage={user?.targetLanguage || 'es'}
+            message={getCharacterQuote(selectedCompanion, 'intro', user?.targetLanguage || 'es')}
             messagePosition="top"
           />
           <Text style={styles.displayName}>{user?.displayName || 'Learner'}</Text>
@@ -179,8 +180,8 @@ export default function ProfileScreen() {
                   onPress={() => {
                     HapticsService.lightTap();
                     setSelectedCompanion(cid);
-                    const quote = getCharacterQuote(cid, 'intro');
-                    SoundService.speak(quote).catch(() => {});
+                    const quote = getCharacterQuote(cid, 'intro', user?.targetLanguage || 'es');
+                    SoundService.speak(quote, { lang: user?.targetLanguage || 'es' }).catch(() => {});
                   }}
                   style={[
                     styles.companionChip,

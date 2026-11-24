@@ -143,6 +143,7 @@ export default function OnboardingScreen() {
                 roundMask={false}
                 showStage={true}
                 interactive={true}
+                targetLanguage={targetLanguage}
               />
               <View style={styles.mayaSpeechBubble}>
                 <Text style={styles.mayaSpeechTitle}>Great choice!</Text>

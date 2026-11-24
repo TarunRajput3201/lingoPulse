@@ -424,23 +424,43 @@ export const validateLocalAnswer = (
       }
 
       case 'SPEAKING_PRONUNCIATION': {
-        if (!userAnswer || typeof userAnswer !== 'string') {
-          return { isCorrect: false, explanation: exercise.explanation };
+        if (!userAnswer || typeof userAnswer !== 'string' || !userAnswer.trim()) {
+          return { isCorrect: false, explanation: exercise.explanation || 'No speech was provided' };
         }
+        const targetPhrase = exercise.data?.phraseToSpeak || exercise.data?.targetText || exercise.prompt || '';
         const acceptable = [...(exercise.data?.acceptableAnswers || [])];
-        if (exercise.data?.targetText) {
-          acceptable.push(exercise.data.targetText);
+        if (targetPhrase) {
+          acceptable.push(targetPhrase);
         }
-        if (acceptable.length > 0) {
-          const normUser = normalizeText(userAnswer);
-          const isMatch = acceptable.some((ans) => normalizeText(ans) === normUser);
-          return {
-            isCorrect: isMatch,
-            correctAnswer: acceptable[0],
-            explanation: exercise.explanation,
-          };
+        if (acceptable.length === 0) {
+          return { isCorrect: false, explanation: 'Missing target pronunciation phrase' };
         }
-        return { isCorrect: true, explanation: exercise.explanation };
+
+        const normUser = normalizeText(userAnswer);
+        const userWords = normUser.split(' ').filter(Boolean);
+        if (userWords.length === 0) {
+          return { isCorrect: false, explanation: 'No speech was detected' };
+        }
+
+        const isMatch = acceptable.some((ans) => {
+          const normAns = normalizeText(ans);
+          if (normAns === normUser) return true;
+          const targetWords = normAns.split(' ').filter(Boolean);
+          if (targetWords.length === 0) return false;
+          let matches = 0;
+          for (const w of targetWords) {
+            if (userWords.includes(w)) matches++;
+          }
+          return matches / targetWords.length >= 0.70;
+        });
+
+        return {
+          isCorrect: isMatch,
+          correctAnswer: targetPhrase || acceptable[0],
+          explanation: isMatch
+            ? 'Great pronunciation!'
+            : `Expected: "${targetPhrase || acceptable[0]}"`,
+        };
       }
 
       default:

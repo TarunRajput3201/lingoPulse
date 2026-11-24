@@ -310,8 +310,18 @@ export class ExerciseValidator {
       }
 
       case 'SPEAKING_PRONUNCIATION': {
+        const rawUser = String(userAnswer || '').trim();
+        if (!rawUser) {
+          return {
+            isCorrect: false,
+            correctAnswer: data.phraseToSpeak || exercise.prompt,
+            explanation: 'No speech was detected. Please speak aloud into your microphone.',
+            hint: data.phoneticGuide || exercise.hint,
+          };
+        }
+
         const target = this.stripAccents(this.normalizeText(data.phraseToSpeak || exercise.prompt));
-        const spoken = this.stripAccents(this.normalizeText(String(userAnswer || '')));
+        const spoken = this.stripAccents(this.normalizeText(rawUser));
 
         const targetWords = target.split(' ').filter(Boolean);
         const spokenWords = spoken.split(' ').filter(Boolean);

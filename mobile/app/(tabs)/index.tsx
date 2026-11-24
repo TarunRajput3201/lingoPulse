@@ -30,6 +30,7 @@ import { HeaderBar } from '../../src/components/HeaderBar';
 import { Button3D } from '../../src/components/Button3D';
 import { CharacterView } from '../../src/components/character/CharacterView';
 import { CharacterIntroModal } from '../../src/components/character/CharacterIntroModal';
+import { getCharacterQuote } from '../../src/components/character/Character3DRegistry';
 import { useAuth } from '../../src/context/AuthContext';
 import { ENDPOINTS } from '../../src/constants/api';
 import { HapticsService } from '../../src/services/hapticsService';
@@ -207,7 +208,8 @@ export default function HomeScreen() {
             environmentType="classroom"
             roundMask={false}
             interactive={true}
-            message="Ready for today's lesson?"
+            targetLanguage={user?.targetLanguage || 'es'}
+            message={getCharacterQuote('maya', 'intro', user?.targetLanguage || 'es')}
             messagePosition="top"
           />
           <View style={{ marginLeft: 8, flex: 1 }}>

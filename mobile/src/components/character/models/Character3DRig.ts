@@ -54,9 +54,15 @@ export function createCharacter3DScene(
   // Lighting Setup
   const envLighting = ENVIRONMENT_3D[themeMode] || ENVIRONMENT_3D.daylight;
 
-  // Key Directional Light (Warm studio key)
+  // Key Directional Light (Warm studio key with real-time soft shadows)
   const keyLight = new THREE.DirectionalLight(envLighting.keyLight.color, envLighting.keyLight.intensity * 1.15);
   keyLight.position.set(...envLighting.keyLight.position);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.width = 1024;
+  keyLight.shadow.mapSize.height = 1024;
+  keyLight.shadow.camera.near = 0.5;
+  keyLight.shadow.camera.far = 10;
+  keyLight.shadow.bias = -0.0008;
   scene.add(keyLight);
 
   // Fill Light (Soft cool ambient fill to prevent harsh shadows)
@@ -116,6 +122,7 @@ function createPedestalStage(profile: typeof CHARACTER_PROFILES[CharacterId]): T
   });
   const topMesh = new THREE.Mesh(topGeo, topMat);
   topMesh.position.y = 0.06;
+  topMesh.receiveShadow = true;
   stage.add(topMesh);
 
   // Glowing Inlaid Accent Ring
@@ -141,6 +148,7 @@ function createPedestalStage(profile: typeof CHARACTER_PROFILES[CharacterId]): T
   });
   const baseMesh = new THREE.Mesh(baseGeo, baseMat);
   baseMesh.position.y = -0.05;
+  baseMesh.receiveShadow = true;
   stage.add(baseMesh);
 
   // Ground Contact Shadow Disc
@@ -811,6 +819,15 @@ export function build3DEnvironment(
   }
 }
 
+function enableShadows(root: THREE.Object3D): void {
+  root.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) {
+      child.castShadow = true;
+      child.receiveShadow = true;
+    }
+  });
+}
+
 /**
  * Master Rig Builder dispatching to individual characters
  */
@@ -838,6 +855,10 @@ function buildCharacterRig(
   } else {
     rig = buildPipRig(scene, profile, root, characterGroup, pedestal, particles);
   }
+
+  // Enable real-time volumetric soft shadows across all character anatomy and grounding stage
+  enableShadows(characterGroup);
+  enableShadows(pedestal);
 
   if (environment) {
     rig.environmentGroup = environment.group;
