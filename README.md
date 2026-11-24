@@ -1,6 +1,12 @@
 # LingoPulse 🌍 (LangLearn)
 ### Production-Ready Mobile Language Learning Platform Inspired by Duolingo
 
+[![Download Android APK](https://img.shields.io/badge/Download_APK-v1.0.0-brightgreen?style=for-the-badge&logo=android)](https://github.com/TarunRajput3201/lingoPulse/releases/latest/download/LingoPulse-v1.0.0.apk)
+[![Latest Release](https://img.shields.io/github/v/release/TarunRajput3201/lingoPulse?style=for-the-badge&label=Release&color=blue)](https://github.com/TarunRajput3201/lingoPulse/releases/latest)
+
+> 📱 **Direct Android APK Download:** [Download LingoPulse-v1.0.0.apk](https://github.com/TarunRajput3201/lingoPulse/releases/latest/download/LingoPulse-v1.0.0.apk)  
+> Or visit the [GitHub Releases Page](https://github.com/TarunRajput3201/lingoPulse/releases/latest) to download directly.
+
 LingoPulse is a full-stack, production-ready mobile language learning platform built from scratch for **Apple App Store** and **Google Play Store** distribution.
 
 It combines gamified learning mechanics (daily streaks, XP gems, hearts, weekly leagues, animated celebratory milestones) with an authoritative server-side architecture and an administrative CMS for dynamic curriculum authoring.

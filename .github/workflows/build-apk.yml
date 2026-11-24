@@ -26,6 +26,8 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Check out repository
@@ -106,3 +108,21 @@ jobs:
           name: LingoPulse-v1.0.0-apk
           path: mobile/android/app/build/outputs/apk/*/*.apk
           retention-days: 14
+
+      - name: Stage Release APK
+        run: |
+          mkdir -p release_assets
+          cp mobile/android/app/build/outputs/apk/*/*.apk release_assets/LingoPulse-v1.0.0.apk || true
+
+      - name: Publish to GitHub Releases
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "LingoPulse v1.0.0 - Production Release"
+          files: release_assets/LingoPulse-v1.0.0.apk
+          draft: false
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
