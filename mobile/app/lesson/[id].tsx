@@ -242,6 +242,17 @@ export default function LessonScreen() {
     }
   }, [id, user?.targetLanguage]);
 
+  // Robust target language resolution from active course, lesson ID prefix, or user profile
+  const activeTargetLanguage = useMemo(() => {
+    if (course?.toLanguage) return course.toLanguage.toLowerCase();
+    if (typeof id === 'string') {
+      const match = id.match(/lesson-([a-z]{2})-/i);
+      if (match && match[1]) return match[1].toLowerCase();
+    }
+    if (user?.targetLanguage) return user.targetLanguage.toLowerCase();
+    return 'fr';
+  }, [course?.toLanguage, id, user?.targetLanguage]);
+
   const unitNumber =
     lesson?.unitNumber ||
     (lesson?.unitId && parseInt(String(lesson.unitId).replace(/[^0-9]/g, ''), 10)) ||
@@ -600,7 +611,7 @@ export default function LessonScreen() {
               themeMode={isPassed ? 'celebration' : 'daylight'}
               environmentType="auto"
               interactive={true}
-              targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+              targetLanguage={activeTargetLanguage}
             />
             <View style={styles.pedestalPlatform} />
           </View>
@@ -748,19 +759,19 @@ export default function LessonScreen() {
             showStage={true}
             environmentType="auto"
             interactive={true}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+            targetLanguage={activeTargetLanguage}
             message={
               feedback.status === 'correct'
                 ? getCharacterQuote(
                     activeCharacter,
                     'correct',
-                    course?.toLanguage || user?.targetLanguage || 'es'
+                    activeTargetLanguage
                   )
                 : feedback.status === 'incorrect'
                 ? getCharacterQuote(
                     activeCharacter,
                     'wrong',
-                    course?.toLanguage || user?.targetLanguage || 'es'
+                    activeTargetLanguage
                   )
                 : undefined
             }
@@ -785,7 +796,7 @@ export default function LessonScreen() {
             options={currentExercise.data?.options || []}
             selectedOptionId={mcSelectedId}
             onSelectOption={setMcSelectedId}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+            targetLanguage={activeTargetLanguage}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -797,7 +808,7 @@ export default function LessonScreen() {
               options={currentExercise.data?.options || []}
               selectedOptionId={mcSelectedId}
               onSelectOption={setMcSelectedId}
-              targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+              targetLanguage={activeTargetLanguage}
               disabled={feedback.status !== 'none'}
             />
           )}
@@ -808,7 +819,7 @@ export default function LessonScreen() {
             sourceText={currentExercise.data?.sourcePrompt || currentExercise.data?.phraseToTranslate}
             userAnswer={typedAnswer}
             onChangeAnswer={setTypedAnswer}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'fr'}
+            targetLanguage={activeTargetLanguage}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -825,7 +836,7 @@ export default function LessonScreen() {
             }
             selectedWords={selectedWords}
             onChangeWords={setSelectedWords}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+            targetLanguage={activeTargetLanguage}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -835,7 +846,7 @@ export default function LessonScreen() {
             prompt={currentExercise.prompt}
             pairs={currentExercise.data?.pairs || []}
             onCompleteAllPairs={setMatchedPairs}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+            targetLanguage={activeTargetLanguage}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -847,7 +858,7 @@ export default function LessonScreen() {
             options={currentExercise.data?.options}
             selectedWord={typedAnswer}
             onSelectWord={setTypedAnswer}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+            targetLanguage={activeTargetLanguage}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -860,11 +871,11 @@ export default function LessonScreen() {
               currentExercise.data?.audioUrl ||
               SoundService.getTTSAudioUrl(
                 currentExercise.data?.transcript || currentExercise.data?.phraseToSpeak || currentExercise.prompt,
-                course?.toLanguage || user?.targetLanguage || 'es'
+                activeTargetLanguage
               )
             }
             textToSpeak={currentExercise.data?.transcript || currentExercise.data?.phraseToSpeak || currentExercise.prompt}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+            targetLanguage={activeTargetLanguage}
             options={currentExercise.data?.options || []}
             selectedOptionId={mcSelectedId}
             onSelectOption={setMcSelectedId}
@@ -878,7 +889,7 @@ export default function LessonScreen() {
             statement={currentExercise.data?.statement || currentExercise.prompt}
             selectedValue={tfSelectedVal}
             onSelectValue={setTfSelectedVal}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+            targetLanguage={activeTargetLanguage}
             disabled={feedback.status !== 'none'}
           />
         )}
@@ -894,12 +905,12 @@ export default function LessonScreen() {
               currentExercise.data?.audioUrl ||
               SoundService.getTTSAudioUrl(
                 currentExercise.data?.phraseToSpeak || currentExercise.prompt,
-                course?.toLanguage || user?.targetLanguage || 'es'
+                activeTargetLanguage
               )
             }
             spokenText={spokenCaptured}
             onSpokenRecorded={setSpokenCaptured}
-            targetLanguage={course?.toLanguage || user?.targetLanguage || 'es'}
+            targetLanguage={activeTargetLanguage}
             disabled={feedback.status !== 'none'}
           />
         )}

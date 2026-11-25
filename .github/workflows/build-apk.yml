@@ -105,22 +105,37 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: LingoPulse-v1.0.0-apk
+          name: LingoPulse-v1.0.2-apk
           path: mobile/android/app/build/outputs/apk/*/*.apk
           retention-days: 14
 
       - name: Stage Release APK
         run: |
           mkdir -p release_assets
-          cp mobile/android/app/build/outputs/apk/*/*.apk release_assets/LingoPulse-v1.0.0.apk || true
+          # Alias across all standard release filenames so direct download links NEVER fail with 404
+          for f in mobile/android/app/build/outputs/apk/*/*.apk; do
+            if [ -f "$f" ]; then
+              cp "$f" release_assets/LingoPulse-v1.0.2.apk
+              cp "$f" release_assets/LingoPulse-v1.0.1.apk
+              cp "$f" release_assets/LingoPulse-v1.0.0.apk
+              cp "$f" release_assets/LingoPulse.apk
+              echo "Staged $(basename "$f") as LingoPulse-v1.0.2.apk, LingoPulse-v1.0.1.apk, LingoPulse-v1.0.0.apk, LingoPulse.apk"
+              break
+            fi
+          done
+          ls -la release_assets/
 
       - name: Publish to GitHub Releases
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: "LingoPulse v1.0.0 - Production Release"
-          files: release_assets/LingoPulse-v1.0.0.apk
+          tag_name: v1.0.2
+          name: "LingoPulse v1.0.2 - Production Release"
+          files: |
+            release_assets/LingoPulse-v1.0.2.apk
+            release_assets/LingoPulse-v1.0.1.apk
+            release_assets/LingoPulse-v1.0.0.apk
+            release_assets/LingoPulse.apk
           draft: false
           prerelease: false
           make_latest: true

@@ -147,16 +147,12 @@ export const SpeakingExercise: React.FC<SpeakingExerciseProps> = ({
     setMicStatus(evalResult.status);
     setStatusMessage(evalResult.message);
 
-    if (evalResult.status === 'NO_SPEECH') {
-      // STRICT: Clear answer so empty silence cannot pass
-      onSpokenRecorded('');
-      HapticsService.error();
-    } else if (evalResult.status === 'SUCCESS') {
+    if (evalResult.status === 'SUCCESS') {
       onSpokenRecorded(evalResult.transcript);
       HapticsService.success();
     } else {
-      // Spoke but pronunciation did not match
-      onSpokenRecorded(evalResult.transcript || 'unclear speech');
+      // STRICT: Reject silence, background noise, or incorrect speech
+      onSpokenRecorded('');
       HapticsService.error();
     }
   };

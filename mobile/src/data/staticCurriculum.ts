@@ -308,7 +308,7 @@ export const validateLocalAnswer = (
   userAnswer: any
 ): { isCorrect: boolean; explanation?: string; correctAnswer?: string } => {
   try {
-    if (!exercise) return { isCorrect: true };
+    if (!exercise) return { isCorrect: false, explanation: 'Exercise data missing' };
     const type = exercise.type;
     const data = exercise.data || {};
 

@@ -460,6 +460,7 @@ export default function HomeScreen() {
         keyExtractor={(item) => item.id || `unit-${item.unitNumber}`}
         renderItem={renderUnitItem}
         ListHeaderComponent={renderHeader}
+        style={{ flex: 1, width: '100%' }}
         contentContainerStyle={styles.scrollContent}
         initialNumToRender={5}
         maxToRenderPerBatch={5}

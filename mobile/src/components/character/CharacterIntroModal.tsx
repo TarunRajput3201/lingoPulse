@@ -75,6 +75,7 @@ export const CharacterIntroModal: React.FC<CharacterIntroModalProps> = ({
               roundMask={false}
               showStage={true}
               emotionBadge="sparkle"
+              targetLanguage={targetLanguage}
             />
           </View>
 
@@ -82,11 +83,31 @@ export const CharacterIntroModal: React.FC<CharacterIntroModalProps> = ({
           <View style={styles.speechBubble}>
             <Text style={styles.speechGreeting}>{greetingWord}</Text>
             <Text style={styles.speechSubtitle}>
-              I'm Maya, your personal guide! Let's master{' '}
+              {targetLanguage === 'fr'
+                ? 'Je suis Maya, votre guide ! Explorons '
+                : targetLanguage === 'es'
+                ? '¡Soy Maya, tu guía! Exploremos '
+                : targetLanguage === 'de'
+                ? 'Ich bin Maya, deine Begleiterin! Lass uns '
+                : targetLanguage === 'ja'
+                ? 'マヤです！一緒に「'
+                : targetLanguage === 'it'
+                ? 'Sono Maya, la tua guida! Esploriamo '
+                : "I'm Maya, your personal guide! Let's explore "}
               <Text style={{ color: COLORS.primaryDark, fontWeight: '900' }}>
                 {lesson.title}
-              </Text>{' '}
-              together — at your own pace!
+              </Text>
+              {targetLanguage === 'fr'
+                ? ' ensemble, à votre rythme !'
+                : targetLanguage === 'es'
+                ? ' juntos, a tu propio ritmo!'
+                : targetLanguage === 'de'
+                ? ' gemeinsam meistern!'
+                : targetLanguage === 'ja'
+                ? '」を楽しく学びましょう！'
+                : targetLanguage === 'it'
+                ? ' insieme, con calma!'
+                : ' together — at your own pace!'}
             </Text>
           </View>
 

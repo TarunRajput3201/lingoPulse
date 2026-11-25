@@ -202,7 +202,8 @@ export const CurriculumService = {
       if (!exercise) {
         const heartStat = await this.getHeartsStatus();
         return {
-          isCorrect: true,
+          isCorrect: false,
+          explanation: 'Exercise verification failed. Please try again.',
           heartsRemaining: heartStat.hearts,
           maxHearts: MAX_HEARTS,
           nextHeartInSeconds: heartStat.nextHeartInSeconds,

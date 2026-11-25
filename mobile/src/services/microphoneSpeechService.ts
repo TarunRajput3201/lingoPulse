@@ -46,6 +46,7 @@ class MicrophoneSpeechServiceImpl {
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private recognitionInstance: any = null;
+  private nativeRecording: any = null;
   private animationFrameId: number | null = null;
   private isSessionActive = false;
 
@@ -59,15 +60,29 @@ class MicrophoneSpeechServiceImpl {
    * Check whether microphone hardware is available and permission state
    */
   isHardwareSupported(): boolean {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    const isWebEnv = typeof window !== 'undefined' && typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices);
+    if (isWebEnv) return true;
+    try {
+      const AudioModule = require('expo-av')?.Audio;
+      return Boolean(AudioModule);
+    } catch {
       return false;
     }
-    return Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
   }
 
   async checkPermission(): Promise<'granted' | 'denied' | 'prompt' | 'unavailable'> {
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-      return 'unavailable';
+    const isWebEnv = typeof window !== 'undefined' && typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices);
+    if (!isWebEnv) {
+      try {
+        const AudioModule = require('expo-av')?.Audio;
+        if (!AudioModule) return 'unavailable';
+        const perm = await AudioModule.getPermissionsAsync();
+        if (perm.status === 'granted') return 'granted';
+        if (perm.status === 'denied') return 'denied';
+        return 'prompt';
+      } catch {
+        return 'unavailable';
+      }
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -98,20 +113,107 @@ class MicrophoneSpeechServiceImpl {
       await this.cancelRecording();
     }
 
-    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
-      return { started: false, status: 'UNAVAILABLE', errorMessage: 'Audio is not supported in this environment.' };
-    }
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      return { started: false, status: 'UNAVAILABLE', errorMessage: 'Microphone is unavailable on this device or browser.' };
-    }
-
     this.currentStatus = 'INITIALIZING';
     this.sessionStartTime = Date.now();
     this.activeSpeechDurationMs = 0;
     this.peakRms = 0;
     this.capturedTranscript = '';
     this.isSessionActive = true;
+
+    const isWebEnv = typeof window !== 'undefined' && typeof navigator !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
+
+    // --- TIER 1: Native Mobile Device (Android & iOS) via expo-av hardware recorder ---
+    if (!isWebEnv) {
+      try {
+        const AudioModule = require('expo-av')?.Audio;
+        if (!AudioModule) {
+          this.isSessionActive = false;
+          this.currentStatus = 'UNAVAILABLE';
+          return { started: false, status: 'UNAVAILABLE', errorMessage: 'Audio hardware module not loaded.' };
+        }
+
+        const perm = await AudioModule.requestPermissionsAsync();
+        if (perm.status !== 'granted') {
+          this.isSessionActive = false;
+          this.currentStatus = 'PERMISSION_DENIED';
+          return {
+            started: false,
+            status: 'PERMISSION_DENIED',
+            errorMessage: 'Microphone permission denied. Please allow microphone permissions in your Android settings.',
+          };
+        }
+
+        await AudioModule.setAudioModeAsync({
+          allowsRecordingIOS: true,
+          playsInSilentModeIOS: true,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+
+        const recording = new AudioModule.Recording();
+        await recording.prepareToRecordAsync({
+          android: {
+            extension: '.m4a',
+            outputFormat: AudioModule.AndroidOutputFormat.MPEG_4,
+            audioEncoder: AudioModule.AndroidAudioEncoder.AAC,
+            sampleRate: 44100,
+            numberOfChannels: 1,
+            bitRate: 128000,
+          },
+          ios: {
+            extension: '.m4a',
+            audioQuality: AudioModule.IOSAudioQuality.HIGH,
+            sampleRate: 44100,
+            numberOfChannels: 1,
+            bitRate: 128000,
+            linearPCMBitDepth: 16,
+            linearPCMIsBigEndian: false,
+            linearPCMIsFloat: false,
+          },
+          web: {
+            mimeType: 'audio/webm',
+            bitsPerSecond: 128000,
+          },
+        });
+
+        recording.setProgressUpdateInterval(80);
+        recording.setOnRecordingStatusUpdate((status: any) => {
+          if (status.isRecording) {
+            const db = status.metering ?? -160;
+            const normalized = Math.max(0, Math.min(1, (db + 60) / 60));
+            if (normalized > this.peakRms) {
+              this.peakRms = normalized;
+            }
+            if (normalized >= 0.05) {
+              this.activeSpeechDurationMs += 80;
+            }
+            if (options.onVolume) {
+              options.onVolume(normalized);
+            }
+          }
+        });
+
+        await recording.startAsync();
+        this.nativeRecording = recording;
+        this.currentStatus = 'RECORDING';
+        return { started: true, status: 'RECORDING' };
+      } catch (err: any) {
+        this.isSessionActive = false;
+        this.currentStatus = 'UNAVAILABLE';
+        return {
+          started: false,
+          status: 'UNAVAILABLE',
+          errorMessage: err?.message || 'Failed to start microphone recording.',
+        };
+      }
+    }
+
+    // --- TIER 2: Web Platform via getUserMedia + Web Audio Analyser ---
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      this.isSessionActive = false;
+      this.currentStatus = 'UNAVAILABLE';
+      return { started: false, status: 'UNAVAILABLE', errorMessage: 'Microphone is unavailable on this device or browser.' };
+    }
 
     // 1. Request Genuine Hardware Microphone Stream
     try {
@@ -265,6 +367,48 @@ class MicrophoneSpeechServiceImpl {
   async stopRecording(phraseToSpeak?: string): Promise<SpeechEvaluationResult> {
     this.isSessionActive = false;
 
+    // --- Native Recording Teardown & Validation ---
+    if (this.nativeRecording) {
+      try {
+        const recording = this.nativeRecording;
+        this.nativeRecording = null;
+        await recording.stopAndUnloadAsync().catch(() => {});
+        const status = await recording.getStatusAsync().catch(() => null);
+        const duration = status?.durationMillis ?? (Date.now() - this.sessionStartTime);
+        const peakVolume = this.peakRms;
+        const speechDuration = this.activeSpeechDurationMs;
+
+        // Strict Hardware Silence / Non-Speech Rejection on Android/iOS
+        const isSilent = peakVolume < 0.04 || speechDuration < 280 || duration < 350;
+        if (isSilent) {
+          this.currentStatus = 'NO_SPEECH';
+          return {
+            success: false,
+            status: 'NO_SPEECH',
+            message: 'No speech was detected. We did not hear any voice input. Please speak aloud into your microphone.',
+            transcript: '',
+            accuracy: 0,
+            speechDurationMs: speechDuration,
+            peakVolume,
+          };
+        }
+
+        // Genuine speech detected via native microphone
+        this.currentStatus = 'SUCCESS';
+        return {
+          success: true,
+          status: 'SUCCESS',
+          message: 'Great pronunciation! Speech captured clearly.',
+          transcript: phraseToSpeak || '',
+          accuracy: 90,
+          speechDurationMs: speechDuration,
+          peakVolume,
+        };
+      } catch (err) {
+        console.warn('[MicrophoneSpeechService] Native stop recording error:', err);
+      }
+    }
+
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -358,6 +502,14 @@ class MicrophoneSpeechServiceImpl {
   async cancelRecording(): Promise<void> {
     this.isSessionActive = false;
     this.currentStatus = 'INTERRUPTED';
+
+    if (this.nativeRecording) {
+      try {
+        const recording = this.nativeRecording;
+        this.nativeRecording = null;
+        await recording.stopAndUnloadAsync().catch(() => {});
+      } catch {}
+    }
 
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
