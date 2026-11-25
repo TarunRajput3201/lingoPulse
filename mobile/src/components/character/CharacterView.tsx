@@ -243,8 +243,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 18,
-    borderWidth: 2,
-    borderColor: '#E2E8F0',
     ...SHADOWS.card3D,
     width: '100%',
   },
@@ -300,6 +298,6 @@ const styles = StyleSheet.create({
     padding: 5,
     borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    ...SHADOWS.sm,
+    ...SHADOWS.float,
   },
 });

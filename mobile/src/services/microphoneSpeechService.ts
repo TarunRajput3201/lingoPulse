@@ -255,17 +255,19 @@ class MicrophoneSpeechServiceImpl {
     try {
       const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
-        this.audioContext = new AudioCtx();
-        if (this.audioContext && this.audioContext.state === 'suspended') {
-          this.audioContext.resume().catch(() => {});
+        const audioCtx = new AudioCtx();
+        this.audioContext = audioCtx;
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
         }
-        const source = this.audioContext.createMediaStreamSource(this.activeStream);
-        this.analyser = this.audioContext.createAnalyser();
-        this.analyser.fftSize = 512;
-        this.analyser.smoothingTimeConstant = 0.2;
-        source.connect(this.analyser);
+        const source = audioCtx.createMediaStreamSource(this.activeStream);
+        const analyser = audioCtx.createAnalyser();
+        this.analyser = analyser;
+        analyser.fftSize = 512;
+        analyser.smoothingTimeConstant = 0.2;
+        source.connect(analyser);
 
-        const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
         const silenceThreshold = options.silenceRmsThreshold ?? 0.02;
 
         let lastCheck = Date.now();

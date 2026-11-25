@@ -41,6 +41,8 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
   const rigRef = useRef<RigInstance | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const isSpeakingRef = useRef<boolean>(false);
+  const moodRef = useRef<CharacterMood>(mood);
+  moodRef.current = mood;
   const [webGLFailed, setWebGLFailed] = useState<boolean>(false);
 
   // Parallax Tilt Values
@@ -92,7 +94,7 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
       renderer.setSize(size, size);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.shadowMap.type = THREE.PCFShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.08;
       rendererRef.current = renderer;
@@ -110,13 +112,16 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
       rig.pedestal.visible = false;
     }
 
-    const clock = new THREE.Clock();
+    const startMs = Date.now();
+    let lastMs = startMs;
 
     // 60 FPS Animation Render Loop
     const renderLoop = () => {
       if (destroyed) return;
-      const delta = Math.min(clock.getDelta(), 0.1);
-      const elapsedTime = clock.getElapsedTime();
+      const nowMs = Date.now();
+      const delta = Math.min((nowMs - lastMs) / 1000, 0.1);
+      const elapsedTime = (nowMs - startMs) / 1000;
+      lastMs = nowMs;
 
       // Smooth Parallax Lerp
       curRotX.current += (targetRotX.current - curRotX.current) * 0.1;
@@ -124,8 +129,8 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
       rig.root.rotation.x = curRotX.current;
       rig.root.rotation.y = curRotY.current;
 
-      // Update Character Kinematics & Lip-Sync
-      rig.update(delta, elapsedTime, isSpeakingRef.current, mood);
+      // Update Character Kinematics & Lip-Sync using live moodRef
+      rig.update(delta, elapsedTime, isSpeakingRef.current, moodRef.current);
 
       renderer.render(scene, camera);
       animFrameRef.current = requestAnimationFrame(renderLoop);
@@ -143,7 +148,7 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
       rendererRef.current = null;
       rigRef.current = null;
     };
-  }, [character, themeMode, size, showStage, mood, environmentType]);
+  }, [character, themeMode, size, showStage, environmentType]);
 
   const handlePress = useCallback(() => {
     if (!interactive) return;
@@ -160,7 +165,17 @@ export const Realtime3DCharacter: React.FC<Realtime3DCharacterProps> = ({
       <Pressable
         onPress={handlePress}
         disabled={!interactive}
-        style={[styles.pressableArea, { width: size, height: size }]}
+        style={[
+          styles.pressableArea,
+          {
+            width: size,
+            height: size,
+            borderRadius: Math.round(size * 0.18),
+            overflow: 'hidden',
+            borderWidth: 2,
+            borderColor: profile.pedestalBorder,
+          },
+        ]}
       >
         {!webGLFailed ? (
           <canvas

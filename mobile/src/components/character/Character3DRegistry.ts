@@ -15,6 +15,7 @@ export type CharacterId = 'maya' | 'leo' | 'elena' | 'kael' | 'pip';
 
 export type CharacterMood =
   | 'idle'
+  | 'intro'
   | 'speaking'
   | 'celebrate'
   | 'thinking'

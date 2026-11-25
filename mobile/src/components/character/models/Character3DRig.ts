@@ -234,7 +234,7 @@ function createDetailedEye(
 } {
   const eyeGroup = new THREE.Group();
 
-  // 1. Sclera (White with soft gloss)
+  // 1. Sclera (Slightly flattened front so iris & pupil sit cleanly on surface)
   const scleraGeo = new THREE.SphereGeometry(0.068, 20, 20);
   const scleraMat = new THREE.MeshStandardMaterial({
     color: 0xFFFFFF,
@@ -242,36 +242,39 @@ function createDetailedEye(
     metalness: 0.05,
   });
   const scleraMesh = new THREE.Mesh(scleraGeo, scleraMat);
+  scleraMesh.scale.set(1, 1.08, 0.55);
   eyeGroup.add(scleraMesh);
 
-  // 2. Iris Ring & Center (Rich Depth)
+  // 2. Iris Disc & Raised Pupil (Always clearly visible in front of sclera z = 0.037)
   const irisGroup = new THREE.Group();
-  irisGroup.position.set(0, 0, 0.045);
+  irisGroup.position.set(0, 0, 0.041);
   eyeGroup.add(irisGroup);
 
   const irisOuterMat = new THREE.MeshBasicMaterial({ color: irisColorHex });
-  const irisMesh = new THREE.Mesh(new THREE.RingGeometry(0.018, 0.045, 20), irisOuterMat);
+  const irisMesh = new THREE.Mesh(new THREE.CircleGeometry(0.044, 24), irisOuterMat);
   irisGroup.add(irisMesh);
 
   const pupilMat = new THREE.MeshBasicMaterial({ color: 0x0F172A });
-  const pupilMesh = new THREE.Mesh(new THREE.CircleGeometry(0.022, 18), pupilMat);
-  pupilMesh.position.set(0, 0, 0.002);
+  const pupilMesh = new THREE.Mesh(new THREE.SphereGeometry(0.025, 16, 16), pupilMat);
+  pupilMesh.scale.set(1, 1, 0.35);
+  pupilMesh.position.set(0, 0, 0.004);
   irisGroup.add(pupilMesh);
 
   // 3. Dual Specular Catchlights (The hallmark of lifelike eyes!)
   const catchlightMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
-  const mainCatchlight = new THREE.Mesh(new THREE.CircleGeometry(0.012, 12), catchlightMat);
-  mainCatchlight.position.set(isLeft ? 0.014 : -0.014, 0.014, 0.004);
+  const mainCatchlight = new THREE.Mesh(new THREE.CircleGeometry(0.011, 12), catchlightMat);
+  mainCatchlight.position.set(isLeft ? 0.014 : -0.014, 0.015, 0.014);
   irisGroup.add(mainCatchlight);
 
-  const secCatchlight = new THREE.Mesh(new THREE.CircleGeometry(0.006, 10), catchlightMat);
-  secCatchlight.position.set(isLeft ? -0.012 : 0.012, -0.012, 0.004);
+  const secCatchlight = new THREE.Mesh(new THREE.CircleGeometry(0.0055, 10), catchlightMat);
+  secCatchlight.position.set(isLeft ? -0.012 : 0.012, -0.012, 0.014);
   irisGroup.add(secCatchlight);
 
   // 4. Eyelid for Natural Blinking
   const eyelidGeo = new THREE.SphereGeometry(0.072, 18, 18, 0, Math.PI * 2, 0, Math.PI * 0.52);
   const eyelidMat = new THREE.MeshStandardMaterial({ color: 0xFAD0B0, roughness: 0.45 });
   const eyelidMesh = new THREE.Mesh(eyelidGeo, eyelidMat);
+  eyelidMesh.scale.set(1, 1.08, 0.65);
   eyelidMesh.rotation.x = -Math.PI / 2;
   eyelidMesh.visible = false;
   eyeGroup.add(eyelidMesh);
@@ -921,37 +924,37 @@ function buildMayaRig(
     metalness: 0.5,
   });
 
-  // Torso / Tailored Emerald Blazer
-  const torsoGeo = new THREE.CylinderGeometry(0.32, 0.25, 0.68, 28);
+  // Torso / Tailored Emerald Blazer (Positioned cleanly below chin & neck)
+  const torsoGeo = new THREE.CylinderGeometry(0.28, 0.24, 0.58, 28);
   const torsoMesh = new THREE.Mesh(torsoGeo, blazerMat);
-  torsoMesh.position.y = -0.04;
+  torsoMesh.position.y = -0.10;
   characterGroup.add(torsoMesh);
 
   // Shirt Collar & Golden Lapel Accent
-  const collarGeo = new THREE.ConeGeometry(0.18, 0.22, 3);
+  const collarGeo = new THREE.ConeGeometry(0.16, 0.18, 3);
   const collarMesh = new THREE.Mesh(collarGeo, shirtMat);
-  collarMesh.position.set(0, 0.24, 0.19);
+  collarMesh.position.set(0, 0.14, 0.18);
   collarMesh.rotation.x = Math.PI;
   characterGroup.add(collarMesh);
 
-  const lapelLeft = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.28, 0.03), goldTrimMat);
-  lapelLeft.position.set(-0.12, 0.12, 0.22);
+  const lapelLeft = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.24, 0.03), goldTrimMat);
+  lapelLeft.position.set(-0.11, 0.04, 0.21);
   lapelLeft.rotation.z = -0.22;
   characterGroup.add(lapelLeft);
 
-  const lapelRight = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.28, 0.03), goldTrimMat);
-  lapelRight.position.set(0.12, 0.12, 0.22);
+  const lapelRight = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.24, 0.03), goldTrimMat);
+  lapelRight.position.set(0.11, 0.04, 0.21);
   lapelRight.rotation.z = 0.22;
   characterGroup.add(lapelRight);
 
   // Sculpted Neck & Head Group
-  const neckGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.16, 20);
+  const neckGeo = new THREE.CylinderGeometry(0.10, 0.11, 0.18, 20);
   const neckMesh = new THREE.Mesh(neckGeo, skinMat);
-  neckMesh.position.set(0, 0.32, 0);
+  neckMesh.position.set(0, 0.25, 0);
   characterGroup.add(neckMesh);
 
   const headGroup = new THREE.Group();
-  headGroup.position.set(0, 0.48, 0);
+  headGroup.position.set(0, 0.50, 0);
   characterGroup.add(headGroup);
 
   // Head Contour (Sculpted with chin taper)
@@ -959,31 +962,37 @@ function buildMayaRig(
   const headMesh = new THREE.Mesh(headGeo, skinMat);
   headGroup.add(headMesh);
 
-  // Volumetric Styled Hairstyle (Layered buns & sweeping bangs)
-  const hairBaseGeo = new THREE.SphereGeometry(0.33, 28, 28, 0, Math.PI * 2, 0, Math.PI * 0.58);
+  // Volumetric Styled Hairstyle (Tilted backward so hairline frames forehead cleanly above brows)
+  const hairBaseGeo = new THREE.SphereGeometry(0.328, 28, 28, 0, Math.PI * 2, 0, Math.PI * 0.54);
   const hairBaseMesh = new THREE.Mesh(hairBaseGeo, hairMat);
-  hairBaseMesh.position.set(0, 0.05, -0.02);
+  hairBaseMesh.position.set(0, 0.06, -0.04);
+  hairBaseMesh.rotation.x = -0.34;
   headGroup.add(hairBaseMesh);
 
   const hairBunGeo = new THREE.SphereGeometry(0.15, 24, 24);
   const hairBun = new THREE.Mesh(hairBunGeo, hairMat);
-  hairBun.position.set(0, 0.36, -0.08);
+  hairBun.position.set(0, 0.36, -0.11);
   headGroup.add(hairBun);
 
   const hairpinGeo = new THREE.TorusGeometry(0.08, 0.015, 12, 24);
   const hairpin = new THREE.Mesh(hairpinGeo, goldTrimMat);
-  hairpin.position.set(0, 0.36, -0.08);
+  hairpin.position.set(0, 0.36, -0.11);
   hairpin.rotation.x = Math.PI / 2;
   headGroup.add(hairpin);
 
   // Lifelike Eyes with Depth & Catchlights
   const leftEye = createDetailedEye(0x059669, true);
-  leftEye.eyeGroup.position.set(-0.11, 0.04, 0.27);
+  leftEye.eyeGroup.position.set(-0.11, 0.04, 0.28);
   headGroup.add(leftEye.eyeGroup);
 
   const rightEye = createDetailedEye(0x059669, false);
-  rightEye.eyeGroup.position.set(0.11, 0.04, 0.27);
+  rightEye.eyeGroup.position.set(0.11, 0.04, 0.28);
   headGroup.add(rightEye.eyeGroup);
+
+  // Subtle Sculpted Nose
+  const mayaNose = new THREE.Mesh(new THREE.SphereGeometry(0.026, 12, 12), skinMat);
+  mayaNose.position.set(0, -0.02, 0.31);
+  headGroup.add(mayaNose);
 
   // Expressive 3D Eyebrows
   const leftBrow = createEyebrow(0x271B15);
@@ -1050,7 +1059,7 @@ function buildMayaRig(
     // 1. Natural idle breathing
     const breath = Math.sin(time * 2.2) * 0.024;
     characterGroup.position.y = breath;
-    headGroup.position.y = 0.48 + breath * 0.35;
+    headGroup.position.y = 0.50 + breath * 0.35;
 
     // 2. Subtle head sway & look-at
     headGroup.rotation.y = Math.sin(time * 1.1) * 0.07;
@@ -1171,29 +1180,34 @@ function buildLeoRig(
     roughness: 0.15,
   });
 
-  // Torso / Sporty Coach Vest
-  const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.27, 0.7, 24), jacketMat);
-  torsoMesh.position.y = -0.04;
+  // Torso / Sporty Coach Vest + Neck
+  const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.30, 0.25, 0.58, 24), jacketMat);
+  torsoMesh.position.y = -0.10;
   characterGroup.add(torsoMesh);
 
+  const leoNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.11, 0.16, 20), skinMat);
+  leoNeck.position.set(0, 0.24, 0);
+  characterGroup.add(leoNeck);
+
   // Athletic Stripe Accents
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.68, 0.32), cyanLedMat);
-  stripe.position.set(0, -0.04, 0.16);
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.56, 0.30), cyanLedMat);
+  stripe.position.set(0, -0.10, 0.15);
   characterGroup.add(stripe);
 
   // Head Group
   const headGroup = new THREE.Group();
-  headGroup.position.set(0, 0.48, 0);
+  headGroup.position.set(0, 0.50, 0);
   characterGroup.add(headGroup);
 
   const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.31, 30, 30), skinMat);
   headGroup.add(headMesh);
 
-  // Textured Modern Hairstyle
-  const hairGeo = new THREE.SphereGeometry(0.33, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.5);
+  // Textured Modern Hairstyle (Tilted back so eyes & brows remain clearly open)
+  const hairGeo = new THREE.SphereGeometry(0.326, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.5);
   const hairMat = new THREE.MeshStandardMaterial({ color: 0x1E293B, roughness: 0.35 });
   const hairMesh = new THREE.Mesh(hairGeo, hairMat);
-  hairMesh.position.set(0, 0.06, -0.02);
+  hairMesh.position.set(0, 0.07, -0.04);
+  hairMesh.rotation.x = -0.32;
   headGroup.add(hairMesh);
 
   // High-Tech Studio Broadcast Headphones
@@ -1309,8 +1323,8 @@ function buildLeoRig(
     // Speaking Lip-Sync + Soundwave Visualizer Pulses
     if (isSpeaking) {
       const speechVal = Math.sin(time * 26) * 0.5 + 0.5;
-      mouthRig.scale.y = 1 + speechVal * 2.2;
-      mouthRig.scale.x = 1 + speechVal * 0.35;
+      mouthRig.scale.y = 1 + speechVal * 1.1;
+      mouthRig.scale.x = 1 + speechVal * 0.25;
       micTip.scale.setScalar(1 + speechVal * 0.35);
 
       auraRings.forEach((ring, idx) => {
@@ -1396,35 +1410,40 @@ function buildElenaRig(
     roughness: 0.15,
   });
 
-  // Torso / Knit Sweater
-  const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.25, 0.66, 24), sweaterMat);
-  torsoMesh.position.y = -0.04;
+  // Torso / Knit Sweater + Neck
+  const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.24, 0.58, 24), sweaterMat);
+  torsoMesh.position.y = -0.10;
   characterGroup.add(torsoMesh);
 
-  // Layered Knitted Scarf
-  const scarfGeo = new THREE.TorusGeometry(0.24, 0.07, 16, 28);
+  const elenaNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.11, 0.16, 20), skinMat);
+  elenaNeck.position.set(0, 0.24, 0);
+  characterGroup.add(elenaNeck);
+
+  // Layered Knitted Scarf (Positioned cleanly below chin)
+  const scarfGeo = new THREE.TorusGeometry(0.21, 0.06, 16, 28);
   const scarfMesh = new THREE.Mesh(scarfGeo, scarfMat);
   scarfMesh.rotation.x = Math.PI / 2.2;
-  scarfMesh.position.set(0, 0.26, 0.04);
+  scarfMesh.position.set(0, 0.18, 0.04);
   characterGroup.add(scarfMesh);
 
-  const scarfTail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.34, 0.04), scarfMat);
-  scarfTail.position.set(0.12, 0.08, 0.23);
+  const scarfTail = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.30, 0.04), scarfMat);
+  scarfTail.position.set(0.12, 0.02, 0.22);
   scarfTail.rotation.z = -0.15;
   characterGroup.add(scarfTail);
 
   // Head Group (Natural conversational inquisitive tilt)
   const headGroup = new THREE.Group();
-  headGroup.position.set(0, 0.48, 0);
+  headGroup.position.set(0, 0.50, 0);
   headGroup.rotation.z = 0.06;
   characterGroup.add(headGroup);
 
   const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.31, 30, 30), skinMat);
   headGroup.add(headMesh);
 
-  // Flowing Wavy Hair Locks
-  const hairMesh = new THREE.Mesh(new THREE.SphereGeometry(0.34, 26, 26, 0, Math.PI * 2, 0, Math.PI * 0.62), hairMat);
-  hairMesh.position.set(0, 0.04, -0.02);
+  // Flowing Wavy Hair Locks (Tilted cleanly back above eyebrows)
+  const hairMesh = new THREE.Mesh(new THREE.SphereGeometry(0.334, 26, 26, 0, Math.PI * 2, 0, Math.PI * 0.56), hairMat);
+  hairMesh.position.set(0, 0.06, -0.05);
+  hairMesh.rotation.x = -0.36;
   headGroup.add(hairMesh);
 
   // Warm Amber Eyes
@@ -1566,19 +1585,23 @@ function buildKaelRig(
   });
   const wireMat = new THREE.MeshBasicMaterial({ color: 0xC084FC, wireframe: true });
 
-  // Torso / Speed Suit
-  const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.28, 0.7, 24), armorMat);
-  torsoMesh.position.y = -0.04;
+  // Torso / Speed Suit + Neck
+  const torsoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.26, 0.58, 24), armorMat);
+  torsoMesh.position.y = -0.10;
   characterGroup.add(torsoMesh);
+
+  const kaelNeck = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.11, 0.16, 20), skinMat);
+  kaelNeck.position.set(0, 0.24, 0);
+  characterGroup.add(kaelNeck);
 
   // Chest Challenge Emblem
   const chestPlate = new THREE.Mesh(new THREE.OctahedronGeometry(0.12), darkPlateMat);
-  chestPlate.position.set(0, 0.1, 0.19);
+  chestPlate.position.set(0, 0.04, 0.19);
   characterGroup.add(chestPlate);
 
   // Head
   const headGroup = new THREE.Group();
-  headGroup.position.set(0, 0.48, 0);
+  headGroup.position.set(0, 0.50, 0);
   characterGroup.add(headGroup);
 
   const headMesh = new THREE.Mesh(new THREE.SphereGeometry(0.31, 28, 28), skinMat);

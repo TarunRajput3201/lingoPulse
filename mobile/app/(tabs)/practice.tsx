@@ -249,7 +249,12 @@ export default function PracticeScreen() {
             <MascotPip
               mood="happy"
               size={120}
-              message="Your memory is sharp! No mistakes to review right now."
+              targetLanguage={user?.targetLanguage || 'fr'}
+              message={
+                (user?.targetLanguage || 'fr') === 'fr'
+                  ? 'Votre mémoire est excellente ! Aucune erreur à réviser.'
+                  : 'Your memory is sharp! No mistakes to review right now.'
+              }
             />
             <View style={styles.perfectCard}>
               <Sparkles size={30} color={COLORS.gold} />

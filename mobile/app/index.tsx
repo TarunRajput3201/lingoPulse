@@ -20,7 +20,7 @@ export default function RootIndex() {
         router.replace('/(auth)/login');
       } else if (!user.hasCompletedOnboarding) {
         hasNavigatedRef.current = true;
-        router.replace('/onboarding/index');
+        router.replace('/onboarding');
       } else {
         hasNavigatedRef.current = true;
         router.replace('/(tabs)');

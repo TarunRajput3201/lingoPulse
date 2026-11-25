@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderBottomWidth: 4,
     borderBottomColor: COLORS.secondaryDark,
-    ...SHADOWS.md,
+    ...SHADOWS.float,
   },
   listenButtonPlaying: {
     backgroundColor: COLORS.secondaryDark,
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderBottomWidth: 5,
     borderBottomColor: COLORS.primaryDark,
-    ...SHADOWS.lg,
+    ...SHADOWS.elevatedFloating,
   },
   micButtonRecording: {
     backgroundColor: '#DC2626',

@@ -59,7 +59,7 @@ export default function RegisterScreen() {
 
     if (res.success) {
       HapticsService.success();
-      router.replace('/onboarding/index');
+      router.replace('/onboarding');
     } else {
       HapticsService.error();
       setErrorMsg(res.message || 'Registration failed.');

@@ -227,8 +227,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }, 1000);
 
-    loadSession().finally(() => clearTimeout(watchdogTimer));
-    syncHearts();
+    loadSession()
+      .finally(() => {
+        clearTimeout(watchdogTimer);
+        syncHearts();
+      });
 
     const interval = setInterval(() => {
       setUser((prev) => {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import { X, Sparkles, Clock, Compass } from 'lucide-react-native';
 import { COLORS, RADII, SHADOWS, TYPOGRAPHY } from '../../constants/theme';
 import { Button3D } from '../Button3D';
 import { CharacterView } from './CharacterView';
+import { getCharacterQuote } from './Character3DRegistry';
+import { SoundService } from '../../services/soundService';
 
 interface CharacterIntroModalProps {
   visible: boolean;
@@ -36,6 +38,18 @@ export const CharacterIntroModal: React.FC<CharacterIntroModalProps> = ({
   targetLanguage = 'fr',
   languageName = 'French',
 }) => {
+  useEffect(() => {
+    if (visible && lesson) {
+      const greetingQuote = getCharacterQuote('maya', 'intro', targetLanguage);
+      SoundService.speak(greetingQuote, { lang: targetLanguage }).catch(() => {});
+    }
+    return () => {
+      if (visible) {
+        SoundService.stopSpeaking().catch(() => {});
+      }
+    };
+  }, [visible, lesson?.id, targetLanguage]);
+
   if (!lesson) return null;
 
   const isFrench = targetLanguage === 'fr';

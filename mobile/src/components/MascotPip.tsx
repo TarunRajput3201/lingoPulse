@@ -7,6 +7,7 @@ interface MascotPipProps {
   size?: number;
   message?: string;
   interactive?: boolean;
+  targetLanguage?: string;
 }
 
 export const MascotPip: React.FC<MascotPipProps> = ({
@@ -14,6 +15,7 @@ export const MascotPip: React.FC<MascotPipProps> = ({
   size = 120,
   message,
   interactive = true,
+  targetLanguage = 'fr',
 }) => {
   const getPose = () => {
     switch (mood) {
@@ -54,6 +56,7 @@ export const MascotPip: React.FC<MascotPipProps> = ({
         roundMask={false}
         showStage={true}
         emotionBadge={getEmotionBadge()}
+        targetLanguage={targetLanguage}
       />
     </View>
   );
